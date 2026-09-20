@@ -1,4 +1,5 @@
 name: Verify
+# Verification trigger: run on every main push and pull request.
 
 on:
   push:
