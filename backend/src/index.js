@@ -36,6 +36,17 @@ function errorResponse(code, status, message, request, env, details) {
 
 function methodNotAllowed(request, env) { return errorResponse("METHOD_NOT_ALLOWED", 405, "Method not allowed.", request, env); }
 
+function mutationOriginAllowed(request, env) {
+  const allowedOrigin = env?.FRONTEND_ORIGIN;
+  if (!allowedOrigin) return true;
+  const origin = request.headers.get("Origin");
+  return origin === allowedOrigin;
+}
+
+function originRejected(request, env) {
+  return errorResponse("FORBIDDEN_ORIGIN", 403, "Request origin is not allowed.", request, env);
+}
+
 async function readJson(request) {
   const contentLength = Number(request.headers.get("Content-Length"));
   if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) return { error: "PAYLOAD_TOO_LARGE" };
@@ -99,14 +110,17 @@ export default {
     }
     if (url.pathname === "/api/auth/sign-up") {
       if (request.method !== "POST") return methodNotAllowed(request, env);
+      if (!mutationOriginAllowed(request, env)) return originRejected(request, env);
       return signUp(request, env);
     }
     if (url.pathname === "/api/auth/sign-in") {
       if (request.method !== "POST") return methodNotAllowed(request, env);
+      if (!mutationOriginAllowed(request, env)) return originRejected(request, env);
       return signIn(request, env);
     }
     if (url.pathname === "/api/auth/sign-out") {
       if (request.method !== "POST") return methodNotAllowed(request, env);
+      if (!mutationOriginAllowed(request, env)) return originRejected(request, env);
       await revokeSession(request, env);
       return json({ ok: true }, 200, request, env, { "set-cookie": clearSessionCookie() });
     }
