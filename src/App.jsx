@@ -41,9 +41,10 @@ export default function App() {
   const [toast,setToast] = useState("");
   const [followingUsers,setFollowingUsers] = useState(() => new Set(["maya", "nia"]));
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
-  const like = (id) => setPosts((all) => all.map((p) => p.id === id ? {...p,liked:!p.liked,l:p.l+(p.liked?-1:1)} : p));
-  const save = (id) => setPosts((all) => all.map((p) => p.id === id ? {...p,saved:!p.saved,b:p.b+(p.saved?-1:1)} : p));
-  const follow = (id) => setPosts((all) => all.map((p) => p.id === id ? {...p,following:true} : p));
+  const like = (id) => setPosts((all) => toggleLike(all, id));
+  const save = (id) => setPosts((all) => toggleSaved(all, id));
+  const follow = (id) => setPosts((all) => followPostAuthor(all, id));
+  const followUser = (username) => setFollowingUsers((current) => { const next = new Set(current); if (next.has(username)) next.delete(username); else next.add(username); return next; });
   const publish = (value) => { const next = value?.kind ? toFeedPostFromCreatedPost(value) : {id:Date.now(),a:"David",h:"@david",t:"now",x:value.text,l:0,r:0,p:0,b:0,liked:false,saved:false,following:false,topic:"Your post",...value}; setPosts((all) => [next,...all]); setCreating(false); flash("Posted to S"); go(APP_ROUTES.HOME); };
   const open = (path) => go(path);
   const render = () => {
