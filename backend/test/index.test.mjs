@@ -24,7 +24,7 @@ assert.equal((await invalidMethod.json()).error.code, "METHOD_NOT_ALLOWED");
 
 assert.equal(
   await sha256Hex("session-token-test"),
-  "c1a2c3d4e5f6",
+  "84fd062df4bff6a9dbc029aeadf02fef3cf19b112818a1dee8b782673bcb5484",
 );
 
 console.log("Worker health, auth-session, and token-hashing contracts: PASS");
