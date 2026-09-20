@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Image, Music2, Palette, Send, Type } from "lucide-react";
-import { createPostDraft, validatePostDraft } from "./postContract";
+import { createEmptyDraft } from "./postContract";
+import { validatePostDraft } from "./postValidation";
 import "./createComposer.css";
 
 const MODES = [
@@ -11,10 +12,9 @@ const MODES = [
 ];
 
 export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
-  const [draft, setDraft] = useState(() => createPostDraft(initialDraft));
+  const [draft, setDraft] = useState(() => ({ ...createEmptyDraft(), ...initialDraft }));
   const [error, setError] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
-
   const validation = useMemo(() => validatePostDraft(draft), [draft]);
 
   function updateDraft(patch) {
@@ -22,25 +22,17 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
     setError("");
   }
 
-  function toggleMode(mode) {
-    const enabled = draft.contentKinds.includes(mode);
-    const contentKinds = enabled
-      ? draft.contentKinds.filter((kind) => kind !== mode)
-      : [...draft.contentKinds, mode];
-    updateDraft({ contentKinds });
-  }
-
   async function handleSubmit(event) {
     event.preventDefault();
     if (!validation.valid) {
-      setError(validation.errors[0]);
+      setError(Object.values(validation.errors)[0]);
       return;
     }
 
     setIsPublishing(true);
     setError("");
     try {
-      await onPublish?.(draft);
+      await onPublish?.(validation.payload);
     } catch (publishError) {
       setError(publishError?.message || "Unable to publish this post.");
     } finally {
@@ -55,11 +47,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
           <span className="s-create-composer__eyebrow">Create</span>
           <h2>Share something real.</h2>
         </div>
-        {onCancel && (
-          <button type="button" className="s-create-composer__cancel" onClick={onCancel}>
-            Cancel
-          </button>
-        )}
+        {onCancel && <button type="button" className="s-create-composer__cancel" onClick={onCancel}>Cancel</button>}
       </div>
 
       <textarea
@@ -70,17 +58,11 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
         aria-label="Post text"
       />
 
-      <div className="s-create-composer__modes" aria-label="Post content types">
+      <div className="s-create-composer__modes" aria-label="Post content type">
         {MODES.map(({ id, label, icon: Icon }) => {
-          const selected = draft.contentKinds.includes(id);
+          const selected = draft.kind === id;
           return (
-            <button
-              key={id}
-              type="button"
-              className={selected ? "is-selected" : ""}
-              aria-pressed={selected}
-              onClick={() => toggleMode(id)}
-            >
+            <button key={id} type="button" className={selected ? "is-selected" : ""} aria-pressed={selected} onClick={() => updateDraft({ kind: id })}>
               <Icon size={17} aria-hidden="true" />
               {label}
             </button>
@@ -101,7 +83,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
           Replies
           <select value={draft.replyPolicy} onChange={(event) => updateDraft({ replyPolicy: event.target.value })}>
             <option value="everyone">Everyone</option>
-            <option value="followers">Followers</option>
+            <option value="following">People you follow</option>
             <option value="mentioned">Mentioned people</option>
           </select>
         </label>
