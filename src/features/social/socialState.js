@@ -33,3 +33,11 @@ export function followPostAuthor(posts, id) {
     post.id === id ? { ...post, following: true } : post,
   );
 }
+
+export function toggleRepost(posts, id) {
+  return (Array.isArray(posts) ? posts : []).map((post) =>
+    post.id === id
+      ? { ...post, reposted: !post.reposted, p: Math.max(0, (post.p || 0) + (post.reposted ? -1 : 1)) }
+      : post,
+  );
+}
