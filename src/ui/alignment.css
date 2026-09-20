@@ -17,7 +17,7 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 [role="button"]:focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 3px solid var(--brand);
   outline-offset: 3px;
 }
 
@@ -40,15 +40,25 @@ input, textarea, select { min-height: var(--s-control-height); }
 textarea { resize: vertical; }
 
 .main { min-width: 0; }
-.post__body, .discover-row > div, .person > div, .suggest > span { min-width: 0; }
-.post__text, .heading p, .profile-info p, .notice p { overflow-wrap: anywhere; }
+.post__body, .discover-row > div, .person > div, .suggest > span,
+.conversation > div, .chat > header div, .audio-card > div:nth-child(2) { min-width: 0; }
+.post__text, .heading p, .profile-info p, .notice p,
+.suggest span, .conversation span { overflow-wrap: anywhere; }
+
+@media (max-width: 1100px) {
+  .app { grid-template-columns: 220px minmax(0, 680px); gap: 0; }
+  .rail { display: none; }
+}
 
 @media (max-width: 900px) {
   .post, .quick, .heading { padding-inline: 16px; }
   .rail-card, .card { margin-top: var(--s-space-4); }
+  .top { padding-inline: 16px; }
 }
 
 @media (max-width: 640px) {
+  .app { display: block; width: 100%; }
+  .main { width: 100%; border-inline: 0; }
   .post__actions { gap: 0; }
   .post__actions button { min-width: 34px; }
   .card, .settings, .rail-card { border-radius: 0; }
@@ -56,6 +66,9 @@ textarea { resize: vertical; }
   .heading h2 { font-size: 26px; }
   .earn-grid { grid-template-columns: 1fr; }
   .messages { height: auto; min-height: calc(100vh - 64px); grid-template-columns: 1fr; }
+  .messages > aside { max-height: 38vh; border-right: 0; border-bottom: 1px solid var(--line); }
+  .chat-body { padding: 16px; }
+  .bubble { max-width: 86%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
