@@ -1,0 +1,129 @@
+.s-create-composer {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--s-border, #2b2f36);
+  border-radius: 20px;
+  background: var(--s-surface, #101318);
+}
+
+.s-create-composer__header,
+.s-create-composer__footer,
+.s-create-composer__controls,
+.s-create-composer__modes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.s-create-composer__eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--s-muted, #8b93a1);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.s-create-composer h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.s-create-composer textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 14px;
+  border: 1px solid var(--s-border, #2b2f36);
+  border-radius: 14px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.s-create-composer button,
+.s-create-composer select {
+  min-height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--s-border, #2b2f36);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.s-create-composer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 13px;
+  cursor: pointer;
+}
+
+.s-create-composer button.is-selected {
+  border-color: var(--s-accent, #7c8cff);
+  background: color-mix(in srgb, var(--s-accent, #7c8cff) 16%, transparent);
+}
+
+.s-create-composer button[type="submit"] {
+  border-color: transparent;
+  background: var(--s-accent, #7c8cff);
+  color: white;
+  font-weight: 700;
+}
+
+.s-create-composer button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.s-create-composer__cancel {
+  color: var(--s-muted, #8b93a1);
+}
+
+.s-create-composer__controls label {
+  display: grid;
+  gap: 6px;
+  color: var(--s-muted, #8b93a1);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.s-create-composer__controls select {
+  min-width: 140px;
+  padding: 0 10px;
+  color: inherit;
+  font-size: 13px;
+}
+
+.s-create-composer__error {
+  margin: 0;
+  color: #f87171;
+  font-size: 13px;
+}
+
+.s-create-composer__footer > span {
+  color: var(--s-muted, #8b93a1);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .s-create-composer {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .s-create-composer__controls {
+    align-items: stretch;
+  }
+
+  .s-create-composer__controls label,
+  .s-create-composer__controls select {
+    width: 100%;
+  }
+}
