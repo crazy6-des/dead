@@ -33,8 +33,11 @@ export function useAuthState({ enabled = true } = {}) {
   useEffect(() => {
     if (!enabled) return undefined;
     const controller = new AbortController();
-    refreshSession({ signal: controller.signal }).catch(() => {});
-    return () => controller.abort();
+    const task = Promise.resolve().then(() => refreshSession({ signal: controller.signal }));
+    return () => {
+      controller.abort();
+      task.catch(() => {});
+    };
   }, [enabled, refreshSession]);
 
   const signIn = useCallback(async (credentials, { signal } = {}) => {
