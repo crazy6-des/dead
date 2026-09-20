@@ -54,7 +54,7 @@ function PostDetail({ post, onBack, onSave, onOpen, mode = "post" }) {
     try {
       if (navigator.share) await navigator.share({ title: "Post on S", text: post.x || "Post on S", url });
       else await navigator.clipboard?.writeText(url);
-    } catch {}
+    } catch { setShared(false); }
     setShared(true);
   };
 
@@ -98,7 +98,7 @@ function PostDetail({ post, onBack, onSave, onOpen, mode = "post" }) {
 function ShareDetail({ post, onBack }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
-    await navigator.clipboard?.writeText(window.location.origin + "/post/" + post.id);
+    try { await navigator.clipboard?.writeText(window.location.origin + "/post/" + post.id); } catch { setCopied(false); return; }
     setCopied(true);
   };
   return <div className="detail-page"><BackButton onBack={onBack}/><div className="share-sheet"><div className="heading"><small>SHARE</small><h2>Share this post</h2></div><div className="share-preview"><b>{post.a}</b><p>{post.x}</p></div><div className="share-options"><button onClick={copy}><Copy/>Copy link</button><button onClick={() => window.open("mailto:?subject=Post on S&body=" + encodeURIComponent(window.location.origin + "/post/" + post.id), "_self")}><Send/>Send by email</button><button><Users/>Share with followers</button></div>{copied && <p className="inline-notice">Link copied.</p>}</div></div>;
