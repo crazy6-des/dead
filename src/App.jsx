@@ -7,6 +7,7 @@ import { useAppRouter } from "./app/useAppRouter.js";
 import { APP_ROUTES, ROUTE_LABELS } from "./app/routes.js";
 import { PRODUCT_IDENTITY } from "./app/productIdentity.js";
 import { socialGraphService } from "./services/socialGraphService.js";
+import { bookmarkService } from "./services/bookmarkService.js";
 import { SOCIAL_RELATIONSHIPS, normalizeUsername } from "./features/social/socialGraphContract.js";
 import HomeRoute from "./features/home/HomeRoute.jsx";
 import DiscoverRoute from "./features/discover/DiscoverRoute.jsx";
@@ -49,7 +50,14 @@ export default function App() {
   const [searchOpen,setSearchOpen] = useState(false);
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
   const like = (id) => setPosts((all) => toggleLike(all, id));
-  const save = (id) => setPosts((all) => toggleSaved(all, id));
+  const save = (id) => {
+    const current = posts.find((post) => post.id === id);
+    if (!current) return;
+    const nextSaved = !current.saved;
+    setPosts((all) => toggleSaved(all, id));
+    const request = nextSaved ? bookmarkService.save({ postId: id, folderId: null }) : bookmarkService.remove(id);
+    request.catch(() => setPosts((all) => toggleSaved(all, id)));
+  };
   const repost = (id) => setPosts((all) => toggleRepost(all, id));
   const followUser = (username) => {
     const target = normalizeUsername(username);
