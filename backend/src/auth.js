@@ -80,6 +80,14 @@ export async function resolveSession(request, env) {
   return await env.DB.prepare("SELECT s.id, s.user_id, s.expires_at, u.username, u.display_name FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ?1 AND s.revoked_at IS NULL AND s.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now') AND u.deleted_at IS NULL LIMIT 1").bind(tokenHash).first() || null;
 }
 
+export async function revokeSession(request, env) {
+  const token = getSessionToken(request);
+  if (!token || !env?.DB) return false;
+  const tokenHash = await sha256Hex(token);
+  await env.DB.prepare("UPDATE sessions SET revoked_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE token_hash = ?1 AND revoked_at IS NULL").bind(tokenHash).run();
+  return true;
+}
+
 export function createSessionToken() {
   return `${globalThis.crypto.randomUUID()}${globalThis.crypto.randomUUID()}`;
 }
