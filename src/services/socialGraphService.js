@@ -29,7 +29,7 @@ export function createDevSocialGraphAdapter(seed = {}) {
   const relationships = new Map(
     Object.entries(seed).map(([username, values]) => [
       normalizeUsername(username),
-      new Set(Array.isArray(values) ? values : []),
+      new Set(Array.isArray(values) ? values.map(normalizeUsername).filter(Boolean) : []),
     ]),
   );
 
@@ -51,8 +51,7 @@ export function createDevSocialGraphAdapter(seed = {}) {
       return Promise.resolve(createGraphPage([]));
     },
     listFollowing(username) {
-      const set = getSet(username);
-      return Promise.resolve(createGraphPage([...set].map((relationship) => ({ relationship }))));
+      return Promise.resolve(createGraphPage([...getSet(username)].map((username) => ({ username }))));
     },
   };
 }
