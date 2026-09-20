@@ -12,6 +12,7 @@ export const APP_ROUTES = Object.freeze({
   EARN: "/earn",
   SEARCH: "/search",
 });
+
 export const ROUTE_LABELS = Object.freeze({
   [APP_ROUTES.HOME]: "Home",
   [APP_ROUTES.DISCOVER]: "Discover",
@@ -26,20 +27,28 @@ export const ROUTE_LABELS = Object.freeze({
   [APP_ROUTES.EARN]: "Earn",
   [APP_ROUTES.SEARCH]: "Search",
 });
-export function normalizeRoute(pathname = window.location.pathname) {
-  const path = pathname.split("?")[0].replace(/\/+$/, "") || "/";
+
+function getPathname(value) {
+  return String(value || "/").split(/[?#]/)[0].replace(/\/+$/, "") || "/";
+}
+
+export function normalizeRoute(pathname = typeof window === "undefined" ? "/" : window.location.pathname) {
+  const path = getPathname(pathname);
   if (path === "/profile") return APP_ROUTES.PROFILE;
   if (Object.values(APP_ROUTES).includes(path)) return path;
   if (/^\/(post|share|user|topic|followers|following|search|settings)(\/|$)/.test(path)) return path;
   return APP_ROUTES.HOME;
 }
+
 export function navigateTo(route) {
   const raw = String(route || "/");
-  const [pathname, search = ""] = raw.split("?");
+  const [location, hash = ""] = raw.split("#", 2);
+  const [pathname, search = ""] = location.split("?", 2);
   const next = normalizeRoute(pathname);
   const suffix = search ? "?" + search : "";
-  const current = window.location.pathname + window.location.search;
-  const target = next + suffix;
+  const fragment = hash ? "#" + hash : "";
+  const current = window.location.pathname + window.location.search + window.location.hash;
+  const target = next + suffix + fragment;
   if (current !== target) {
     window.history.pushState({}, "", target);
     window.dispatchEvent(new window.Event("popstate"));
