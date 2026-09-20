@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { socialGraphService } from "../../services/socialGraphService.js";
+import PostCard from "../post/PostCard.jsx";
 import {
   ArrowLeft, Bookmark, Check, Copy, Heart, Link2, MessageCircle,
   Repeat2, Send, Users
