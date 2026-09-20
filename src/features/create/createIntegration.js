@@ -1,4 +1,5 @@
 import { createPostAdapter } from "../../services";
+import { normalizeCreatedPostResponse } from "./postContract";
 
 /**
  * Creates the publish boundary used by the S composer.
@@ -17,12 +18,7 @@ export function createCreatePublishHandler({
     const result = await adapter.publish(draft);
 
     if (typeof onLocalPublish === "function") {
-      const publishedPost =
-        result?.post
-        ?? result?.data?.post
-        ?? result?.data
-        ?? result
-        ?? draft;
+      const publishedPost = normalizeCreatedPostResponse(result);
 
       await onLocalPublish(publishedPost);
     }
