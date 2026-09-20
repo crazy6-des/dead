@@ -12,6 +12,7 @@ import { NotificationsRoute, MessagesRoute, SavedRoute } from "./features/inbox/
 import SettingsRoute from "./features/settings/SettingsRoute.jsx";
 import EarnRoute from "./features/earn/EarnRoute.jsx";
 import EntityRoute from "./features/explore/EntityRoute.jsx";
+import SearchOverlay from "./features/search/SearchOverlay.jsx";
 
 const seed = [
  {id:1,a:"S Team",h:"@s",t:"2h",x:"Welcome to S — a place for ideas, images, music, and the people behind them.",l:128,r:18,p:9,b:31,liked:false,saved:false,following:false,topic:"Community",verified:true},
@@ -40,6 +41,7 @@ export default function App() {
   const [creating,setCreating] = useState(false);
   const [toast,setToast] = useState("");
   const [followingUsers,setFollowingUsers] = useState(() => new Set(["maya", "nia"]));
+  const [searchOpen,setSearchOpen] = useState(false);
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
   const like = (id) => setPosts((all) => toggleLike(all, id));
   const save = (id) => setPosts((all) => toggleSaved(all, id));
@@ -70,5 +72,5 @@ export default function App() {
     if (route === APP_ROUTES.EARN) return <EarnRoute onOpen={open}/>;
     return <EntityRoute path={route} posts={posts} onBack={() => go(APP_ROUTES.HOME)} onOpen={open} onSave={save}/>;
   };
-  return <div className={"app " + (dark ? "" : "light")}><Sidebar route={route} go={go} onCreate={() => setCreating(true)}/><main className="main"><PageHeader route={route} onSearch={() => go(APP_ROUTES.DISCOVER)} onTheme={() => setDark((v) => !v)}/>{render()}</main><RightRail go={go} followingUsers={followingUsers} onFollowUser={followUser}/><nav className="mobile-nav">{[[HomeIcon,"Home",APP_ROUTES.HOME],[Compass,"Discover",APP_ROUTES.DISCOVER],[Plus,"Create",null],[Bell,"Notifications",APP_ROUTES.NOTIFICATIONS],[UserRound,"Profile",APP_ROUTES.PROFILE]].map(([Icon,label,path]) => <button key={label} onClick={() => path ? go(path) : setCreating(true)} className={route === path ? "active" : ""}><Icon/><small>{label}</small></button>)}</nav>{creating && <div className="modal"><div className="create"><CreateRoute onPublish={publish} onCancel={() => setCreating(false)}/></div><button className="modal-close" onClick={() => setCreating(false)}><X/></button></div>}{toast && <div className="toast">{toast}</div>}</div>;
+  return <div className={"app " + (dark ? "" : "light")}><Sidebar route={route} go={go} onCreate={() => setCreating(true)}/><main className="main"><PageHeader route={route} onSearch={() => setSearchOpen(true)} onTheme={() => setDark((v) => !v)}/>{render()}</main><RightRail go={go} followingUsers={followingUsers} onFollowUser={followUser}/><nav className="mobile-nav">{[[HomeIcon,"Home",APP_ROUTES.HOME],[Compass,"Discover",APP_ROUTES.DISCOVER],[Plus,"Create",null],[Bell,"Notifications",APP_ROUTES.NOTIFICATIONS],[UserRound,"Profile",APP_ROUTES.PROFILE]].map(([Icon,label,path]) => <button key={label} onClick={() => path ? go(path) : setCreating(true)} className={route === path ? "active" : ""}><Icon/><small>{label}</small></button>)}</nav>{searchOpen && <SearchOverlay posts={posts} onOpen={(path) => { setSearchOpen(false); open(path); }} onClose={() => setSearchOpen(false)}/>} {creating && <div className="modal"><div className="create"><CreateRoute onPublish={publish} onCancel={() => setCreating(false)}/></div><button className="modal-close" onClick={() => setCreating(false)}><X/></button></div>}{toast && <div className="toast">{toast}</div>}</div>;
 }
