@@ -9,7 +9,7 @@
     "test:api": "node scripts/test-api-client.mjs",
     "test:routes": "node scripts/test-route-contract.mjs",
     "test:navigation": "node scripts/test-navigation-contract.mjs",
-    "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:routes && npm run test:navigation && npm run test:create && npm run test:feed-create && npm run test:contracts && npm run test:post-vocabulary && npm run test:auth-contract && npm run test:social-communication && npm run test:social-state && npm run test:x-scale-contracts",
+    "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:routes && npm run test:navigation && npm run test:create && npm run test:feed-create && npm run test:contracts && npm run test:post-vocabulary && npm run test:auth-contract && npm run test:social-communication && npm run test:social-state && npm run test:x-scale-contracts && npm run test:media-contract",
     "test:create": "node scripts/test-create-integration.mjs",
     "test:feed-create": "node scripts/test-feed-create-boundary.mjs",
     "test:contracts": "node scripts/test-feed-contracts.mjs",
@@ -17,7 +17,8 @@
     "test:auth-contract": "node scripts/test-auth-contract.mjs",
     "test:social-communication": "node scripts/test-social-communication-contracts.mjs",
     "test:social-state": "node scripts/test-social-state.mjs",
-    "test:x-scale-contracts": "node scripts/test-x-scale-contracts.mjs"
+    "test:x-scale-contracts": "node scripts/test-x-scale-contracts.mjs",
+    "test:media-contract": "node scripts/test-media-contract.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
