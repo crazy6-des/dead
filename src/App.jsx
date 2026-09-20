@@ -75,7 +75,8 @@ export default function App() {
     if (route === APP_ROUTES.DISCOVER) return <DiscoverRoute posts={posts} onLike={like} onSave={save} onRepost={repost} onOpen={open} followingUsers={followingUsers} onFollow={followUser}/>;
     if (route === APP_ROUTES.PROFILE) return <ProfileRoute posts={posts} onLike={like} onSave={save} onFollow={followPost} onRepost={repost} onFollowUser={followUser} followingUsers={followingUsers} onOpen={open}/>;
     if (route === APP_ROUTES.NOTIFICATIONS) return <NotificationsRoute onOpen={open}/>;
-    if (route === APP_ROUTES.MESSAGES) return <MessagesRoute/>;\n    if (route === APP_ROUTES.SPACES) return <SpacesRoute/>;
+    if (route === APP_ROUTES.MESSAGES) return <MessagesRoute/>;
+    if (route === APP_ROUTES.SPACES) return <SpacesRoute/>;
     if (route === APP_ROUTES.SAVED) return <SavedRoute posts={posts} onSave={save} onOpen={open}/>;
     if (route === APP_ROUTES.BOOKMARKS) return <BookmarkFoldersRoute posts={posts} onOpen={open}/>;
     if (route === APP_ROUTES.LISTS) return <ListsRoute/>;
