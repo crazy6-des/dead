@@ -41,7 +41,7 @@ export function toFeedPostFromCreatedPost(
     topic: post.topic ?? "Your post",
     media,
     music: post.music ?? audio,
-    bg: post.bg ?? post.background ?? null,
+    bg: post.bg ?? post.background ?? null,\n    poll: post.poll ?? null,
     kind: post.kind ?? "text",
   };
 }
