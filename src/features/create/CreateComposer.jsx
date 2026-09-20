@@ -103,7 +103,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
       <div className="s-create-composer__header">
         <div>
           <span className="s-create-composer__eyebrow">Create</span>
-          <h2>Share something real.</h2>
+          <h2 id="create-dialog-title">Share something real.</h2>
         </div>
         {onCancel && <button type="button" className="s-create-composer__cancel" onClick={onCancel}>Cancel</button>}
       </div>
