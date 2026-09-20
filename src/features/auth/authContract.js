@@ -32,6 +32,10 @@ export function createAuthState(status = AUTH_STATUSES.UNKNOWN, user = null, err
   return Object.freeze({ status, user, error });
 }
 
+export function getAuthUser(payload) {
+  return payload?.user ?? payload?.data?.user ?? null;
+}
+
 export function isAuthenticated(state) {
   return state?.status === AUTH_STATUSES.AUTHENTICATED && Boolean(state.user);
 }
