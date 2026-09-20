@@ -135,3 +135,23 @@ function NetworkRoute({ type, username, onBack, followingUsers = new Set(), onFo
   })}</div>;
 }
 
+
+
+export default function EntityRoute({ path = "/", posts = [], onBack, onOpen, onLike, onSave, onRepost, onFollowUser, followingUsers = new Set() }) {
+  const parts = String(path).split("/").filter(Boolean);
+  const type = parts[0] || "";
+  const id = parts[1] || "";
+  if (type === "post") {
+    const post = posts.find((item) => String(item.id) === String(id));
+    if (!post) return <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Post not found</h3><p>This post may have been removed or is not available.</p></div></div>;
+    return <PostDetail post={post} onBack={onBack} onLike={onLike} onSave={onSave} onRepost={onRepost} onOpen={onOpen} mode={parts[2] || "post"}/>;
+  }
+  if (type === "share") {
+    const post = posts.find((item) => String(item.id) === String(id));
+    return post ? <ShareDetail post={post} onBack={onBack}/> : <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Post not found</h3></div></div>;
+  }
+  if (type === "user") return <UserDetail username={id} onBack={onBack} onOpen={onOpen} onFollowUser={onFollowUser} followingUsers={followingUsers}/>;
+  if (type === "followers" || type === "following") return <NetworkRoute type={type} username={id || "david"} onBack={onBack} followingUsers={followingUsers} onFollowUser={onFollowUser}/>;
+  if (type === "topic") return <div className="detail-page"><BackButton onBack={onBack}/><div className="heading"><small>TOPIC</small><h2>#{decodeURIComponent(id)}</h2><p>Conversation around this topic on S.</p></div>{posts.filter((post) => String(post.topic || "").toLowerCase() === decodeURIComponent(id).toLowerCase()).map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onOpen={onOpen}/>)}</div>;
+  return <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Nothing to show</h3><p>That S destination is not available.</p></div></div>;
+}
