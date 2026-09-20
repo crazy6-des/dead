@@ -14,7 +14,7 @@ export function createApiSocialGraphAdapter(client = apiClient) {
     },
     listFollowers(username, request = {}) {
       const user = normalizeUsername(username);
-      return client.get("/api/users/" + encodeURIComponent(user) + "/followers", request)
+      return client.get("/api/users/" + encodeURIComponent(user) + "/followers", { query: request })
         .then((page) => createGraphPage(page?.items || [], page?.nextCursor || null));
     },
     listFollowing(username, request = {}) {
