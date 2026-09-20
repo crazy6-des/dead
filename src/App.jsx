@@ -51,15 +51,15 @@ export default function App() {
   const repost = (id) => setPosts((all) => toggleRepost(all, id));
   const followUser = (username) => {
     const target = normalizeUsername(username);
+    const enabled = !followingUsers.has(target);
     setPosts((all) => toggleFollowUser(all, target));
     setFollowingUsers((current) => {
-      const target = String(username || "").replace("@", "").toLowerCase();
       const next = new Set(current);
       if (next.has(target)) next.delete(target);
       else next.add(target);
       return next;
     });
-    socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled: !followingUsers.has(target) }).catch(() => null);
+    socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled }).catch(() => null);
   };
   const followPost = (id) => {
     const post = posts.find((item) => item.id === id);
