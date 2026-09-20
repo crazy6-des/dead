@@ -4,6 +4,7 @@ import {
   AUTH_STATUSES,
   createAuthRequest,
   createAuthState,
+  getAuthUser,
   isAuthenticated,
 } from "../src/features/auth/authContract.js";
 
@@ -33,6 +34,10 @@ assert.equal(request.mode, AUTH_MODES.SIGN_IN);
 assert.equal(request.email, "user@example.com");
 assert.equal(request.password, "secret");
 assert.equal(Object.isFrozen(request), true);
+
+assert.deepEqual(getAuthUser({ user: { id: "user-1" } }), { id: "user-1" });
+assert.deepEqual(getAuthUser({ data: { user: { id: "user-2" } } }), { id: "user-2" });
+assert.equal(getAuthUser({ data: {} }), null);
 
 const anonymous = createAuthState();
 assert.equal(anonymous.status, AUTH_STATUSES.UNKNOWN);
