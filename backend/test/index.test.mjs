@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import worker from "../src/index.js";
 import {
+  clearSessionCookie,
+  createSessionCookie,
   createSessionToken,
   hashPassword,
   sessionExpiry,
@@ -57,4 +59,13 @@ const expiry = Date.parse(sessionExpiry());
 assert.equal(Number.isFinite(expiry), true);
 assert.equal(expiry > Date.now(), true);
 
-console.log("Worker health, auth-session, hashing, credentials, and session primitives: PASS");
+const cookie = createSessionCookie(token);
+assert.match(cookie, /^s_session=/);
+assert.match(cookie, /HttpOnly/);
+assert.match(cookie, /Secure/);
+assert.match(cookie, /SameSite=Lax/);
+assert.match(cookie, /Path=\//);
+assert.match(cookie, /Max-Age=2592000/);
+assert.equal(clearSessionCookie(), "s_session=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax");
+
+console.log("Worker health, auth-session, hashing, credentials, session, and cookie primitives: PASS");
