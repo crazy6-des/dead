@@ -24,6 +24,80 @@ Successful response:
 
 Unsupported methods return `405` with the standard error envelope. Unknown routes return `404`.
 
+## Posts and feed
+
+The first server-backed social vertical is text publishing and feed retrieval.
+
+### Create post
+
+- `POST /api/posts`
+- Requires an authenticated session.
+- Mutation requests must originate from the configured frontend origin.
+- Current backend release supports text-only posts.
+
+Request shape:
+
+```json
+{
+  "text": "Hello S",
+  "kind": "text",
+  "media": [],
+  "audio": null,
+  "background": null,
+  "poll": null,
+  "audience": "public",
+  "replyPolicy": "everyone"
+}
+```
+
+Successful response:
+
+```json
+{
+  "post": {
+    "id": "…",
+    "author": {
+      "id": "…",
+      "username": "…",
+      "displayName": "…"
+    },
+    "text": "Hello S",
+    "kind": "text",
+    "audience": "public",
+    "replyPolicy": "everyone",
+    "createdAt": "…",
+    "updatedAt": "…",
+    "stats": {
+      "likes": 0,
+      "reposts": 0,
+      "replies": 0,
+      "bookmarks": 0
+    }
+  },
+  "status": "created"
+}
+```
+
+### Feed
+
+- `GET /api/feed?mode=For%20You&limit=20&cursor=…`
+- Requires an authenticated session.
+- Supported modes are `For You`, `Following`, and `Latest`.
+- `limit` is bounded by the backend.
+- Cursor pagination returns `nextCursor` when another page exists.
+- Visibility is enforced server-side.
+
+Response shape:
+
+```json
+{
+  "items": [],
+  "nextCursor": null
+}
+```
+
+Unsupported post content returns `400` with `UNSUPPORTED_POST_CONTENT` until media, polls, and other publishing capabilities receive their own backend contracts.
+
 ## Authentication
 
 Session endpoints are owned by the Cloudflare API:
