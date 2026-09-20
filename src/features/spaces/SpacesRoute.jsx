@@ -23,7 +23,6 @@ export default function SpacesRoute() {
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [error, setError] = useState("");
-  const [joined, setJoined] = useState(() => new Set());
 
   const load = () => {
     setLoading(true);
@@ -40,7 +39,7 @@ export default function SpacesRoute() {
   };
 
   const join = async (space) => {
-    try { await spaceService.join(space.id); setJoined((current) => new Set(current).add(String(space.id))); } catch (err) { setError(err?.message || "Could not join that Space."); }
+    try { await spaceService.join(space.id); } catch (err) { setError(err?.message || "Could not join that Space."); }
   };
 
   return <div className="page">
