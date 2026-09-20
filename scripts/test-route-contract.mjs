@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { APP_ROUTES, normalizeRoute } from "../src/app/routes.js";
+import { APP_ROUTES, isRouteActive, normalizeRoute } from "../src/app/routes.js";
 
 assert.equal(normalizeRoute("/"), APP_ROUTES.HOME);
 assert.equal(normalizeRoute("/profile"), APP_ROUTES.PROFILE);
@@ -10,5 +10,10 @@ assert.equal(normalizeRoute("/user/david"), "/user/david");
 assert.equal(normalizeRoute("/topic/music/"), "/topic/music");
 assert.equal(normalizeRoute("/unknown-route"), APP_ROUTES.HOME);
 assert.equal(normalizeRoute(""), APP_ROUTES.HOME);
+
+assert.equal(isRouteActive("/settings/profile", APP_ROUTES.SETTINGS), true);
+assert.equal(isRouteActive("/settings", APP_ROUTES.SETTINGS), true);
+assert.equal(isRouteActive("/settings/profile", APP_ROUTES.PROFILE), false);
+assert.equal(isRouteActive("/discover", APP_ROUTES.HOME), false);
 
 console.log("Route contract checks passed.");
