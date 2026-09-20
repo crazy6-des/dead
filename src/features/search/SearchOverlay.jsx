@@ -13,6 +13,19 @@ export default function SearchOverlay({ posts = [], onOpen, onClose }) {
   const topics = useMemo(() => remote?.items?.topics?.length ? remote.items.topics : [...new Set(posts.map((p) => p.topic).filter(Boolean))].filter((topic) => !q || topic.toLowerCase().includes(q)).slice(0, 6), [posts, q, remote]);
   const music = remote?.items?.music?.length ? remote.items.music : MUSIC.filter((item) => !q || item.toLowerCase().includes(q));
   const searchApi = useMemo(() => createSearchAdapter({ posts }), [posts]);
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose]);
+
   useEffect(() => { let active = true; if (!q) return () => { active = false; }; const timer = window.setTimeout(() => searchApi.search(q).then((result) => active && setRemote(result)).catch(() => active && setRemote(null)), 180); return () => { active = false; window.clearTimeout(timer); }; }, [q, searchApi]);
   return <div className="search-overlay" role="dialog" aria-modal="true">
     <div className="search-overlay__bar"><button onClick={onClose} aria-label="Close search"><ArrowLeft/></button><Search/><input autoFocus value={query} onChange={(e) => { setRemote(null); setQuery(e.target.value); }} placeholder={PRODUCT_IDENTITY.searchPlaceholder}/><button onClick={() => setQuery("")} aria-label="Clear search"><X/></button></div>
