@@ -2,7 +2,7 @@ import { apiClient, hasApiBaseUrl } from "./apiClient.js";
 import { createConversationRequest, createMessageRequest, normalizeMessage } from "../features/messages/messageContract.js";
 export function createApiMessageAdapter(client = apiClient) {
   return {
-    listConversations(request = {}) { return client.get("/api/messages/conversations", createConversationRequest(request)); },
+    listConversations(request = {}) { return client.get("/api/messages/conversations", { query: createConversationRequest(request) }); },
     listMessages(conversationId, request = {}) { return client.get("/api/messages/conversations/" + encodeURIComponent(conversationId), createConversationRequest(request)).then((page) => ({ ...page, items:(page?.items || []).map(normalizeMessage) })); },
     send(input) { return client.post("/api/messages", createMessageRequest(input)).then(normalizeMessage); }
   };
