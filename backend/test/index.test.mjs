@@ -154,4 +154,64 @@ assert.equal(signOut.status, 200);
 assert.deepEqual(await signOut.json(), { ok: true });
 assert.equal(signOut.headers.get("set-cookie"), clearSessionCookie());
 
+
+const postDb = {
+  prepare(query) {
+    return {
+      bind(...values) {
+        return {
+          async first() {
+            if (query.startsWith("SELECT s.id")) {
+              if (values[0] === await sha256Hex("post-session")) return { id: "session-1", user_id: "user-1", username: "new_user", display_name: "New User" };
+            }
+            if (query.startsWith("SELECT p.id, p.author_id, p.body")) {
+              return { id: "post-2", author_id: "user-1", body: "Hello backend", visibility: "public", reply_policy: "everyone", created_at: "2026-09-20T20:00:00.000Z", updated_at: "2026-09-20T20:00:00.000Z", username: "new_user", display_name: "New User", like_count: 2, repost_count: 1, reply_count: 0, bookmark_count: 1 };
+            }
+            return null;
+          },
+          async all() {
+            return {
+              results: [
+                { id: "post-2", author_id: "user-1", body: "Second post", visibility: "public", reply_policy: "everyone", created_at: "2026-09-20T20:00:00.000Z", updated_at: "2026-09-20T20:00:00.000Z", username: "new_user", display_name: "New User", like_count: 2, repost_count: 1, reply_count: 0, bookmark_count: 1 },
+                { id: "post-1", author_id: "user-1", body: "First post", visibility: "public", reply_policy: "everyone", created_at: "2026-09-20T19:00:00.000Z", updated_at: "2026-09-20T19:00:00.000Z", username: "new_user", display_name: "New User", like_count: 0, repost_count: 0, reply_count: 0, bookmark_count: 0 },
+              ],
+            };
+          },
+          async run() { return { success: true }; },
+        };
+      },
+    };
+  },
+};
+
+const postResponse = await worker.fetch(new Request("https://example.test/api/posts", {
+  method: "POST",
+  headers: { "content-type": "application/json", Cookie: "s_session=post-session" },
+  body: JSON.stringify({ text: "Hello backend", kind: "text", media: [], audio: null, background: null, poll: null, audience: "public", replyPolicy: "everyone" }),
+}), { DB: postDb });
+assert.equal(postResponse.status, 201);
+assert.equal((await postResponse.json()).status, "created");
+
+const unsupportedPost = await worker.fetch(new Request("https://example.test/api/posts", {
+  method: "POST",
+  headers: { "content-type": "application/json", Cookie: "s_session=post-session" },
+  body: JSON.stringify({ text: "Poll attempt", kind: "text", media: [], audio: null, background: null, poll: { question: "Pick one", options: ["A", "B"] }, audience: "public", replyPolicy: "everyone" }),
+}), { DB: postDb });
+assert.equal(unsupportedPost.status, 400);
+assert.equal((await unsupportedPost.json()).error.code, "UNSUPPORTED_POST_CONTENT");
+
+const feedResponse = await worker.fetch(new Request("https://example.test/api/feed?mode=Latest&limit=1", {
+  headers: { Cookie: "s_session=post-session" },
+}), { DB: postDb });
+assert.equal(feedResponse.status, 200);
+const feed = await feedResponse.json();
+assert.equal(feed.items.length, 1);
+assert.equal(feed.items[0].id, "post-2");
+assert.equal(feed.items[0].stats.likes, 2);
+assert.equal("nextCursor" in feed, true);
+
+const unauthenticatedFeed = await worker.fetch(new Request("https://example.test/api/feed?mode=Latest"), { DB: postDb });
+assert.equal(unauthenticatedFeed.status, 401);
+assert.equal((await unauthenticatedFeed.json()).error.code, "UNAUTHORIZED");
+
 console.log("Worker health, auth-session, hashing, credentials, session, cookie, sign-up, sign-in, and sign-out contracts: PASS");
