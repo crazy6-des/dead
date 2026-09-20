@@ -10,8 +10,8 @@ export default function SearchOverlay({ posts = [], onOpen, onClose }) {
   const q = query.trim().toLowerCase();
   const people = useMemo(() => [["Maya Okafor","maya"],["Daniel Cole","daniel"],["Nia James","nia"],["S Team","s"]].filter(([name,username]) => !q || (name+" "+username).toLowerCase().includes(q)), [q]);
   const postResults = useMemo(() => posts.filter((p) => !q || [p.a,p.h,p.x,p.topic].join(" ").toLowerCase().includes(q)).slice(0, 8), [posts, q]);
-  const topics = useMemo(() => [...new Set(posts.map((p) => p.topic).filter(Boolean))].filter((topic) => !q || topic.toLowerCase().includes(q)).slice(0, 6), [posts, q]);
-  const music = MUSIC.filter((item) => !q || item.toLowerCase().includes(q));
+  const topics = useMemo(() => remote?.items?.topics?.length ? remote.items.topics : [...new Set(posts.map((p) => p.topic).filter(Boolean))].filter((topic) => !q || topic.toLowerCase().includes(q)).slice(0, 6), [posts, q, remote]);
+  const music = remote?.items?.music?.length ? remote.items.music : MUSIC.filter((item) => !q || item.toLowerCase().includes(q));
   const searchApi = useMemo(() => createSearchAdapter({ posts }), [posts]);
   useEffect(() => { let active = true; if (!q) { setRemote(null); return () => { active = false; }; } const timer = window.setTimeout(() => searchApi.search(q).then((result) => active && setRemote(result)).catch(() => active && setRemote(null)), 180); return () => { active = false; window.clearTimeout(timer); }; }, [q, searchApi]);
   return <div className="search-overlay" role="dialog" aria-modal="true">
