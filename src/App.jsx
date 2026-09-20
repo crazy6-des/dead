@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Bell, Bookmark, Compass, Home as HomeIcon, List, Menu, MessageCircle, Plus, Search, Settings as SettingsIcon, Sparkles, UserRound, X, Zap, Radio as RadioIcon } from "lucide-react";
 import { CreateRoute } from "./features/create/index.js";
 import { toFeedPostFromCreatedPost } from "./features/index.js";
-import { toggleLike, toggleSaved, toggleFollowUser, toggleRepost } from "./features/social/socialState.js";
+import { toggleLike, toggleSaved, setFollowUser, toggleFollowUser, toggleRepost } from "./features/social/socialState.js";
 import { useAppRouter } from "./app/useAppRouter.js";
 import { APP_ROUTES, ROUTE_LABELS, isRouteActive } from "./app/routes.js";
 import { PRODUCT_IDENTITY } from "./app/productIdentity.js";
@@ -81,7 +81,31 @@ export default function App() {
   const like = (id) => setPosts((all) => toggleLike(all, id));
   const save = (id) => { const current = posts.find((post) => post.id === id); if (!current) return; const nextSaved = !current.saved; setPosts((all) => toggleSaved(all, id)); const request = nextSaved ? bookmarkService.save({ postId: id, folderId: null }) : bookmarkService.remove(id); request.catch(() => setPosts((all) => toggleSaved(all, id))); };
   const repost = (id) => setPosts((all) => toggleRepost(all, id));
-  const followUser = (username) => { const target = normalizeUsername(username); const enabled = !followingUsers.has(target); setPosts((all) => toggleFollowUser(all, target)); setFollowingUsers((current) => { const next = new Set(current); if (next.has(target)) next.delete(target); else next.add(target); return next; }); socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled }).catch(() => null); };
+  const followUser = async (username) => {
+    const target = normalizeUsername(username);
+    const wasFollowing = followingUsers.has(target);
+    const enabled = !wasFollowing;
+    setPosts((all) => setFollowUser(all, target, enabled));
+    setFollowingUsers((current) => {
+      const next = new Set(current);
+      if (enabled) next.add(target);
+      else next.delete(target);
+      return next;
+    });
+    try {
+      await socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled });
+    } catch (error) {
+      setPosts((all) => setFollowUser(all, target, wasFollowing));
+      setFollowingUsers((current) => {
+        const next = new Set(current);
+        if (wasFollowing) next.add(target);
+        else next.delete(target);
+        return next;
+      });
+      flash("Could not update follow status");
+      throw error;
+    }
+  };
   const followPost = (id) => { const post = posts.find((item) => item.id === id); if (post) followUser(String(post.h || "").replace("@", "").toLowerCase()); };
   const publish = (value) => { const next = value?.kind ? toFeedPostFromCreatedPost(value) : {id:Date.now(),a:"David",h:"@david",t:"now",x:value.text,l:0,r:0,p:0,b:0,liked:false,saved:false,following:false,topic:"Your post",...value}; setPosts((all) => [next,...all]); setCreating(false); flash(PRODUCT_IDENTITY.postedMessage); go(APP_ROUTES.HOME); };
   const open = (path) => go(path);
