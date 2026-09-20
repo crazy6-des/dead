@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bell, Bookmark, Compass, Home as HomeIcon, Menu, MessageCircle, Plus, Search, Settings as SettingsIcon, Sparkles, UserRound, X, Zap, Radio as RadioIcon } from "lucide-react";
+import { Bell, Bookmark, Compass, Home as HomeIcon, List, Menu, MessageCircle, Plus, Search, Settings as SettingsIcon, Sparkles, UserRound, X, Zap, Radio as RadioIcon } from "lucide-react";
 import { CreateRoute } from "./features/create/index.js";
 import { toFeedPostFromCreatedPost } from "./features/index.js";
 import { toggleLike, toggleSaved, toggleFollowUser, toggleRepost } from "./features/social/socialState.js";
@@ -33,7 +33,7 @@ function PageHeader({ route, onSearch, onTheme }) {
   <header className="top"><div><h1>{label}</h1><small>{route === APP_ROUTES.HOME ? PRODUCT_IDENTITY.tagline : `Your ${PRODUCT_IDENTITY.name} space.`}</small></div><button onClick={onSearch} aria-label="Search"><Search/></button></header></>;
 }
 function Sidebar({ route, go, onCreate }) {
-  const items = [[HomeIcon,"Home",APP_ROUTES.HOME],[Compass,"Discover",APP_ROUTES.DISCOVER],[Bell,"Notifications",APP_ROUTES.NOTIFICATIONS],[MessageCircle,"Messages",APP_ROUTES.MESSAGES],[RadioIcon,"Spaces",APP_ROUTES.SPACES],[Bookmark,"Saved",APP_ROUTES.SAVED],[Bookmark,"Bookmarks",APP_ROUTES.BOOKMARKS],[UserRound,"Profile",APP_ROUTES.PROFILE],[SettingsIcon,"Settings",APP_ROUTES.SETTINGS],[Zap,"Earn",APP_ROUTES.EARN]];
+  const items = [[HomeIcon,"Home",APP_ROUTES.HOME],[Compass,"Discover",APP_ROUTES.DISCOVER],[Bell,"Notifications",APP_ROUTES.NOTIFICATIONS],[MessageCircle,"Messages",APP_ROUTES.MESSAGES],[RadioIcon,"Spaces",APP_ROUTES.SPACES],[Bookmark,"Saved",APP_ROUTES.SAVED],[List,"Lists",APP_ROUTES.LISTS],[Bookmark,"Bookmarks",APP_ROUTES.BOOKMARKS],[UserRound,"Profile",APP_ROUTES.PROFILE],[SettingsIcon,"Settings",APP_ROUTES.SETTINGS],[Zap,"Earn",APP_ROUTES.EARN]];
   return <aside className="sidebar"><button className="brand brand-button" onClick={() => go(APP_ROUTES.HOME)}><b>S</b><span>Social</span></button>{items.map(([Icon,label,path]) => <button key={path} className={"nav " + (route === path ? "active" : "")} onClick={() => go(path)}><Icon/><span>{label}</span></button>)}<button className="create-btn" onClick={onCreate}><Plus/>Create</button><button className="me" onClick={() => go(APP_ROUTES.PROFILE)}><span className="avatar avatar--small">D</span><span><b>David</b>@david</span></button></aside>;
 }
 function RightRail({ go, followingUsers, onFollowUser, onSearch }) {
