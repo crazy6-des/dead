@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   ArrowLeft, Bookmark, Check, Copy, Heart, Link2, MessageCircle,
-  Repeat2, Send, Share2, Shield, Users, X
+  Repeat2, Send, Users
 } from "lucide-react";
 
 const people = [
