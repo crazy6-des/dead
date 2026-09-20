@@ -1,5 +1,6 @@
 export const NOTIFICATION_TYPES = Object.freeze({ LIKE:"like", FOLLOW:"follow", REPLY:"reply", MENTION:"mention", REPOST:"repost", QUOTE:"quote", SYSTEM:"system" });
 export const NOTIFICATION_FILTERS = Object.freeze({ ALL:"All", MENTIONS:"Mentions", VERIFIED:"Verified" });
+export function createNotificationReadRequest({ id } = {}) { return Object.freeze({ id: String(id || "") }); }
 export function createNotificationRequest({ cursor = null, filter = NOTIFICATION_FILTERS.ALL } = {}) {
   return Object.freeze({ cursor, filter, limit: 30 });
 }
