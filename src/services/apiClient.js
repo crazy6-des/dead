@@ -5,7 +5,7 @@
  * remain on Netlify while the API is introduced later.
  */
 
-const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const API_BASE_URL = String(import.meta.env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const DEFAULT_TIMEOUT_MS = 15000;
 
 export class ApiError extends Error {
@@ -45,14 +45,7 @@ async function parseResponse(response) {
 }
 
 export async function apiRequest(path, options = {}) {
-  const {
-    body,
-    headers = {},
-    timeoutMs = DEFAULT_TIMEOUT_MS,
-    signal: externalSignal,
-    ...requestOptions
-  } = options;
-
+  const { body, headers = {}, timeoutMs = DEFAULT_TIMEOUT_MS, signal: externalSignal, ...requestOptions } = options;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -62,7 +55,6 @@ export async function apiRequest(path, options = {}) {
   }
 
   const requestHeaders = new Headers(headers);
-
   if (body !== undefined && !(body instanceof FormData) && !requestHeaders.has("Content-Type")) {
     requestHeaders.set("Content-Type", "application/json");
   }
@@ -73,23 +65,15 @@ export async function apiRequest(path, options = {}) {
       ...requestOptions,
       headers: requestHeaders,
       signal: controller.signal,
-      body: body === undefined || body instanceof FormData || typeof body === "string"
-        ? body
-        : JSON.stringify(body),
+      body: body === undefined || body instanceof FormData || typeof body === "string" ? body : JSON.stringify(body),
     });
-
     const payload = await parseResponse(response);
 
     if (!response.ok) {
-      const message = payload && typeof payload === "object" && payload.message
-        ? payload.message
-        : `Request failed with status ${response.status}`;
-
+      const message = payload && typeof payload === "object" && payload.message ? payload.message : `Request failed with status ${response.status}`;
       throw new ApiError(message, {
         status: response.status,
-        code: payload && typeof payload === "object" && payload.code
-          ? payload.code
-          : "API_ERROR",
+        code: payload && typeof payload === "object" && payload.code ? payload.code : "API_ERROR",
         details: payload,
       });
     }
@@ -97,18 +81,10 @@ export async function apiRequest(path, options = {}) {
     return payload;
   } catch (cause) {
     if (cause instanceof ApiError) throw cause;
-
     if (cause?.name === "AbortError") {
-      throw new ApiError("The request timed out or was cancelled.", {
-        code: "REQUEST_ABORTED",
-        cause,
-      });
+      throw new ApiError("The request timed out or was cancelled.", { code: "REQUEST_ABORTED", cause });
     }
-
-    throw new ApiError("Unable to reach the server. Please try again.", {
-      code: "NETWORK_ERROR",
-      cause,
-    });
+    throw new ApiError("Unable to reach the server. Please try again.", { code: "NETWORK_ERROR", cause });
   } finally {
     clearTimeout(timeoutId);
   }
