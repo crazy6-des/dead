@@ -27,7 +27,7 @@ const descriptions = {
 };
 
 export default function SettingsRoute() {
-  const [open, setOpen] = useState(null);
+  const [open, setOpen] = useState(() => new URLSearchParams(window.location.search).get("section") || null);
   return <div className="page">
     <div className="heading"><small>CONTROL CENTER</small><h2>Settings</h2><p>Control your account, privacy and {PRODUCT_IDENTITY.name} experience.</p></div>
     {groups.map(([title, items]) => <section className="settings" key={title}>
