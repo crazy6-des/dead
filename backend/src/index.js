@@ -1,9 +1,16 @@
-import { clearSessionCookie, resolveSession, revokeSession } from "./auth.js";
+import {
+  clearSessionCookie,
+  createPersistedSession,
+  createSessionCookie,
+  hashPassword,
+  resolveSession,
+  revokeSession,
+  validateCredentials,
+  verifyPassword,
+} from "./auth.js";
 
-const JSON_HEADERS = {
-  "content-type": "application/json; charset=utf-8",
-  "cache-control": "no-store",
-};
+const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
+const MAX_BODY_BYTES = 16 * 1024;
 
 function corsHeaders(request, env) {
   const origin = request.headers.get("Origin");
@@ -27,8 +34,48 @@ function errorResponse(code, status, message, request, env, details) {
   return json({ error: { code, status, message, ...(details === undefined ? {} : { details }) } }, status, request, env);
 }
 
-function methodNotAllowed(request, env) {
-  return errorResponse("METHOD_NOT_ALLOWED", 405, "Method not allowed.", request, env);
+function methodNotAllowed(request, env) { return errorResponse("METHOD_NOT_ALLOWED", 405, "Method not allowed.", request, env); }
+
+async function readJson(request) {
+  const contentLength = Number(request.headers.get("Content-Length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) return { error: "PAYLOAD_TOO_LARGE" };
+  const text = await request.text();
+  if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) return { error: "PAYLOAD_TOO_LARGE" };
+  if (!text.trim()) return { value: {} };
+  try { return { value: JSON.parse(text) }; } catch { return { error: "INVALID_JSON" }; }
+}
+
+function userPayload(user) { return { id: user.id, username: user.username, displayName: user.display_name }; }
+
+async function signUp(request, env) {
+  if (!env?.DB) return errorResponse("SERVICE_UNAVAILABLE", 503, "Authentication service is not configured.", request, env);
+  const body = await readJson(request);
+  if (body.error === "PAYLOAD_TOO_LARGE") return errorResponse("PAYLOAD_TOO_LARGE", 413, "Request body is too large.", request, env);
+  if (body.error) return errorResponse("INVALID_JSON", 400, "Request body must be valid JSON.", request, env);
+  const credentials = validateCredentials(body.value);
+  if (!credentials.valid) return errorResponse("VALIDATION_ERROR", 400, "Please correct the highlighted fields.", request, env, credentials.errors);
+  const displayName = String(body.value.displayName || credentials.username).trim().slice(0, 60);
+  if (!displayName) return errorResponse("VALIDATION_ERROR", 400, "Display name is required.", request, env);
+  const existing = await env.DB.prepare("SELECT id FROM users WHERE username = ?1 OR email = ?2 LIMIT 1").bind(credentials.username, credentials.email).first();
+  if (existing) return errorResponse("ACCOUNT_EXISTS", 409, "An account with those details already exists.", request, env);
+  const userId = globalThis.crypto.randomUUID();
+  await env.DB.prepare("INSERT INTO users (id, username, display_name, email, password_hash) VALUES (?1, ?2, ?3, ?4, ?5)").bind(userId, credentials.username, displayName, credentials.email, await hashPassword(body.value.password)).run();
+  const token = await createPersistedSession(userId, env);
+  return json({ authenticated: true, user: { id: userId, username: credentials.username, displayName } }, 201, request, env, { "set-cookie": createSessionCookie(token) });
+}
+
+async function signIn(request, env) {
+  if (!env?.DB) return errorResponse("SERVICE_UNAVAILABLE", 503, "Authentication service is not configured.", request, env);
+  const body = await readJson(request);
+  if (body.error === "PAYLOAD_TOO_LARGE") return errorResponse("PAYLOAD_TOO_LARGE", 413, "Request body is too large.", request, env);
+  if (body.error) return errorResponse("INVALID_JSON", 400, "Request body must be valid JSON.", request, env);
+  const identifier = String(body.value.identifier || body.value.username || body.value.email || "").trim().toLowerCase();
+  const password = body.value.password;
+  if (!identifier || typeof password !== "string" || password.length > 128) return errorResponse("INVALID_CREDENTIALS", 401, "Invalid credentials.", request, env);
+  const user = await env.DB.prepare("SELECT id, username, display_name, password_hash FROM users WHERE (username = ?1 OR email = ?1) AND deleted_at IS NULL LIMIT 1").bind(identifier).first();
+  if (!user || !(await verifyPassword(password, user.password_hash))) return errorResponse("INVALID_CREDENTIALS", 401, "Invalid credentials.", request, env);
+  const token = await createPersistedSession(user.id, env);
+  return json({ authenticated: true, user: userPayload(user) }, 200, request, env, { "set-cookie": createSessionCookie(token) });
 }
 
 export default {
@@ -48,7 +95,15 @@ export default {
       if (request.method !== "GET") return methodNotAllowed(request, env);
       const session = await resolveSession(request, env);
       if (!session) return json({ authenticated: false, user: null }, 200, request, env);
-      return json({ authenticated: true, user: { id: session.user_id, username: session.username, displayName: session.display_name } }, 200, request, env);
+      return json({ authenticated: true, user: userPayload(session) }, 200, request, env);
+    }
+    if (url.pathname === "/api/auth/sign-up") {
+      if (request.method !== "POST") return methodNotAllowed(request, env);
+      return signUp(request, env);
+    }
+    if (url.pathname === "/api/auth/sign-in") {
+      if (request.method !== "POST") return methodNotAllowed(request, env);
+      return signIn(request, env);
     }
     if (url.pathname === "/api/auth/sign-out") {
       if (request.method !== "POST") return methodNotAllowed(request, env);
