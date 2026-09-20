@@ -1,6 +1,6 @@
 /**
  * Stable contract for S post creation.
- * Keeps composer vocabulary independent from UI and backend details.
+ * Keeps composer vocabulary independent of UI and backend details.
  */
 
 export const POST_KINDS = Object.freeze({
