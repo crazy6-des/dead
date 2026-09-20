@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Bell, Bookmark, Compass, Home as HomeIcon, Menu, MessageCircle, Plus, Search, Settings as SettingsIcon, Sparkles, UserRound, X, Zap } from "lucide-react";
 import { CreateRoute } from "./features/create/index.js";
 import { toFeedPostFromCreatedPost } from "./features/index.js";
-import { toggleLike, toggleSaved, toggleFollowUser } from "./features/social/socialState.js";
+import { toggleLike, toggleSaved, toggleFollowUser, toggleRepost } from "./features/social/socialState.js";
 import { useAppRouter } from "./app/useAppRouter.js";
 import { APP_ROUTES, ROUTE_LABELS } from "./app/routes.js";
 import HomeRoute from "./features/home/HomeRoute.jsx";
@@ -45,6 +45,7 @@ export default function App() {
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
   const like = (id) => setPosts((all) => toggleLike(all, id));
   const save = (id) => setPosts((all) => toggleSaved(all, id));
+  const repost = (id) => setPosts((all) => toggleRepost(all, id));
   const followUser = (username) => {
     setPosts((all) => toggleFollowUser(all, username));
     setFollowingUsers((current) => {
@@ -70,7 +71,7 @@ export default function App() {
     if (route === APP_ROUTES.SAVED) return <SavedRoute posts={posts} onSave={save} onOpen={open}/>;
     if (route === APP_ROUTES.SETTINGS) return <SettingsRoute/>;
     if (route === APP_ROUTES.EARN) return <EarnRoute onOpen={open}/>;
-    return <EntityRoute path={route} posts={posts} onBack={() => go(APP_ROUTES.HOME)} onOpen={open} onSave={save} onLike={like}/>;
+    return <EntityRoute path={route} posts={posts} onBack={() => go(APP_ROUTES.HOME)} onOpen={open} onSave={save} onLike={like} onRepost={repost}/>;
   };
   return <div className={"app " + (dark ? "" : "light")}><Sidebar route={route} go={go} onCreate={() => setCreating(true)}/><main className="main"><PageHeader route={route} onSearch={() => setSearchOpen(true)} onTheme={() => setDark((v) => !v)}/>{render()}</main><RightRail go={go} followingUsers={followingUsers} onFollowUser={followUser}/><nav className="mobile-nav">{[[HomeIcon,"Home",APP_ROUTES.HOME],[Compass,"Discover",APP_ROUTES.DISCOVER],[Plus,"Create",null],[Bell,"Notifications",APP_ROUTES.NOTIFICATIONS],[UserRound,"Profile",APP_ROUTES.PROFILE]].map(([Icon,label,path]) => <button key={label} onClick={() => path ? go(path) : setCreating(true)} className={route === path ? "active" : ""}><Icon/><small>{label}</small></button>)}</nav>{searchOpen && <SearchOverlay posts={posts} onOpen={(path) => { setSearchOpen(false); open(path); }} onClose={() => setSearchOpen(false)}/>} {creating && <div className="modal"><div className="create"><CreateRoute onPublish={publish} onCancel={() => setCreating(false)}/></div><button className="modal-close" onClick={() => setCreating(false)}><X/></button></div>}{toast && <div className="toast">{toast}</div>}</div>;
 }
