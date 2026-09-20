@@ -32,7 +32,8 @@ export default function BookmarkFoldersRoute({ posts = [], onOpen }) {
     <div className="heading"><small>YOUR LIBRARY</small><h2>Bookmark folders</h2><p>Organize the posts you want to come back to.</p></div>
     <div className="card">
       <div className="page-actions"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="New folder name" aria-label="New folder name"/><button className="primary" onClick={createFolder} disabled={!name.trim()}><Plus size={16}/>Create folder</button></div>
-      {error && <div className="inline-notice" role="status">{error}</div>}\n      {loading ? <div className="empty"><p>Loading folders…</p></div> : folders.map((folder) => <button className="network-row" key={folder.id} onClick={() => onOpen?.("/saved?folder=" + encodeURIComponent(folder.id))}><span className="avatar avatar--small"><Folder size={17}/></span><span><b>{folder.name}</b><small>{folder.description || "Saved posts in this folder"}</small></span><Bookmark size={17}/></button>)}
+      {error && <div className="inline-notice" role="status">{error}</div>}
+      {loading ? <div className="empty"><p>Loading folders…</p></div> : folders.map((folder) => <button className="network-row" key={folder.id} onClick={() => onOpen?.("/saved?folder=" + encodeURIComponent(folder.id))}><span className="avatar avatar--small"><Folder size={17}/></span><span><b>{folder.name}</b><small>{folder.description || "Saved posts in this folder"}</small></span><Bookmark size={17}/></button>)}
     </div>
     {posts.some((post) => post.saved) && <section className="card"><div className="heading"><small>RECENT</small><h3>Saved posts</h3></div>{posts.filter((post) => post.saved).slice(0, 3).map((post) => <button className="topic-post" key={post.id} onClick={() => onOpen?.("/post/" + post.id)}><b>{post.a}</b><p>{post.x}</p></button>)}</section>}
   </div>;
