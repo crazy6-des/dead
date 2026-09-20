@@ -135,6 +135,7 @@ export function MessagesRoute() {
 }
 
 export function SavedRoute({ posts, onSave, onOpen }) {
-  const saved = posts.filter((p) => p.saved);
+  const folder = new URLSearchParams(window.location.search).get("folder");
+  const saved = posts.filter((p) => p.saved && (!folder || folder === "all"));
   return <div className="page"><div className="heading"><small>YOUR LIBRARY</small><h2>Saved</h2><p>Posts you chose to keep.</p></div>{saved.length ? saved.map((p) => <PostCard key={p.id} post={p} onSave={onSave} onOpen={onOpen}/>) : <div className="empty"><h3>Your saved posts will live here.</h3><p>Bookmark something from your feed and return to it anytime.</p></div>}</div>;
 }
