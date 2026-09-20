@@ -34,9 +34,14 @@ export function normalizeRoute(pathname = window.location.pathname) {
   return APP_ROUTES.HOME;
 }
 export function navigateTo(route) {
-  const next = normalizeRoute(route);
-  if (window.location.pathname !== next) {
-    window.history.pushState({}, "", next);
+  const raw = String(route || "/");
+  const [pathname, search = ""] = raw.split("?");
+  const next = normalizeRoute(pathname);
+  const suffix = search ? "?" + search : "";
+  const current = window.location.pathname + window.location.search;
+  const target = next + suffix;
+  if (current !== target) {
+    window.history.pushState({}, "", target);
     window.dispatchEvent(new window.Event("popstate"));
   }
   return next;
