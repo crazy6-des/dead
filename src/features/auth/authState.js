@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { authService } from "../../services/authService.js";
+import { AUTH_STATUSES } from "./authContract.js";
 
-export const AUTH_STATUS = Object.freeze({
-  UNKNOWN: "unknown",
-  LOADING: "loading",
-  AUTHENTICATED: "authenticated",
-  ANONYMOUS: "anonymous",
-  ERROR: "error",
-});
+// Compatibility alias for existing consumers; AUTH_STATUSES is canonical.
+export const AUTH_STATUS = AUTH_STATUSES;
 
 export function useAuthState({ enabled = true } = {}) {
   const [status, setStatus] = useState(enabled ? AUTH_STATUS.LOADING : AUTH_STATUS.ANONYMOUS);
