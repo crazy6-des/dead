@@ -54,7 +54,10 @@ function PostDetail({ post, onBack, onSave, onOpen, mode = "post" }) {
     try {
       if (navigator.share) await navigator.share({ title: "Post on S", text: post.x || "Post on S", url });
       else await navigator.clipboard?.writeText(url);
-    } catch { setShared(false); }
+    } catch {
+      setShared(false);
+      return;
+    }
     setShared(true);
   };
 
