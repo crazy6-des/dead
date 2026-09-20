@@ -57,6 +57,20 @@ export default function App() {
   const [searchOpen,setSearchOpen] = useState(false);
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
   useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
     let active = true;
     const feed = createFeedAdapter({ seedPosts: seed });
     feed.list().then((page) => {
