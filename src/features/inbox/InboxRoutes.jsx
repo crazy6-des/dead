@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Bell, Heart, MoreHorizontal, Paperclip, Send } from "lucide-react";
 import { APP_ROUTES } from "../../app/routes.js";
+import PostCard from "../post/PostCard.jsx";
 
 const NOTIFICATIONS = [
   { id: "n1", name: "Maya Okafor", type: "like", text: "liked your post", time: "2m", verified: false },
@@ -98,8 +99,5 @@ export function MessagesRoute() {
 
 export function SavedRoute({ posts, onSave, onOpen }) {
   const saved = posts.filter((p) => p.saved);
-  return <div className="page"><div className="heading"><small>YOUR LIBRARY</small><h2>Saved</h2><p>Posts you chose to keep.</p></div>{saved.length ? saved.map((p) => <PostCardShim key={p.id} post={p} onSave={onSave} onOpen={onOpen}/>) : <div className="empty"><h3>Your saved posts will live here.</h3><p>Bookmark something from your feed and return to it anytime.</p></div>}</div>;
-}
-function PostCardShim({ post, onSave, onOpen }) {
-  return <article className="post"><div className="avatar">{(post.a || "S")[0]}</div><div className="post__body"><button className="post-content-hit" onClick={() => onOpen?.("/post/" + post.id)}><p className="post__text">{post.x}</p></button><div className="post__actions"><button className="is-saved" onClick={() => onSave?.(post.id)}>Saved</button></div></div></article>;
+  return <div className="page"><div className="heading"><small>YOUR LIBRARY</small><h2>Saved</h2><p>Posts you chose to keep.</p></div>{saved.length ? saved.map((p) => <PostCard key={p.id} post={p} onSave={onSave} onOpen={onOpen}/>) : <div className="empty"><h3>Your saved posts will live here.</h3><p>Bookmark something from your feed and return to it anytime.</p></div>}</div>;
 }
