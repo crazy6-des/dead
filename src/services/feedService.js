@@ -5,7 +5,7 @@
  * incrementally. The API adapter deliberately preserves the same request and
  * response contract so callers do not need to change when the backend is ready.
  */
-import { apiClient, hasApiBaseUrl } from './apiClient';
+import { apiClient, hasApiBaseUrl } from "./apiClient.js";
 
 export function createFeedRequest({ tab = 'For You', cursor = null, limit = 20, query = '' } = {}) {
   return { tab, cursor, limit, query };
