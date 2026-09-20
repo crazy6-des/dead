@@ -14,3 +14,9 @@ export {
   createApiFeedAdapter,
   createFeedAdapter,
 } from "./feedService";
+export {
+  createPostRequest,
+  createApiPostAdapter,
+  createDevPostAdapter,
+  createPostAdapter,
+} from "./postService";
