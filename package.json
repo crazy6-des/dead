@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "verify:create": "node scripts/verify-create-boundary.mjs",
-    "verify:boundaries": "node scripts/verify-service-boundaries.mjs"
+    "verify:boundaries": "node scripts/verify-service-boundaries.mjs",
+    "test:api": "node scripts/test-api-client.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
