@@ -5,6 +5,7 @@ export default function ProfileRoute({ posts, onLike, onSave, onFollow, onRepost
   const [tab, setTab] = useState("Posts");
   const tabs = ["Posts","Replies","Media","Likes"];
   const isOwnProfile = true;
+  const following = followingUsers.has("david");
   const visible = tab === "Media" ? posts.filter((p) => p.media || p.music) : tab === "Likes" ? posts.filter((p) => p.liked) : posts;
   return <div className="profile">
     <div className="cover"><div/></div>
