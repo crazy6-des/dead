@@ -1,4 +1,4 @@
-import { createPostAdapter } from "../../services/index.js";
+import { createPostAdapter } from "../../services/postService.js";
 import { normalizeCreatedPostResponse } from "./postContract.js";
 
 /**
