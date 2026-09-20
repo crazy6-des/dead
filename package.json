@@ -11,7 +11,7 @@
     "verify:create": "node scripts/verify-create-boundary.mjs",
     "verify:boundaries": "node scripts/verify-service-boundaries.mjs",
     "test:api": "node scripts/test-api-client.mjs",
-    "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:create && npm run test:feed-create && npm run test:contracts",
+    "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:create && npm run test:feed-create && npm run test:contracts && npm run test:post-vocabulary",
     "test:create": "node scripts/test-create-integration.mjs",
     "test:feed-create": "node scripts/test-feed-create-boundary.mjs",
     "test:contracts": "node scripts/test-feed-contracts.mjs",
