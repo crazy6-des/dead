@@ -14,7 +14,7 @@ export function isLocalMediaAsset(asset) {
   return Boolean(
     asset
       && typeof asset === "object"
-      && (asset.file instanceof File || String(asset.url || "").startsWith("blob:"))
+      && ((typeof File !== "undefined" && asset.file instanceof File) || String(asset.url || "").startsWith("blob:"))
   );
 }
 
