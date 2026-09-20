@@ -29,7 +29,7 @@ export function navigateTo(route) {
   const next = normalizeRoute(route);
   if (window.location.pathname !== next) {
     window.history.pushState({}, "", next);
-    window.dispatchEvent(new Event("popstate"));
+    window.dispatchEvent(new window.Event("popstate"));
   }
   return next;
 }
