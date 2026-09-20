@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Bookmark, Check, Copy, Flag, Heart, MessageCircle, MoreHorizontal, Music2, Repeat2, Send, Shield, X } from "lucide-react";
-export default function PostCard({ post, onLike, onSave, onFollow, onOpen }) {
+export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onOpen }) {
   const [menu, setMenu] = useState(false);
-  const [reposted, setReposted] = useState(Boolean(post.reposted));
+  const reposted = Boolean(post.reposted);
   const isFollowing = Boolean(post.following);
   const author = post.author || post.a || "S";
   const username = post.username || String(post.h || "@user").replace("@", "").toLowerCase();
@@ -26,7 +26,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onOpen }) {
       {(post.audio || post.music) && <div className="audio-card"><div className="audio-art"><Music2 size={20}/></div><div><strong>{post.audio?.title || "Late Night Notes"}</strong><span>{post.audio?.artist || "Original audio"} · 2:48</span></div><button className="play">▶</button></div>}
       <div className="post__actions">
         <button onClick={() => onOpen?.("/post/" + post.id + "/replies")}><MessageCircle size={18}/><span>{post.replies ?? post.r ?? 0}</span></button>
-        <button className={reposted ? "is-active" : ""} onClick={() => setReposted((v) => !v)}><Repeat2 size={18}/><span>{(post.reposts ?? post.p ?? 0) + (reposted && !post.reposted ? 1 : 0)}</span></button>
+        <button className={reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)}><Repeat2 size={18}/><span>{post.reposts ?? post.p ?? 0}</span></button>
         <button className={post.liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)}><Heart size={18} fill={post.liked ? "currentColor" : "none"}/><span>{post.likes ?? post.l ?? 0}</span></button>
         <button className={post.saved ? "is-saved" : ""} onClick={() => onSave?.(post.id)}><Bookmark size={18} fill={post.saved ? "currentColor" : "none"}/><span>{post.bookmarks ?? post.b ?? 0}</span></button>
         <button onClick={() => onOpen?.("/post/" + post.id + "/quote")} aria-label="Quote"><Repeat2 size={16}/></button>
