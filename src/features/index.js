@@ -31,5 +31,6 @@ export * from "./polls/pollContract.js";
 export * from "./notifications/notificationPreferencesContract.js";
 export { socialGraphService } from "../services/socialGraphService.js";
 export { moderationService } from "../services/moderationService.js";
+export { bookmarkService } from "../services/bookmarkService.js";
 
 export { PRODUCT_IDENTITY } from "../app/productIdentity.js";
