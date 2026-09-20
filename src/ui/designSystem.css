@@ -25,7 +25,6 @@
   --s-column-gap: 24px;
 }
 
-/* Consistent baseline without overriding the existing visual theme. */
 .app,
 button,
 input,
@@ -44,6 +43,24 @@ select:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .post__text,
 .canvas textarea { line-height: var(--s-leading-body); }
 
+/* Familiar microblogging proportions: readable 600px content column and quiet rails. */
+@media (min-width: 1280px) {
+  .app { grid-template-columns: minmax(210px, 240px) minmax(0, 600px) minmax(280px, 320px); gap: var(--s-column-gap); }
+  .post { padding: 16px 20px; }
+  .post__text { font-size: var(--s-text-md); }
+}
+
+@media (max-width: 1100px) {
+  .app { grid-template-columns: 76px minmax(0, 600px); justify-content: center; }
+  .sidebar { padding-inline: 10px; }
+  .sidebar .nav { justify-content: center; padding-inline: 10px; }
+  .sidebar .nav span,
+  .sidebar .brand span,
+  .sidebar .me span,
+  .sidebar .create-btn { display: none; }
+  .rail { display: none; }
+}
+
 @media (max-width: 900px) {
   :root { --s-column-gap: 16px; }
 }
@@ -54,4 +71,14 @@ select:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
     --s-space-5: 16px;
     --s-content-width: 100%;
   }
+  .app { display: block; }
+  .sidebar { display: none; }
+  .main { border-inline: 0; padding-bottom: 64px; }
+  .top { padding: 10px 16px; }
+  .top h1 { font-size: 18px; }
+  .post { padding: 14px 16px; gap: 10px; }
+  .post__text { font-size: 15px; }
+  .post__actions button { min-width: 36px; min-height: 40px; }
+  .modal { padding: 0; }
+  .create { border-radius: 18px 18px 0 0; }
 }
