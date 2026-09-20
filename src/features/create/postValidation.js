@@ -29,7 +29,7 @@ export function validatePostDraft(draft) {
   const payload = createPublishPayload(draft);
   const errors = {};
 
-  if (!payload.text && payload.media.length === 0 && !payload.audio && !payload.background) {
+  if (!payload.text && payload.media.length === 0 && !payload.audio && !payload.background && !payload.poll) {
     errors.content = "Add text or media before publishing.";
   }
 
@@ -56,6 +56,12 @@ export function validatePostDraft(draft) {
       allowedTypes: AUDIO_TYPES,
     });
     if (audioErrors.length) errors.audio = audioErrors[0];
+  }
+
+  if (payload.poll !== null) {
+    if (!payload.poll || typeof payload.poll.question !== "string" || payload.poll.question.trim().length < 3) errors.poll = "Poll question must be at least 3 characters.";
+    const options = Array.isArray(payload.poll?.options) ? payload.poll.options.map((option) => String(option || "").trim()).filter(Boolean) : [];
+    if (options.length < 2 || options.length > 4) errors.poll = "A poll needs 2 to 4 options.";
   }
 
   if (payload.background !== null) {
