@@ -29,3 +29,5 @@ export * from "./bookmarks/bookmarkContract.js";
 export * from "./spaces/spaceContract.js";
 export * from "./polls/pollContract.js";
 export * from "./notifications/notificationPreferencesContract.js";
+
+export { PRODUCT_IDENTITY } from "../app/productIdentity.js";
