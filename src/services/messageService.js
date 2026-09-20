@@ -3,7 +3,7 @@ import { createConversationRequest, createMessageRequest, normalizeMessage } fro
 export function createApiMessageAdapter(client = apiClient) {
   return {
     listConversations(request = {}) { return client.get("/api/messages/conversations", { query: createConversationRequest(request) }); },
-    listMessages(conversationId, request = {}) { return client.get("/api/messages/conversations/" + encodeURIComponent(conversationId), createConversationRequest(request)).then((page) => ({ ...page, items:(page?.items || []).map(normalizeMessage) })); },
+    listMessages(conversationId, request = {}) { return client.get("/api/messages/conversations/" + encodeURIComponent(conversationId), { query: createConversationRequest(request) }).then((page) => ({ ...page, items:(page?.items || []).map(normalizeMessage) })); },
     send(input) { return client.post("/api/messages", createMessageRequest(input)).then(normalizeMessage); }
   };
 }
