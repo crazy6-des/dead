@@ -10,7 +10,8 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const [menu, setMenu] = useState(false);
   const [pollVotes, setPollVotes] = useState(() => ({}));
   const [pollBusy, setPollBusy] = useState(false);
-  const [pollError, setPollError] = useState("");\n  const [localPoll, setLocalPoll] = useState(null);
+  const [pollError, setPollError] = useState("");
+  const [localPoll, setLocalPoll] = useState(null);
   const reposted = Boolean(post.reposted);
   const isFollowing = Boolean(post.following);
   const author = post.author || post.a || "S";
