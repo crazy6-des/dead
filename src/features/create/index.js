@@ -7,3 +7,4 @@ export {
   createPublishPayload,
 } from "./postContract";
 export { validatePostDraft } from "./postValidation";
+export { createCreatePublishHandler } from "./createIntegration";
