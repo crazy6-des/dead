@@ -94,7 +94,7 @@ export default function App() {
     });
     try {
       await socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled });
-    } catch (error) {
+    } catch {
       setPosts((all) => setFollowUser(all, target, wasFollowing));
       setFollowingUsers((current) => {
         const next = new Set(current);
@@ -103,7 +103,6 @@ export default function App() {
         return next;
       });
       flash("Could not update follow status");
-      throw error;
     }
   };
   const followPost = (id) => { const post = posts.find((item) => item.id === id); if (post) followUser(String(post.h || "").replace("@", "").toLowerCase()); };
