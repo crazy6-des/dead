@@ -47,7 +47,11 @@ async function parseResponse(response) {
 export async function apiRequest(path, options = {}) {
   const { body, headers = {}, timeoutMs = DEFAULT_TIMEOUT_MS, signal: externalSignal, ...requestOptions } = options;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  let didTimeout = false;
+  const timeoutId = setTimeout(() => {
+    didTimeout = true;
+    controller.abort();
+  }, timeoutMs);
 
   if (externalSignal) {
     if (externalSignal.aborted) controller.abort(externalSignal.reason);
@@ -82,9 +86,15 @@ export async function apiRequest(path, options = {}) {
   } catch (cause) {
     if (cause instanceof ApiError) throw cause;
     if (cause?.name === "AbortError") {
-      throw new ApiError("The request timed out or was cancelled.", { code: "REQUEST_ABORTED", cause });
+      throw new ApiError(
+        didTimeout ? "The request timed out." : "The request was cancelled.",
+        { code: didTimeout ? "REQUEST_TIMEOUT" : "REQUEST_ABORTED", cause },
+      );
     }
-    throw new ApiError("Unable to reach the server. Please try again.", { code: "NETWORK_ERROR", cause });
+    throw new ApiError("Unable to reach the server. Please try again.", {
+      code: "NETWORK_ERROR",
+      cause,
+    });
   } finally {
     clearTimeout(timeoutId);
   }
