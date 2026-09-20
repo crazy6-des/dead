@@ -5,6 +5,7 @@ import { toFeedPostFromCreatedPost } from "./features/index.js";
 import { toggleLike, toggleSaved, toggleFollowUser, toggleRepost } from "./features/social/socialState.js";
 import { useAppRouter } from "./app/useAppRouter.js";
 import { APP_ROUTES, ROUTE_LABELS } from "./app/routes.js";
+import { PRODUCT_IDENTITY } from "./app/productIdentity.js";
 import HomeRoute from "./features/home/HomeRoute.jsx";
 import DiscoverRoute from "./features/discover/DiscoverRoute.jsx";
 import ProfileRoute from "./features/profile/ProfileRoute.jsx";
@@ -23,16 +24,16 @@ const seed = [
 const trends = [["Music","Late Night Notes","8.1K posts"],["Community","Creators of S","1.7K posts"],["Culture","#NewBeginnings","2.4K posts"]];
 
 function PageHeader({ route, onSearch, onTheme }) {
-  const label = ROUTE_LABELS[route] || "S";
+  const label = ROUTE_LABELS[route] || PRODUCT_IDENTITY.name;
   return <><header className="mobile-head"><button aria-label="Menu"><Menu/></button><div className="brand"><b>S</b></div><button onClick={onTheme} aria-label="Theme"><Sparkles/></button></header>
-  <header className="top"><div><h1>{label}</h1><small>{route === APP_ROUTES.HOME ? "Good to see you." : "Your S space."}</small></div><button onClick={onSearch} aria-label="Search"><Search/></button></header></>;
+  <header className="top"><div><h1>{label}</h1><small>{route === APP_ROUTES.HOME ? PRODUCT_IDENTITY.tagline : `Your ${PRODUCT_IDENTITY.name} space.`}</small></div><button onClick={onSearch} aria-label="Search"><Search/></button></header></>;
 }
 function Sidebar({ route, go, onCreate }) {
   const items = [[HomeIcon,"Home",APP_ROUTES.HOME],[Compass,"Discover",APP_ROUTES.DISCOVER],[Bell,"Notifications",APP_ROUTES.NOTIFICATIONS],[MessageCircle,"Messages",APP_ROUTES.MESSAGES],[Bookmark,"Saved",APP_ROUTES.SAVED],[UserRound,"Profile",APP_ROUTES.PROFILE],[SettingsIcon,"Settings",APP_ROUTES.SETTINGS],[Zap,"Earn",APP_ROUTES.EARN]];
   return <aside className="sidebar"><button className="brand brand-button" onClick={() => go(APP_ROUTES.HOME)}><b>S</b><span>S</span></button>{items.map(([Icon,label,path]) => <button key={path} className={"nav " + (route === path ? "active" : "")} onClick={() => go(path)}><Icon/><span>{label}</span></button>)}<button className="create-btn" onClick={onCreate}><Plus/>Create</button><button className="me" onClick={() => go(APP_ROUTES.PROFILE)}><span className="avatar avatar--small">D</span><span><b>David</b>@david</span></button></aside>;
 }
 function RightRail({ go, followingUsers, onFollowUser, onSearch }) {
-  return <aside className="rail"><button className="rail-search" onClick={onSearch}><Search/><span>Search S</span></button><section className="rail-card"><h3>What's happening</h3>{trends.map(([a,b,c]) => <button className="trend" key={b} onClick={() => go("/topic/" + encodeURIComponent(b))}><small>{a}</small><b>{b}</b><small>{c}</small></button>)}</section><section className="rail-card"><h3>Who to follow</h3>{["Maya Okafor","Daniel Cole","Nia James"].map((n) => { const username = n.split(" ")[0].toLowerCase(); const following = followingUsers.has(username); return <div className="suggest" key={n}><button className="avatar avatar--small" onClick={() => go("/user/" + username)}>{n[0]}</button><button className="suggest__person" onClick={() => go("/user/" + username)}><b>{n}</b>@{username}</button><button className={following ? "is-following" : ""} onClick={() => onFollowUser(username)}>{following ? "Following" : "Follow"}</button></div>; })}</section></aside>;
+  return <aside className="rail"><button className="rail-search" onClick={onSearch}><Search/><span>{PRODUCT_IDENTITY.searchPlaceholder}</span></button><section className="rail-card"><h3>What's happening</h3>{trends.map(([a,b,c]) => <button className="trend" key={b} onClick={() => go("/topic/" + encodeURIComponent(b))}><small>{a}</small><b>{b}</b><small>{c}</small></button>)}</section><section className="rail-card"><h3>Who to follow</h3>{["Maya Okafor","Daniel Cole","Nia James"].map((n) => { const username = n.split(" ")[0].toLowerCase(); const following = followingUsers.has(username); return <div className="suggest" key={n}><button className="avatar avatar--small" onClick={() => go("/user/" + username)}>{n[0]}</button><button className="suggest__person" onClick={() => go("/user/" + username)}><b>{n}</b>@{username}</button><button className={following ? "is-following" : ""} onClick={() => onFollowUser(username)}>{following ? "Following" : "Follow"}</button></div>; })}</section></aside>;
 }
 export default function App() {
   const { route, go } = useAppRouter();
@@ -60,7 +61,7 @@ export default function App() {
     const post = posts.find((item) => item.id === id);
     if (post) followUser(String(post.h || "").replace("@", "").toLowerCase());
   };
-  const publish = (value) => { const next = value?.kind ? toFeedPostFromCreatedPost(value) : {id:Date.now(),a:"David",h:"@david",t:"now",x:value.text,l:0,r:0,p:0,b:0,liked:false,saved:false,following:false,topic:"Your post",...value}; setPosts((all) => [next,...all]); setCreating(false); flash("Posted to S"); go(APP_ROUTES.HOME); };
+  const publish = (value) => { const next = value?.kind ? toFeedPostFromCreatedPost(value) : {id:Date.now(),a:"David",h:"@david",t:"now",x:value.text,l:0,r:0,p:0,b:0,liked:false,saved:false,following:false,topic:"Your post",...value}; setPosts((all) => [next,...all]); setCreating(false); flash(PRODUCT_IDENTITY.postedMessage); go(APP_ROUTES.HOME); };
   const open = (path) => go(path);
   const openSearch = () => setSearchOpen(true);
   const render = () => {
