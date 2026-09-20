@@ -1,7 +1,7 @@
-import { apiClient, hasApiBaseUrl } from "./apiClient";
-import { createPublishPayload } from "../features/create/postContract";
-import { validatePostDraft } from "../features/create/postValidation";
-import { isLocalMediaAsset, isUploadReadyMediaAsset } from "../features/create/mediaContract";
+import { apiClient, hasApiBaseUrl } from "./apiClient.js";
+import { createPublishPayload } from "../features/create/postContract.js";
+import { validatePostDraft } from "../features/create/postValidation.js";
+import { isLocalMediaAsset, isUploadReadyMediaAsset } from "../features/create/mediaContract.js";
 
 export function createPostRequest(draft) {
   const result = validatePostDraft(draft);
