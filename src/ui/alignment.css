@@ -12,6 +12,15 @@ button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .55; }
 
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+
 .post, .card, .settings, .rail-card, .earn, .earn-grid > div, .messages {
   border-radius: var(--s-radius-md);
 }
@@ -30,8 +39,30 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 input, textarea, select { min-height: var(--s-control-height); }
 textarea { resize: vertical; }
 
+.main { min-width: 0; }
+.post__body, .discover-row > div, .person > div, .suggest > span { min-width: 0; }
+.post__text, .heading p, .profile-info p, .notice p { overflow-wrap: anywhere; }
+
+@media (max-width: 900px) {
+  .post, .quick, .heading { padding-inline: 16px; }
+  .rail-card, .card { margin-top: var(--s-space-4); }
+}
+
 @media (max-width: 640px) {
   .post__actions { gap: 0; }
   .post__actions button { min-width: 34px; }
   .card, .settings, .rail-card { border-radius: 0; }
+  .post__text { line-height: 1.55; }
+  .heading h2 { font-size: 26px; }
+  .earn-grid { grid-template-columns: 1fr; }
+  .messages { height: auto; min-height: calc(100vh - 64px); grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
