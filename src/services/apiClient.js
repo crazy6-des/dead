@@ -56,6 +56,11 @@ function buildQuery(path, query) {
   return `${path}${path.includes("?") ? "&" : "?"}${encoded}`;
 }
 
+function getErrorField(payload, field, fallback) {
+  if (!payload || typeof payload !== "object") return fallback;
+  return payload[field] ?? payload.error?.[field] ?? fallback;
+}
+
 export async function apiRequest(path, options = {}) {
   const { body, query, headers = {}, timeoutMs = DEFAULT_TIMEOUT_MS, signal: externalSignal, ...requestOptions } = options;
   const controller = new AbortController();
@@ -86,10 +91,9 @@ export async function apiRequest(path, options = {}) {
     const payload = await parseResponse(response);
 
     if (!response.ok) {
-      const message = payload && typeof payload === "object" && payload.message ? payload.message : `Request failed with status ${response.status}`;
-      throw new ApiError(message, {
+      throw new ApiError(getErrorField(payload, "message", `Request failed with status ${response.status}`), {
         status: response.status,
-        code: payload && typeof payload === "object" && payload.code ? payload.code : "API_ERROR",
+        code: getErrorField(payload, "code", "API_ERROR"),
         details: payload,
       });
     }
