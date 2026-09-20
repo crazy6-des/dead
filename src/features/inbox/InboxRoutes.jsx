@@ -7,10 +7,10 @@ import { createNotificationAdapter } from "../../services/notificationService.js
 import { createMessageAdapter } from "../../services/messageService.js";
 
 const NOTIFICATION_SEED = [
-  { id: "n1", actor: "Maya Okafor", type: "like", text: "liked your post", time: "2m" },
-  { id: "n2", actor: "Daniel Cole", type: "follow", text: "started following you", time: "18m" },
-  { id: "n3", actor: "Nia James", type: "reply", text: "replied to your post", time: "1h" },
-  { id: "n4", actor: "S Team", type: "mention", text: "mentioned you", time: "3h", verified: true }
+  { id: "n1", actor: "Maya Okafor", username: "maya", type: "like", text: "liked your post", time: "2m", target: "/post/1" },
+  { id: "n2", actor: "Daniel Cole", username: "daniel", type: "follow", text: "started following you", time: "18m", target: "/user/daniel" },
+  { id: "n3", actor: "Nia James", username: "nia", type: "reply", text: "replied to your post", time: "1h", target: "/post/1/replies" },
+  { id: "n4", actor: "S Team", username: "s", type: "mention", text: "mentioned you", time: "3h", verified: true, target: "/post/1/replies" }
 ];
 
 const MESSAGE_SEED = {
@@ -46,7 +46,7 @@ export function NotificationsRoute({ onOpen }) {
   const openNotification = async (item) => {
     try { await notifications.markRead(item.id); } catch {}
     setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read: true } : entry));
-    onOpen?.(item.type === "mention" || item.type === "reply" ? "/post/1/replies" : APP_ROUTES.PROFILE);
+    onOpen?.(item.target || (item.type === "follow" ? "/user/" + String(item.username || "").replace("@", "") : APP_ROUTES.PROFILE));
   };
 
   const markAllRead = async () => {
