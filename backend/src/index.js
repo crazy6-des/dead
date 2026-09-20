@@ -3,39 +3,62 @@ const JSON_HEADERS = {
   "cache-control": "no-store",
 };
 
-function json(data, status = 200) {
+function corsHeaders(request, env) {
+  const origin = request.headers.get("Origin");
+  const allowedOrigin = env?.FRONTEND_ORIGIN;
+  const headers = new Headers(JSON_HEADERS);
+
+  if (origin && allowedOrigin && origin === allowedOrigin) {
+    headers.set("access-control-allow-origin", origin);
+    headers.set("access-control-allow-credentials", "true");
+    headers.set("vary", "Origin");
+  }
+
+  return headers;
+}
+
+function json(data, status = 200, request, env) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: JSON_HEADERS,
+    headers: corsHeaders(request, env),
   });
 }
 
-function routeNotFound() {
+function errorResponse(code, status, message, request, env, details) {
   return json({
     error: {
-      code: "NOT_FOUND",
-      status: 404,
-      message: "Route not found.",
+      code,
+      status,
+      message,
+      ...(details === undefined ? {} : { details }),
     },
-  }, 404);
+  }, status, request, env);
+}
+
+function routeNotFound(request, env) {
+  return errorResponse("NOT_FOUND", 404, "Route not found.", request, env);
+}
+
+function methodNotAllowed(request, env) {
+  return errorResponse("METHOD_NOT_ALLOWED", 405, "Method not allowed.", request, env);
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204 });
+      const headers = corsHeaders(request, env);
+      headers.set("access-control-allow-methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+      headers.set("access-control-allow-headers", "content-type, authorization, x-request-id");
+      return new Response(null, { status: 204, headers });
     }
 
-    if (request.method === "GET" && url.pathname === "/health") {
-      return json({ ok: true, service: "sss-api", version: "0.1.0" });
+    if (url.pathname === "/health" || url.pathname === "/api/health") {
+      if (request.method !== "GET") return methodNotAllowed(request, env);
+      return json({ ok: true, service: "sss-api", version: "0.1.0" }, 200, request, env);
     }
 
-    if (request.method === "GET" && url.pathname === "/api/health") {
-      return json({ ok: true, service: "sss-api", version: "0.1.0" });
-    }
-
-    return routeNotFound();
+    return routeNotFound(request, env);
   },
 };
