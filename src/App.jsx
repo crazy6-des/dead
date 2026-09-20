@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Bell, Bookmark, Compass, Home as HomeIcon, List, Menu, MessageCircle, Plus, Search, Settings as SettingsIcon, Sparkles, UserRound, X, Zap, Radio as RadioIcon } from "lucide-react";
 import { CreateRoute } from "./features/create/index.js";
 import { toFeedPostFromCreatedPost } from "./features/index.js";
-import { toggleLike, toggleSaved, setFollowUser, toggleFollowUser, toggleRepost } from "./features/social/socialState.js";
+import { toggleLike, toggleSaved, setFollowUser, toggleRepost } from "./features/social/socialState.js";
 import { useAppRouter } from "./app/useAppRouter.js";
 import { APP_ROUTES, ROUTE_LABELS, isRouteActive } from "./app/routes.js";
 import { PRODUCT_IDENTITY } from "./app/productIdentity.js";
@@ -23,14 +23,23 @@ import { BookmarkFoldersRoute, ListsRoute } from "./features/library/LibraryRout
 import SpacesRoute from "./features/spaces/SpacesRoute.jsx";
 import { useAuthState } from "./features/auth/authState.js";
 import { hasApiBaseUrl } from "./services/apiClient.js";
+import { demoOnly } from "./services/demoDataPolicy.js";
 
-const seed = [
+const demoSeed = [
  {id:1,a:"S Team",h:"@s",t:"2h",x:"Welcome to S — a place for ideas, images, music, and the people behind them.",l:128,r:18,p:9,b:31,liked:false,saved:false,following:false,topic:"Community",verified:true},
  {id:2,a:"Maya Okafor",h:"@maya",t:"34m",x:"A quiet thought: the best communities make you feel like your presence matters.",l:74,r:12,p:4,b:19,liked:true,saved:false,following:true,topic:"Culture"},
  {id:3,a:"Daniel Cole",h:"@daniel",t:"18m",x:"Building something small today that I hope makes someone's day a little easier.",l:46,r:7,p:3,b:8,liked:false,saved:true,following:false,topic:"Creators",media:true},
  {id:4,a:"Nia James",h:"@nia",t:"6m",x:"What are you listening to while you work? I need a new soundtrack.",l:91,r:21,p:6,b:14,liked:false,saved:false,following:true,topic:"Music",music:true}
 ];
-const trends = [["Music","Late Night Notes","8.1K posts"],["Community","Creators of S","1.7K posts"],["Culture","#NewBeginnings","2.4K posts"]];
+const demoTrends = [["Music","Late Night Notes","8.1K posts"],["Community","Creators of S","1.7K posts"],["Culture","#NewBeginnings","2.4K posts"]];
+const demoPeople = [
+  { name: "Maya Okafor", username: "maya" },
+  { name: "Daniel Cole", username: "daniel" },
+  { name: "Nia James", username: "nia" },
+];
+const seed = demoOnly(demoSeed, []);
+const trends = demoOnly(demoTrends, []);
+const people = demoOnly(demoPeople, []);
 
 function PageHeader({ route, onSearch, onTheme, onMenu, mobileMenuOpen }) {
   const label = ROUTE_LABELS[route] || PRODUCT_IDENTITY.name;
@@ -46,17 +55,17 @@ function MobileMenu({ route, go, onCreate, onClose }) {
   return <div className="mobile-menu-layer" role="presentation"><button className="mobile-menu-backdrop" aria-label="Close navigation menu" onClick={onClose}/><aside id="s-mobile-menu" className="mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation"><div className="mobile-menu-head"><b>S</b><button className="icon-btn" onClick={onClose} aria-label="Close navigation menu"><X/></button></div>{MOBILE_NAVIGATION.map(({ label, route: path, icon: ConfigIcon }) => { const Icon = label === "Create" ? Plus : icons[label] || ConfigIcon; return <button key={label} className={"nav " + (path && isRouteActive(route, path) ? "active" : "")} onClick={() => { onClose(); path ? go(path) : onCreate(); }}><Icon/><span>{label}</span></button>; })}<button className="nav" onClick={() => { onClose(); go(APP_ROUTES.SETTINGS); }}><SettingsIcon/><span>Settings</span></button></aside></div>;
 }
 function RightRail({ go, followingUsers, onFollowUser, onSearch }) {
-  return <aside className="rail"><button className="rail-search" onClick={onSearch}><Search/><span>{PRODUCT_IDENTITY.searchPlaceholder}</span></button><section className="rail-card"><h3>{PRODUCT_IDENTITY.activityTitle}</h3>{trends.map(([a,b,c]) => <button className="trend" key={b} onClick={() => go("/topic/" + encodeURIComponent(b))}><small>{a}</small><b>{b}</b><small>{c}</small></button>)}</section><section className="rail-card"><h3>People to connect with</h3>{["Maya Okafor","Daniel Cole","Nia James"].map((n) => { const username = n.split(" ")[0].toLowerCase(); const following = followingUsers.has(username); return <div className="suggest" key={n}><button className="avatar avatar--small" onClick={() => go("/user/" + username)}>{n[0]}</button><button className="suggest__person" onClick={() => go("/user/" + username)}><b>{n}</b>@{username}</button><button className={following ? "is-following" : ""} onClick={() => onFollowUser(username)}>{following ? "Following" : "Follow"}</button></div>; })}</section></aside>;
+  return <aside className="rail"><button className="rail-search" onClick={onSearch}><Search/><span>{PRODUCT_IDENTITY.searchPlaceholder}</span></button>{trends.length > 0 && <section className="rail-card"><h3>{PRODUCT_IDENTITY.activityTitle}</h3>{trends.map(([a,b,c]) => <button className="trend" key={b} onClick={() => go("/topic/" + encodeURIComponent(b))}><small>{a}</small><b>{b}</b><small>{c}</small></button>)}</section>}{people.length > 0 && <section className="rail-card"><h3>People to connect with</h3>{people.map(({ name, username }) => { const following = followingUsers.has(username); return <div className="suggest" key={username}><button className="avatar avatar--small" onClick={() => go("/user/" + username)}>{name[0]}</button><button className="suggest__person" onClick={() => go("/user/" + username)}><b>{name}</b>@{username}</button><button className={following ? "is-following" : ""} onClick={() => onFollowUser(username)}>{following ? "Following" : "Follow"}</button></div>; })}</section>}</aside>;
 }
 export default function App() {
   const { route, go } = useAppRouter();
   const auth = useAuthState({ enabled: hasApiBaseUrl() });
-  const [posts,setPosts] = useState(seed);
+  const [posts,setPosts] = useState(() => demoOnly(seed, []));
   const [dark,setDark] = useState(true);
   const [creating,setCreating] = useState(false);
   const [mobileMenuOpen,setMobileMenuOpen] = useState(false);
   const [toast,setToast] = useState("");
-  const [followingUsers,setFollowingUsers] = useState(() => new Set(["maya", "nia"]));
+  const [followingUsers,setFollowingUsers] = useState(() => new Set(demoOnly(["maya", "nia"], [])));
   const [searchOpen,setSearchOpen] = useState(false);
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
   useEffect(() => {
