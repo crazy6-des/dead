@@ -3,8 +3,8 @@ import { Heart, MoreHorizontal, Paperclip, Send } from "lucide-react";
 import { APP_ROUTES } from "../../app/routes.js";
 import PostCard from "../post/PostCard.jsx";
 import { NOTIFICATION_FILTERS } from "../notifications/notificationContract.js";
-import { notificationService } from "../../services/notificationService.js";
-import { messageService } from "../../services/messageService.js";
+import { createNotificationAdapter } from "../../services/notificationService.js";
+import { createMessageAdapter } from "../../services/messageService.js";
 
 const NOTIFICATION_SEED = [
   { id: "n1", actor: "Maya Okafor", type: "like", text: "liked your post", time: "2m" },
@@ -24,6 +24,7 @@ const MESSAGE_SEED = {
 };
 
 export function NotificationsRoute({ onOpen }) {
+  const notifications = useMemo(() => createNotificationAdapter({ devSeed: NOTIFICATION_SEED }), []);
   const [tab, setTab] = useState(NOTIFICATION_FILTERS.ALL);
   const [items, setItems] = useState(() => NOTIFICATION_SEED);
   const [loading, setLoading] = useState(true);
@@ -32,7 +33,7 @@ export function NotificationsRoute({ onOpen }) {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    notificationService.list({ filter: tab }).then((page) => {
+    notifications.list({ filter: tab }).then((page) => {
       if (active) { setItems(page.items || []); setError(""); setLoading(false); }
     }).catch((err) => {
       if (active) { setError(err?.message || "Could not load notifications."); setLoading(false); }
@@ -43,13 +44,13 @@ export function NotificationsRoute({ onOpen }) {
   const unreadCount = items.filter((item) => !item.read).length;
 
   const openNotification = async (item) => {
-    try { await notificationService.markRead(item.id); } catch {}
+    try { await notifications.markRead(item.id); } catch {}
     setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read: true } : entry));
     onOpen?.(item.type === "mention" || item.type === "reply" ? "/post/1/replies" : APP_ROUTES.PROFILE);
   };
 
   const markAllRead = async () => {
-    try { await notificationService.markAllRead(); } catch {}
+    try { await notifications.markAllRead(); } catch {}
     setItems((current) => current.map((item) => ({ ...item, read: true })));
   };
 
@@ -70,6 +71,7 @@ export function NotificationsRoute({ onOpen }) {
 }
 
 export function MessagesRoute() {
+  const messagesApi = useMemo(() => createMessageAdapter({ devSeed: MESSAGE_SEED }), []);
   const [conversations, setConversations] = useState(() => Object.keys(MESSAGE_SEED).map((name) => ({ id: name.toLowerCase().replace(/\s+/g, "-"), name })));
   const [selected, setSelected] = useState("maya-okafor");
   const [draft, setDraft] = useState("");
@@ -78,7 +80,7 @@ export function MessagesRoute() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([messageService.listConversations(), messageService.listMessages(selected)]).then(([conversationPage, messagePage]) => {
+    Promise.all([messagesApi.listConversations(), messagesApi.listMessages(selected)]).then(([conversationPage, messagePage]) => {
       if (!active) return;
       setConversations(conversationPage.items || conversationPage || []);
       const selectedName = Object.keys(MESSAGE_SEED).find((name) => name.toLowerCase().replace(/\s+/g, "-") === selected);
@@ -99,7 +101,7 @@ export function MessagesRoute() {
     setMessages((current) => ({ ...current, [selectedName]: [...(current[selectedName] || []), optimistic] }));
     setDraft("");
     try {
-      const sent = await messageService.send({ conversationId: selected, text });
+      const sent = await messagesApi.send({ conversationId: selected, text });
       setMessages((current) => ({ ...current, [selectedName]: [...(current[selectedName] || []).filter((item) => item.id !== optimistic.id), { ...sent, direction: "out", status: "sent" }] }));
     } catch {
       setMessages((current) => ({ ...current, [selectedName]: (current[selectedName] || []).map((item) => item.id === optimistic.id ? { ...item, status: "failed" } : item) }));
