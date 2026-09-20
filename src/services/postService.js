@@ -1,7 +1,7 @@
 import { apiClient, hasApiBaseUrl } from "./apiClient.js";
 import { createPublishPayload } from "../features/create/postContract.js";
 import { validatePostDraft } from "../features/create/postValidation.js";
-import { isLocalMediaAsset, isUploadReadyMediaAsset } from "../features/create/mediaContract.js";
+import { isCatalogMusicAsset, isLocalMediaAsset, isUploadReadyMediaAsset } from "../features/create/mediaContract.js";
 
 export function createPostRequest(draft) {
   const result = validatePostDraft(draft);
@@ -15,20 +15,24 @@ export function createPostRequest(draft) {
 }
 
 function assertApiMediaReady(payload) {
-  const assets = [
-    ...(Array.isArray(payload.media) ? payload.media : []),
-    ...(payload.audio ? [payload.audio] : []),
-  ];
+  const imageAssets = Array.isArray(payload.media) ? payload.media : [];
+  const audioAsset = payload.audio;
 
-  if (assets.some(isLocalMediaAsset)) {
+  if (imageAssets.some(isLocalMediaAsset) || isLocalMediaAsset(audioAsset)) {
     const error = new Error("Media upload is not connected yet. Please publish text-only posts until the media upload service is enabled.");
     error.code = "MEDIA_UPLOAD_REQUIRED";
     throw error;
   }
 
-  if (assets.some((asset) => !isUploadReadyMediaAsset(asset))) {
-    const error = new Error("Media must be uploaded before this post can be published.");
+  if (imageAssets.some((asset) => !isUploadReadyMediaAsset(asset))) {
+    const error = new Error("Images must be uploaded before this post can be published.");
     error.code = "MEDIA_NOT_UPLOAD_READY";
+    throw error;
+  }
+
+  if (audioAsset && !isUploadReadyMediaAsset(audioAsset) && !isCatalogMusicAsset(audioAsset)) {
+    const error = new Error("Audio must be uploaded or selected from the music catalog before this post can be published.");
+    error.code = "AUDIO_NOT_READY";
     throw error;
   }
 }
