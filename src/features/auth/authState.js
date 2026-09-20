@@ -10,14 +10,14 @@ export function useAuthState({ enabled = true } = {}) {
   const [user, setUser] = useState(null);
   const [error, setError] = useState(null);
 
-  const refreshSession = useCallback(async () => {
+  const refreshSession = useCallback(async ({ signal } = {}) => {
     if (!enabled) return null;
 
     setStatus(AUTH_STATUS.LOADING);
     setError(null);
 
     try {
-      const result = await authService.getSession();
+      const result = await authService.getSession({ signal });
       const nextUser = result?.user ?? result?.data?.user ?? null;
       setUser(nextUser);
       setStatus(nextUser ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.ANONYMOUS);
@@ -31,18 +31,18 @@ export function useAuthState({ enabled = true } = {}) {
   }, [enabled]);
 
   useEffect(() => {
-    const task = Promise.resolve().then(refreshSession);
-    return () => {
-      task.catch(() => {});
-    };
-  }, [refreshSession]);
+    if (!enabled) return undefined;
+    const controller = new AbortController();
+    refreshSession({ signal: controller.signal }).catch(() => {});
+    return () => controller.abort();
+  }, [enabled, refreshSession]);
 
-  const signIn = useCallback(async (credentials) => {
+  const signIn = useCallback(async (credentials, { signal } = {}) => {
     setStatus(AUTH_STATUS.LOADING);
     setError(null);
 
     try {
-      const result = await authService.signIn(credentials);
+      const result = await authService.signIn(credentials, { signal });
       const nextUser = result?.user ?? result?.data?.user ?? null;
       setUser(nextUser);
       setStatus(nextUser ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.ANONYMOUS);
@@ -54,12 +54,12 @@ export function useAuthState({ enabled = true } = {}) {
     }
   }, []);
 
-  const signUp = useCallback(async (input) => {
+  const signUp = useCallback(async (input, { signal } = {}) => {
     setStatus(AUTH_STATUS.LOADING);
     setError(null);
 
     try {
-      const result = await authService.signUp(input);
+      const result = await authService.signUp(input, { signal });
       const nextUser = result?.user ?? result?.data?.user ?? null;
       setUser(nextUser);
       setStatus(nextUser ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.ANONYMOUS);
@@ -71,12 +71,12 @@ export function useAuthState({ enabled = true } = {}) {
     }
   }, []);
 
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async ({ signal } = {}) => {
     setStatus(AUTH_STATUS.LOADING);
     setError(null);
 
     try {
-      const result = await authService.signOut();
+      const result = await authService.signOut({ signal });
       setUser(null);
       setStatus(AUTH_STATUS.ANONYMOUS);
       return result;
