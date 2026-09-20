@@ -7,6 +7,7 @@ export const APP_ROUTES = Object.freeze({
   PROFILE: "/david",
   SETTINGS: "/settings",
   EARN: "/earn",
+  SEARCH: "/search",
 });
 export const ROUTE_LABELS = Object.freeze({
   [APP_ROUTES.HOME]: "Home",
@@ -17,12 +18,13 @@ export const ROUTE_LABELS = Object.freeze({
   [APP_ROUTES.PROFILE]: "Profile",
   [APP_ROUTES.SETTINGS]: "Settings",
   [APP_ROUTES.EARN]: "Earn",
+  [APP_ROUTES.SEARCH]: "Search",
 });
 export function normalizeRoute(pathname = window.location.pathname) {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/profile") return APP_ROUTES.PROFILE;
   if (Object.values(APP_ROUTES).includes(path)) return path;
-  if (/^\/(post|share|user|topic|followers|following)(\/|$)/.test(path)) return path;
+  if (/^\/(post|share|user|topic|followers|following|search)(\/|$)/.test(path)) return path;
   return APP_ROUTES.HOME;
 }
 export function navigateTo(route) {
