@@ -5,7 +5,7 @@ export function createApiNotificationAdapter(client = apiClient) {
   return {
     list(request = {}) {
       const params = createNotificationRequest(request);
-      return client.get("/api/notifications", params).then((page) => ({
+      return client.get("/api/notifications", { query: params }).then((page) => ({
         ...page,
         items: (page?.items || []).map(normalizeNotification),
       }));
