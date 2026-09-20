@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { socialGraphService } from "../../services/socialGraphService.js";
-import { SOCIAL_RELATIONSHIPS } from "../social/socialGraphContract.js";
 import {
   ArrowLeft, Bookmark, Check, Copy, Heart, Link2, MessageCircle,
   Repeat2, Send, Users
@@ -132,7 +131,7 @@ function NetworkRoute({ type, username, onBack, followingUsers = new Set(), onFo
   return <div className="detail-page"><BackButton onBack={onBack}/><div className="heading"><small>PROFILE NETWORK</small><h2>{type === "followers" ? "Followers" : "Following"}</h2><p>@{username}</p></div>{items.map((person) => {
     const target = person.username;
     const following = followingUsers.has(target);
-    return <div className="network-row" key={target}><div className="avatar avatar--small">{String(person.name || target)[0]}</div><div><b>{person.name || target}</b><span>@{target}</span></div><button className={following ? "is-following" : "outline"} onClick={() => { onFollowUser?.(target); socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled: !following }).catch(() => null); }}>{following ? "Following" : "Follow"}</button></div>;
+    return <div className="network-row" key={target}><div className="avatar avatar--small">{String(person.name || target)[0]}</div><div><b>{person.name || target}</b><span>@{target}</span></div><button className={following ? "is-following" : "outline"} onClick={() => onFollowUser?.(target)}>{following ? "Following" : "Follow"}</button></div>;
   })}</div>;
 }
 
