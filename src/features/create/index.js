@@ -10,3 +10,7 @@ export {
 } from "./postContract";
 export { validatePostDraft } from "./postValidation";
 export { createCreatePublishHandler } from "./createIntegration";
+export {
+  CREATE_COMPOSER_FLAG,
+  isNewCreateComposerEnabled,
+} from "./createFeatureFlag";
