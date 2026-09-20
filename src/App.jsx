@@ -70,7 +70,7 @@ export default function App() {
     if (route === APP_ROUTES.SAVED) return <SavedRoute posts={posts} onSave={save} onOpen={open}/>;
     if (route === APP_ROUTES.SETTINGS) return <SettingsRoute/>;
     if (route === APP_ROUTES.EARN) return <EarnRoute onOpen={open}/>;
-    return <EntityRoute path={route} posts={posts} onBack={() => go(APP_ROUTES.HOME)} onOpen={open} onSave={save}/>;
+    return <EntityRoute path={route} posts={posts} onBack={() => go(APP_ROUTES.HOME)} onOpen={open} onSave={save} onLike={like}/>;
   };
   return <div className={"app " + (dark ? "" : "light")}><Sidebar route={route} go={go} onCreate={() => setCreating(true)}/><main className="main"><PageHeader route={route} onSearch={() => setSearchOpen(true)} onTheme={() => setDark((v) => !v)}/>{render()}</main><RightRail go={go} followingUsers={followingUsers} onFollowUser={followUser}/><nav className="mobile-nav">{[[HomeIcon,"Home",APP_ROUTES.HOME],[Compass,"Discover",APP_ROUTES.DISCOVER],[Plus,"Create",null],[Bell,"Notifications",APP_ROUTES.NOTIFICATIONS],[UserRound,"Profile",APP_ROUTES.PROFILE]].map(([Icon,label,path]) => <button key={label} onClick={() => path ? go(path) : setCreating(true)} className={route === path ? "active" : ""}><Icon/><small>{label}</small></button>)}</nav>{searchOpen && <SearchOverlay posts={posts} onOpen={(path) => { setSearchOpen(false); open(path); }} onClose={() => setSearchOpen(false)}/>} {creating && <div className="modal"><div className="create"><CreateRoute onPublish={publish} onCancel={() => setCreating(false)}/></div><button className="modal-close" onClick={() => setCreating(false)}><X/></button></div>}{toast && <div className="toast">{toast}</div>}</div>;
 }
