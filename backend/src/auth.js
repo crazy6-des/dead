@@ -53,10 +53,12 @@ export async function verifyPassword(password, storedHash) {
   const [prefix, iterationsValue, saltValue, digestValue] = String(storedHash || "").split("$");
   const iterations = Number(iterationsValue);
   if (prefix !== PASSWORD_HASH_PREFIX || !Number.isInteger(iterations) || iterations < 100000 || !saltValue || !digestValue) return false;
+  let salt;
+  let expected;
+  try { salt = base64ToBytes(saltValue); expected = base64ToBytes(digestValue); } catch { return false; }
   const key = await globalThis.crypto.subtle.importKey("raw", new globalThis.TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await globalThis.crypto.subtle.deriveBits({ name: "PBKDF2", salt: base64ToBytes(saltValue), iterations, hash: "SHA-256" }, key, 256);
+  const bits = await globalThis.crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations, hash: "SHA-256" }, key, 256);
   const actual = new Uint8Array(bits);
-  const expected = base64ToBytes(digestValue);
   if (actual.length !== expected.length) return false;
   let difference = 0;
   for (let index = 0; index < actual.length; index += 1) difference |= actual[index] ^ expected[index];
@@ -86,6 +88,12 @@ export async function revokeSession(request, env) {
   const tokenHash = await sha256Hex(token);
   await env.DB.prepare("UPDATE sessions SET revoked_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE token_hash = ?1 AND revoked_at IS NULL").bind(tokenHash).run();
   return true;
+}
+
+export async function createPersistedSession(userId, env) {
+  const token = createSessionToken();
+  await env.DB.prepare("INSERT INTO sessions (id, user_id, token_hash, expires_at) VALUES (?1, ?2, ?3, ?4)").bind(globalThis.crypto.randomUUID(), userId, await sha256Hex(token), sessionExpiry()).run();
+  return token;
 }
 
 export function createSessionToken() {
