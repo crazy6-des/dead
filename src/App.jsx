@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Bell, Bookmark, Compass, Home as HomeIcon, List, Menu, MessageCircle, Plus, Search, Settings as SettingsIcon, Sparkles, UserRound, X, Zap, Radio as RadioIcon } from "lucide-react";
 import { CreateRoute } from "./features/create/index.js";
 import { toFeedPostFromCreatedPost } from "./features/index.js";
@@ -9,6 +9,7 @@ import { PRODUCT_IDENTITY } from "./app/productIdentity.js";
 import { PRIMARY_NAVIGATION, MOBILE_NAVIGATION } from "./app/navigation.js";
 import { socialGraphService } from "./services/socialGraphService.js";
 import { bookmarkService } from "./services/bookmarkService.js";
+import { createFeedAdapter } from "./services/feedService.js";
 import { SOCIAL_RELATIONSHIPS, normalizeUsername } from "./features/social/socialGraphContract.js";
 import HomeRoute from "./features/home/HomeRoute.jsx";
 import DiscoverRoute from "./features/discover/DiscoverRoute.jsx";
@@ -55,6 +56,14 @@ export default function App() {
   const [followingUsers,setFollowingUsers] = useState(() => new Set(["maya", "nia"]));
   const [searchOpen,setSearchOpen] = useState(false);
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
+  useEffect(() => {
+    let active = true;
+    const feed = createFeedAdapter({ seedPosts: seed });
+    feed.list().then((page) => {
+      if (active && Array.isArray(page?.items)) setPosts(page.items);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
   const like = (id) => setPosts((all) => toggleLike(all, id));
   const save = (id) => { const current = posts.find((post) => post.id === id); if (!current) return; const nextSaved = !current.saved; setPosts((all) => toggleSaved(all, id)); const request = nextSaved ? bookmarkService.save({ postId: id, folderId: null }) : bookmarkService.remove(id); request.catch(() => setPosts((all) => toggleSaved(all, id))); };
   const repost = (id) => setPosts((all) => toggleRepost(all, id));
