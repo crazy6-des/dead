@@ -7,12 +7,13 @@
     "verify:create": "node scripts/verify-create-boundary.mjs",
     "verify:boundaries": "node scripts/verify-service-boundaries.mjs",
     "test:api": "node scripts/test-api-client.mjs",
-    "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:create && npm run test:feed-create && npm run test:contracts && npm run test:post-vocabulary && npm run test:auth-contract",
+    "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:create && npm run test:feed-create && npm run test:contracts && npm run test:post-vocabulary && npm run test:auth-contract && npm run test:social-communication",
     "test:create": "node scripts/test-create-integration.mjs",
     "test:feed-create": "node scripts/test-feed-create-boundary.mjs",
     "test:contracts": "node scripts/test-feed-contracts.mjs",
     "test:post-vocabulary": "node scripts/test-post-vocabulary.mjs",
-    "test:auth-contract": "node scripts/test-auth-contract.mjs"
+    "test:auth-contract": "node scripts/test-auth-contract.mjs",
+    "test:social-communication": "node scripts/test-social-communication-contracts.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
