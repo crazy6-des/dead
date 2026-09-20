@@ -3,7 +3,7 @@ import { Plus, Bookmark, Folder, Users } from "lucide-react";
 import { bookmarkService } from "../../services/bookmarkService.js";
 import { listService } from "../../services/listService.js";
 
-export default function BookmarkFoldersRoute({ posts = [], onOpen }) {
+function BookmarkFoldersRoute({ posts = [], onOpen }) {
   const [folders, setFolders] = useState([]);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -48,3 +48,6 @@ export function ListsRoute() {
   const createList = async () => { const value = name.trim(); if (!value) return; const list = await listService.create({ name: value, description: "A focused S feed." }); setLists((current) => [...current, list]); setName(""); };
   return <div className="page"><div className="heading"><small>YOUR NETWORK</small><h2>Lists</h2><p>Build focused feeds from the people and topics you care about.</p></div><div className="page-actions"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="New list name" aria-label="New list name"/><button className="primary" disabled={!name.trim()} onClick={createList}><Plus size={16}/>Create list</button></div>{loading ? <div className="empty"><p>Loading lists…</p></div> : lists.map((list) => <article className="card" key={list.id}><div className="network-row"><span className="avatar avatar--small"><Users size={17}/></span><span><b>{list.name}</b><small>{list.description}</small></span><button className="outline" onClick={() => setSelected(list.id)}>Open</button></div></article>)}{selected && <div className="inline-notice">List opened. Its focused feed is ready for membership and filtering through the Lists service.</div>}</div>;
 }
+
+export { BookmarkFoldersRoute };
+export default BookmarkFoldersRoute;
