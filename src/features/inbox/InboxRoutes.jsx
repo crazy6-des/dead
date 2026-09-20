@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Bell, Heart, MoreHorizontal, Paperclip, Send } from "lucide-react";
+import { Heart, MoreHorizontal, Paperclip, Send } from "lucide-react";
 import { APP_ROUTES } from "../../app/routes.js";
 import PostCard from "../post/PostCard.jsx";
 
