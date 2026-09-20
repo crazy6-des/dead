@@ -1,0 +1,22 @@
+name = "sss"
+main = "src/index.js"
+compatibility_date = "2026-09-20"
+
+# Replace the placeholder IDs locally before deployment.
+# Never commit account-specific secrets or API keys.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sss"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "sss"
+
+[vars]
+BREVO_SENDER_EMAIL = "REPLACE_WITH_VERIFIED_SENDER"
+BREVO_SENDER_NAME = "sphere"
+
+# Configure secrets separately:
+# wrangler secret put BREVO_API_KEY
