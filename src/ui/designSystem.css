@@ -43,6 +43,31 @@ select:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .post__text,
 .canvas textarea { line-height: var(--s-leading-body); }
 
+/* Shared interaction rhythm. Existing feature classes inherit these standards. */
+.icon-btn,
+.post__actions button,
+.mobile-nav button,
+.nav { min-width: var(--s-touch-target); min-height: var(--s-touch-target); }
+
+.post__meta { gap: var(--s-space-1); line-height: var(--s-leading-tight); }
+.post__text { margin-block: var(--s-space-2) var(--s-space-3); overflow-wrap: anywhere; }
+.post__actions { gap: var(--s-space-2); }
+.post-foot { gap: var(--s-space-2); }
+
+.feed-tabs,
+.tabs3,
+.tabs4,
+.tabs5 { min-height: 52px; }
+.feed-tabs button,
+.tabs3 button,
+.tabs4 button,
+.tabs5 button { min-height: 52px; padding-inline: var(--s-space-3); }
+
+.discover-search,
+.rail-search { min-height: var(--s-touch-target); }
+.discover-search input,
+.rail-search input { min-width: 0; }
+
 /* Familiar microblogging proportions: readable 600px content column and quiet rails. */
 @media (min-width: 1280px) {
   .app { grid-template-columns: minmax(210px, 240px) minmax(0, 600px) minmax(280px, 320px); gap: var(--s-column-gap); }
@@ -78,7 +103,12 @@ select:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
   .top h1 { font-size: 18px; }
   .post { padding: 14px 16px; gap: 10px; }
   .post__text { font-size: 15px; }
+  .post__actions { justify-content: space-between; }
   .post__actions button { min-width: 36px; min-height: 40px; }
   .modal { padding: 0; }
   .create { border-radius: 18px 18px 0 0; }
+  .feed-tabs button,
+  .tabs3 button,
+  .tabs4 button,
+  .tabs5 button { padding-inline: 8px; }
 }
