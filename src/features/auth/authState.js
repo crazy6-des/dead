@@ -69,7 +69,7 @@ export function useAuthState({ enabled = true } = {}) {
 
     try {
       const result = await authService.signUp(input, { signal });
-      const nextUser = result?.user ?? result?.data?.user ?? null;
+      const nextUser = getAuthUser(result);
       setUser(nextUser);
       setStatus(nextUser ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.ANONYMOUS);
       return result;
