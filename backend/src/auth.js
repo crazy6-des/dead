@@ -19,11 +19,11 @@ function parseCookies(header = "") {
 function bytesToBase64(bytes) {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
+  return globalThis.btoa(binary);
 }
 
 function base64ToBytes(value) {
-  return Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
+  return Uint8Array.from(globalThis.atob(value), (character) => character.charCodeAt(0));
 }
 
 function randomBytes(length) {
@@ -81,7 +81,7 @@ export async function resolveSession(request, env) {
 }
 
 export function createSessionToken() {
-  return `${crypto.randomUUID()}${crypto.randomUUID()}`;
+  return `${globalThis.crypto.randomUUID()}${globalThis.crypto.randomUUID()}`;
 }
 
 export function sessionExpiry() {
