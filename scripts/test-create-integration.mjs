@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createCreatePublishHandler } from "../src/features/create/createIntegration.js";
 import { validatePostDraft } from "../src/features/create/postValidation.js";
+import { normalizeCreatedPostResponse } from "../src/features/create/postContract.js";
+import { createApiPostAdapter } from "../src/services/postService.js";
 
 const draft = {
   text: "Integration test post",
@@ -62,4 +64,24 @@ assert.equal(validatePostDraft({
 }).valid, false);
 
 console.log("PASS Create publish integration");
+const normalizedPost = normalizeCreatedPostResponse({ data: { post: { id: "server-1", text: "Created" } } });
+assert.deepEqual(normalizedPost, { id: "server-1", text: "Created" });
+assert.throws(() => normalizeCreatedPostResponse(null), /invalid post response/i);
+
+const originalFetch = globalThis.fetch;
+try {
+  globalThis.fetch = async () => {
+    throw new Error("fetch should not run for local media");
+  };
+
+  const apiAdapter = createApiPostAdapter();
+  await assert.rejects(
+    () => apiAdapter.publish(validRichDraft),
+    (error) => error?.code === "MEDIA_UPLOAD_REQUIRED",
+  );
+} finally {
+  globalThis.fetch = originalFetch;
+}
+
 console.log("PASS Create rich-media validation");
+console.log("PASS Create API media boundary");
