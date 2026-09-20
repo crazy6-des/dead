@@ -1,5 +1,5 @@
-import { createPostAdapter } from "../../services";
-import { normalizeCreatedPostResponse } from "./postContract";
+import { createPostAdapter } from "../../services/index.js";
+import { normalizeCreatedPostResponse } from "./postContract.js";
 
 /**
  * Creates the publish boundary used by the S composer.
