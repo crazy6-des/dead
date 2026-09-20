@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { moderationService } from "../../services/moderationService.js";
 import { MODERATION_ACTIONS, REPORT_REASONS } from "../moderation/moderationContract.js";
-import { Bookmark, Check, Copy, Flag, Heart, MessageCircle, MoreHorizontal, Music2, Repeat2, Send, Shield, X } from "lucide-react";
+import { Bookmark, Check, Copy, Flag, Heart, MessageCircle, MoreHorizontal, Music2, Repeat2, Send, Shield, X, BarChart3 } from "lucide-react";
 export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onOpen }) {
   const [moderation, setModeration] = useState(null);
   const [moderationBusy, setModerationBusy] = useState(false);
   const [moderationMessage, setModerationMessage] = useState("");
-  const [menu, setMenu] = useState(false);
+  const [menu, setMenu] = useState(false);\n  const [pollVotes, setPollVotes] = useState(() => ({}));
   const reposted = Boolean(post.reposted);
   const isFollowing = Boolean(post.following);
   const author = post.author || post.a || "S";
@@ -38,7 +38,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
       </div>
       <button className="post-content-hit" onClick={() => onOpen?.("/post/" + post.id)}><p className="post__text">{text}</p></button>
       {(post.media || post.media === true) && <button className="post-media" onClick={() => onOpen?.("/post/" + post.id + "/media")}><span>Visual expression</span><small>Open media</small></button>}
-      {(post.audio || post.music) && <div className="audio-card"><div className="audio-art"><Music2 size={20}/></div><div><strong>{post.audio?.title || "Late Night Notes"}</strong><span>{post.audio?.artist || "Original audio"} · 2:48</span></div><button className="play">▶</button></div>}
+      {post.poll && <div className="poll-card"><div className="poll-card__question"><BarChart3 size={17}/><strong>{post.poll.question}</strong></div>{(post.poll.options || []).map((option, index) => { const selected = pollVotes[post.poll.id || post.id] === index; const total = Number(post.poll.totalVotes || 0); const votes = Number(option.votes || 0); const percent = total > 0 ? Math.round((votes / total) * 100) : 0; return <button className={"poll-option " + (selected ? "is-selected" : "")} key={index} onClick={() => setPollVotes((current) => ({ ...current, [post.poll.id || post.id]: index }))}><span>{option.text || option}</span><span>{percent}%</span></button>; })}<small>{post.poll.totalVotes || 0} votes</small></div>}\n      {(post.audio || post.music) && <div className="audio-card"><div className="audio-art"><Music2 size={20}/></div><div><strong>{post.audio?.title || "Late Night Notes"}</strong><span>{post.audio?.artist || "Original audio"} · 2:48</span></div><button className="play">▶</button></div>}
       <div className="post__actions">
         <button onClick={() => onOpen?.("/post/" + post.id + "/replies")}><MessageCircle size={18}/><span>{post.replies ?? post.r ?? 0}</span></button>
         <button className={reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)}><Repeat2 size={18}/><span>{post.reposts ?? post.p ?? 0}</span></button>
