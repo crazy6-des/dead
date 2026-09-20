@@ -14,9 +14,9 @@ export const AUTH_MODES = Object.freeze({
 
 export const AUTH_STATUSES = Object.freeze({
   UNKNOWN: "unknown",
-  AUTHENTICATING: "authenticating",
+  LOADING: "loading",
   AUTHENTICATED: "authenticated",
-  UNAUTHENTICATED: "unauthenticated",
+  ANONYMOUS: "anonymous",
   ERROR: "error",
 });
 
