@@ -18,8 +18,13 @@ export function createFeedResponse(items = [], nextCursor = null) {
 
 function normalizeApiResponse(payload) {
   const source = payload?.data && typeof payload.data === "object" ? payload.data : payload || {};
+  const items = Array.isArray(source.items)
+    ? source.items
+    : Array.isArray(source.posts)
+      ? source.posts
+      : [];
   return createFeedResponse(
-    Array.isArray(source.items) ? source.items : source.posts,
+    items,
     source.nextCursor ?? source.next_cursor ?? null,
   );
 }
