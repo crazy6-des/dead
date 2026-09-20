@@ -1,7 +1,7 @@
 import { apiClient, hasApiBaseUrl } from "./apiClient.js";
 
 export function createApiSearchAdapter(client = apiClient) {
-  return { search(query, type = "all", cursor = null) { return client.get("/api/search", { q: String(query || "").trim(), type, cursor, limit: 30 }); } };
+  return { search(query, type = "all", cursor = null) { return client.get("/api/search", { query: { q: String(query || "").trim(), type, cursor, limit: 30 } }); } };
 }
 export function createDevSearchAdapter({ posts = [] } = {}) {
   return {
