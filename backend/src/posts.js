@@ -12,7 +12,7 @@ function error(code, status, message, details = undefined) {
 
 function encodeCursor(createdAt, id) {
   const value = JSON.stringify({ createdAt, id });
-  return globalThis.btoa(unescape(encodeURIComponent(value)))
+  return globalThis.btoa(value)
     .replace(/=/g, "")
     .replace(/\+/g, "-")
     .replace(/\//g, "_");
@@ -23,7 +23,7 @@ function decodeCursor(value) {
   try {
     const normalized = String(value).replace(/-/g, "+").replace(/_/g, "/");
     const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
-    return JSON.parse(decodeURIComponent(escape(globalThis.atob(padded))));
+    return JSON.parse(globalThis.atob(padded));
   } catch {
     return null;
   }
