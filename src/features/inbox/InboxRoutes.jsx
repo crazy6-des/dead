@@ -32,7 +32,6 @@ export function NotificationsRoute({ onOpen }) {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
     notifications.list({ filter: tab }).then((page) => {
       if (active) { setItems(page.items || []); setError(""); setLoading(false); }
     }).catch((err) => {
@@ -44,19 +43,19 @@ export function NotificationsRoute({ onOpen }) {
   const unreadCount = items.filter((item) => !item.read).length;
 
   const openNotification = async (item) => {
-    try { await notifications.markRead(item.id); } catch {}
+    try { await notifications.markRead(item.id); } catch (err) { setError(err?.message || "Could not mark notification as read."); }
     setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read: true } : entry));
     onOpen?.(item.target || (item.type === "follow" ? "/user/" + String(item.username || "").replace("@", "") : APP_ROUTES.PROFILE));
   };
 
   const markAllRead = async () => {
-    try { await notifications.markAllRead(); } catch {}
+    try { await notifications.markAllRead(); } catch (err) { setError(err?.message || "Could not mark notifications as read."); }
     setItems((current) => current.map((item) => ({ ...item, read: true })));
   };
 
   return <div className="page">
     <div className="heading"><small>INBOX</small><h2>Notifications {unreadCount > 0 && <span className="badge">{unreadCount}</span>}</h2><p>Every interaction, follow and mention in one place.</p></div>
-    <div className="tabs3">{[NOTIFICATION_FILTERS.ALL, NOTIFICATION_FILTERS.MENTIONS, NOTIFICATION_FILTERS.VERIFIED].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}</div>
+    <div className="tabs3">{[NOTIFICATION_FILTERS.ALL, NOTIFICATION_FILTERS.MENTIONS, NOTIFICATION_FILTERS.VERIFIED].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { setLoading(true); setTab(item); }}>{item}</button>)}</div>
     {unreadCount > 0 && <div className="page-actions"><button className="outline" onClick={markAllRead}>Mark all as read</button></div>}
     <section className="card">
       {loading ? <div className="empty"><h3>Loading activity…</h3></div> :
@@ -88,7 +87,7 @@ export function MessagesRoute() {
       setLoading(false);
     }).catch(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [selected]);
+  }, [selected, messagesApi]);
 
   const selectedConversation = conversations.find((item) => item.id === selected);
   const selectedName = selectedConversation?.name || "Maya Okafor";
