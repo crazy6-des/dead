@@ -1,5 +1,5 @@
 import { apiClient, hasApiBaseUrl } from "./apiClient.js";
-import { createPublishPayload } from "../features/create/postContract.js";
+import { createPublishPayload, normalizeCreatedPostResponse } from "../features/create/postContract.js";
 import { validatePostDraft } from "../features/create/postValidation.js";
 import { isCatalogMusicAsset, isLocalMediaAsset, isUploadReadyMediaAsset } from "../features/create/mediaContract.js";
 
@@ -42,7 +42,7 @@ export function createApiPostAdapter({ endpoint = "/api/posts" } = {}) {
     async publish(draft) {
       const payload = createPostRequest(draft);
       assertApiMediaReady(payload);
-      return apiClient.post(endpoint, payload);
+      return normalizeCreatedPostResponse(await apiClient.post(endpoint, payload));
     },
   };
 }
