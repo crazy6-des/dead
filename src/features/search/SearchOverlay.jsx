@@ -5,12 +5,15 @@ import { createSearchAdapter } from "../../services/searchService.js";
 const SEARCH_HISTORY = ["building in public", "Late Night Notes", "Maya"];
 const MUSIC = ["Late Night Notes", "After Hours", "Soft Signals"];
 export default function SearchOverlay({ posts = [], onOpen, onClose }) {
-  const [query, setQuery] = useState("");\n  const [remote, setRemote] = useState(null);
+  const [query, setQuery] = useState("");
+  const [remote, setRemote] = useState(null);
   const q = query.trim().toLowerCase();
   const people = useMemo(() => [["Maya Okafor","maya"],["Daniel Cole","daniel"],["Nia James","nia"],["S Team","s"]].filter(([name,username]) => !q || (name+" "+username).toLowerCase().includes(q)), [q]);
   const postResults = useMemo(() => posts.filter((p) => !q || [p.a,p.h,p.x,p.topic].join(" ").toLowerCase().includes(q)).slice(0, 8), [posts, q]);
   const topics = useMemo(() => [...new Set(posts.map((p) => p.topic).filter(Boolean))].filter((topic) => !q || topic.toLowerCase().includes(q)).slice(0, 6), [posts, q]);
-  const music = MUSIC.filter((item) => !q || item.toLowerCase().includes(q));\n  const searchApi = useMemo(() => createSearchAdapter({ posts }), [posts]);\n  useEffect(() => { let active = true; if (!q) { setRemote(null); return () => { active = false; }; } const timer = window.setTimeout(() => searchApi.search(q).then((result) => active && setRemote(result)).catch(() => active && setRemote(null)), 180); return () => { active = false; window.clearTimeout(timer); }; }, [q, searchApi]);
+  const music = MUSIC.filter((item) => !q || item.toLowerCase().includes(q));
+  const searchApi = useMemo(() => createSearchAdapter({ posts }), [posts]);
+  useEffect(() => { let active = true; if (!q) { setRemote(null); return () => { active = false; }; } const timer = window.setTimeout(() => searchApi.search(q).then((result) => active && setRemote(result)).catch(() => active && setRemote(null)), 180); return () => { active = false; window.clearTimeout(timer); }; }, [q, searchApi]);
   return <div className="search-overlay" role="dialog" aria-modal="true">
     <div className="search-overlay__bar"><button onClick={onClose} aria-label="Close search"><ArrowLeft/></button><Search/><input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder={PRODUCT_IDENTITY.searchPlaceholder}/><button onClick={() => setQuery("")} aria-label="Clear search"><X/></button></div>
     {!q && <section className="search-section"><header><h3>Recent searches</h3></header>{SEARCH_HISTORY.map((item) => <button className="search-history" key={item} onClick={() => setQuery(item)}><Clock3 size={16}/>{item}</button>)}</section>}
