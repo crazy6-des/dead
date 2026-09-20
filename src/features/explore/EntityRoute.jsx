@@ -116,20 +116,20 @@ function UserDetail({ username, onBack, onOpen, onFollowUser, followingUsers = n
 }
 
 function NetworkRoute({ type, username, onBack, followingUsers = new Set(), onFollowUser }) {
-  const [items, setItems] = useState(people);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let active = true;
     const request = type === "followers" ? socialGraphService.listFollowers(username) : socialGraphService.listFollowing(username);
     request.then((page) => {
       if (!active) return;
-      if (page?.items?.length) setItems(page.items.map((item) => people.find((person) => person.username === item.username) || item));
+      setItems(Array.isArray(page?.items) ? page.items : []);
       setLoading(false);
     }).catch(() => active && setLoading(false));
     return () => { active = false; };
   }, [type, username]);
   if (loading) return <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Loading network…</h3></div></div>;
-  return <div className="detail-page"><BackButton onBack={onBack}/><div className="heading"><small>PROFILE NETWORK</small><h2>{type === "followers" ? "Followers" : "Following"}</h2><p>@{username}</p></div>{items.map((person) => {
+  return <div className="detail-page"><BackButton onBack={onBack}/><div className="heading"><small>PROFILE NETWORK</small><h2>{type === "followers" ? "Followers" : "Following"}</h2><p>@{username}</p></div>{items.length === 0 ? <div className="empty"><h3>No network data yet</h3><p>Follow relationships will appear here when the social graph service returns them.</p></div> : items.map((person) => {
     const target = person.username;
     const following = followingUsers.has(target);
     return <div className="network-row" key={target}><div className="avatar avatar--small">{String(person.name || target)[0]}</div><div><b>{person.name || target}</b><span>@{target}</span></div><button className={following ? "is-following" : "outline"} onClick={() => onFollowUser?.(target)}>{following ? "Following" : "Follow"}</button></div>;
