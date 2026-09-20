@@ -1,7 +1,14 @@
 const SESSION_COOKIE = "s_session";
 
 function parseCookies(header = "") {
-  return Object.fromEntries(header.split(";").map((part) => part.trim().split("=")).filter(([key, value]) => key && value).map(([key, ...value]) => [key, value.join("=")])));
+  const pairs = header
+    .split(";")
+    .map((part) => part.trim().split("="))
+    .filter(([key, value]) => key && value);
+
+  return Object.fromEntries(
+    pairs.map(([key, ...value]) => [key, value.join("=")]),
+  );
 }
 
 export function getSessionToken(request) {
