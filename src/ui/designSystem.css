@@ -19,6 +19,7 @@
   --s-radius-md: 12px;
   --s-radius-lg: 16px;
   --s-touch-target: 44px;
+  --s-control-height: 40px;
   --s-content-width: 600px;
   --s-left-rail: 240px;
   --s-right-rail: 320px;
@@ -32,8 +33,15 @@ textarea,
 select { font-family: var(--s-font-sans); }
 
 button,
+input,
+textarea,
+select { font-size: inherit; }
+
+button { border: 0; }
+button,
 a,
 [role="button"] { min-height: 36px; }
+button:disabled { cursor: not-allowed; opacity: .55; }
 
 button:focus-visible,
 input:focus-visible,
@@ -43,7 +51,6 @@ select:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .post__text,
 .canvas textarea { line-height: var(--s-leading-body); }
 
-/* Shared interaction rhythm. Existing feature classes inherit these standards. */
 .icon-btn,
 .post__actions button,
 .mobile-nav button,
@@ -70,13 +77,13 @@ select:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
 /* Familiar microblogging proportions: readable 600px content column and quiet rails. */
 @media (min-width: 1280px) {
-  .app { grid-template-columns: minmax(210px, 240px) minmax(0, 600px) minmax(280px, 320px); gap: var(--s-column-gap); }
+  .app { grid-template-columns: minmax(210px, 240px) minmax(0, var(--s-content-width)) minmax(280px, 320px); gap: var(--s-column-gap); }
   .post { padding: 16px 20px; }
   .post__text { font-size: var(--s-text-md); }
 }
 
 @media (max-width: 1100px) {
-  .app { grid-template-columns: 76px minmax(0, 600px); justify-content: center; }
+  .app { grid-template-columns: 76px minmax(0, var(--s-content-width)); justify-content: center; }
   .sidebar { padding-inline: 10px; }
   .sidebar .nav { justify-content: center; padding-inline: 10px; }
   .sidebar .nav span,
