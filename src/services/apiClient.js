@@ -44,8 +44,20 @@ async function parseResponse(response) {
   return text || null;
 }
 
+function buildQuery(path, query) {
+  if (!query || typeof query !== "object") return path;
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") return;
+    params.set(key, Array.isArray(value) ? value.join(",") : String(value));
+  });
+  const encoded = params.toString();
+  if (!encoded) return path;
+  return `${path}${path.includes("?") ? "&" : "?"}${encoded}`;
+}
+
 export async function apiRequest(path, options = {}) {
-  const { body, headers = {}, timeoutMs = DEFAULT_TIMEOUT_MS, signal: externalSignal, ...requestOptions } = options;
+  const { body, query, headers = {}, timeoutMs = DEFAULT_TIMEOUT_MS, signal: externalSignal, ...requestOptions } = options;
   const controller = new AbortController();
   let didTimeout = false;
   const timeoutId = setTimeout(() => {
@@ -64,7 +76,7 @@ export async function apiRequest(path, options = {}) {
   }
 
   try {
-    const response = await fetch(buildUrl(path), {
+    const response = await fetch(buildUrl(buildQuery(path, query)), {
       credentials: "include",
       ...requestOptions,
       headers: requestHeaders,
