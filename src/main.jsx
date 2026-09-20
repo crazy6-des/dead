@@ -5,6 +5,7 @@ import PreviewMode from "./preview/PreviewMode";
 import "./styles.css";
 import "./ui/designSystem.css";
 import "./ui/alignment.css";
+import "./ui/mobileNavigation.css";
 
 const isFeedPreview = new URLSearchParams(window.location.search).get("preview") === "feed";
 
