@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "verify:create": "node scripts/verify-create-boundary.mjs"
+    "verify:create": "node scripts/verify-create-boundary.mjs",
+    "verify:boundaries": "node scripts/verify-service-boundaries.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
