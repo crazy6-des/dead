@@ -1,5 +1,6 @@
 export { default as CreateComposer } from "./CreateComposer";
 export { default as CreateRoute } from "./CreateRoute";
+export { default as CreateModalAdapter } from "./CreateModalAdapter";
 export {
   POST_KINDS,
   POST_AUDIENCES,
