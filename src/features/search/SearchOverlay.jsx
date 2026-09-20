@@ -5,7 +5,13 @@ import { createSearchAdapter } from "../../services/searchService.js";
 const SEARCH_HISTORY = ["building in public", "Late Night Notes", "Maya"];
 const MUSIC = ["Late Night Notes", "After Hours", "Soft Signals"];
 export default function SearchOverlay({ posts = [], onOpen, onClose }) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const path = window.location.pathname.replace(/\/+$/, "");
+    const prefix = "/search/";
+    if (path.startsWith(prefix)) return decodeURIComponent(path.slice(prefix.length));
+    return new URLSearchParams(window.location.search).get("q") || "";
+  });
   const [remote, setRemote] = useState(null);
   const q = query.trim().toLowerCase();
   const people = useMemo(() => [["Maya Okafor","maya"],["Daniel Cole","daniel"],["Nia James","nia"],["S Team","s"]].filter(([name,username]) => !q || (name+" "+username).toLowerCase().includes(q)), [q]);
@@ -27,7 +33,7 @@ export default function SearchOverlay({ posts = [], onOpen, onClose }) {
   }, [onClose]);
 
   useEffect(() => { let active = true; if (!q) return () => { active = false; }; const timer = window.setTimeout(() => searchApi.search(q).then((result) => active && setRemote(result)).catch(() => active && setRemote(null)), 180); return () => { active = false; window.clearTimeout(timer); }; }, [q, searchApi]);
-  return <div className="search-overlay" role="dialog" aria-modal="true">
+  return <div className="search-overlay" role="dialog" aria-modal="true" aria-label="Search S">
     <div className="search-overlay__bar"><button onClick={onClose} aria-label="Close search"><ArrowLeft/></button><Search/><input autoFocus value={query} onChange={(e) => { setRemote(null); setQuery(e.target.value); }} placeholder={PRODUCT_IDENTITY.searchPlaceholder}/><button onClick={() => setQuery("")} aria-label="Clear search"><X/></button></div>
     {!q && <section className="search-section"><header><h3>Recent searches</h3></header>{SEARCH_HISTORY.map((item) => <button className="search-history" key={item} onClick={() => setQuery(item)}><Clock3 size={16}/>{item}</button>)}</section>}
     <div className="search-results">
