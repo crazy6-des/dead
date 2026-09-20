@@ -31,7 +31,10 @@ export function useAuthState({ enabled = true } = {}) {
   }, [enabled]);
 
   useEffect(() => {
-    refreshSession();
+    const task = Promise.resolve().then(refreshSession);
+    return () => {
+      task.catch(() => {});
+    };
   }, [refreshSession]);
 
   const signIn = useCallback(async (credentials) => {
