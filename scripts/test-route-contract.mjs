@@ -15,5 +15,7 @@ assert.equal(isRouteActive("/settings/profile", APP_ROUTES.SETTINGS), true);
 assert.equal(isRouteActive("/settings", APP_ROUTES.SETTINGS), true);
 assert.equal(isRouteActive("/settings/profile", APP_ROUTES.PROFILE), false);
 assert.equal(isRouteActive("/discover", APP_ROUTES.HOME), false);
+assert.equal(isRouteActive("/post/123", "/post"), true);
+assert.equal(isRouteActive("/settings-extra", APP_ROUTES.SETTINGS), false);
 
 console.log("Route contract checks passed.");
