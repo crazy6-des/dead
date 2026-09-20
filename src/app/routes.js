@@ -27,7 +27,7 @@ export const ROUTE_LABELS = Object.freeze({
   [APP_ROUTES.SEARCH]: "Search",
 });
 export function normalizeRoute(pathname = window.location.pathname) {
-  const path = pathname.replace(/\/+$/, "") || "/";
+  const path = pathname.split("?")[0].replace(/\/+$/, "") || "/";
   if (path === "/profile") return APP_ROUTES.PROFILE;
   if (Object.values(APP_ROUTES).includes(path)) return path;
   if (/^\/(post|share|user|topic|followers|following|search)(\/|$)/.test(path)) return path;
