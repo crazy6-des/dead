@@ -1,4 +1,4 @@
-import { POST_KINDS, POST_AUDIENCES, REPLY_POLICIES, createPublishPayload } from "./postContract";
+import { POST_KINDS, POST_AUDIENCES, REPLY_POLICIES, createPublishPayload } from "./postContract.js";
 
 const MAX_TEXT_LENGTH = 5000;
 const MAX_IMAGES = 4;
