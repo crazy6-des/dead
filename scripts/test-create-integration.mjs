@@ -10,6 +10,7 @@ const draft = {
   media: [],
   audio: null,
   background: null,
+  poll: null,
   audience: "public",
   replyPolicy: "everyone",
 };
