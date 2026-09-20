@@ -33,6 +33,7 @@ export function createEmptyDraft() {
     media: [],
     audio: null,
     background: null,
+    poll: null,
     audience: POST_AUDIENCES.PUBLIC,
     replyPolicy: REPLY_POLICIES.EVERYONE,
   };
@@ -45,6 +46,7 @@ export function createPublishPayload(draft) {
     media: Array.isArray(draft?.media) ? draft.media : [],
     audio: draft?.audio || null,
     background: draft?.background || null,
+    poll: draft?.poll || null,
     audience: draft?.audience || POST_AUDIENCES.PUBLIC,
     replyPolicy: draft?.replyPolicy || REPLY_POLICIES.EVERYONE,
   };
