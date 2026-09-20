@@ -16,19 +16,19 @@ function BackButton({ onBack }) {
 }
 
 function ActionBar({ post, onLike, onSave, onReply, onRepost, onShare }) {
-  const [reposted, setReposted] = useState(Boolean(post.reposted));
+  const reposted = Boolean(post.reposted);
   const liked = Boolean(post.liked);
   const saved = Boolean(post.saved);
   return <div className="detail-actions">
     <button onClick={onReply}><MessageCircle size={17}/>{post.r ?? 0} Reply</button>
-    <button className={reposted ? "is-active" : ""} onClick={() => { setReposted((v) => !v); onRepost?.(); }}><Repeat2 size={17}/>{(post.p ?? 0) + (reposted ? 1 : 0)} Repost</button>
+    <button className={reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)}><Repeat2 size={17}/>{(post.p ?? 0) + (reposted ? 1 : 0)} Repost</button>
     <button className={liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)}><Heart size={17} fill={liked ? "currentColor" : "none"}/>{(post.l ?? 0) + (liked ? 1 : 0)} Like</button>
     <button className={saved ? "is-saved" : ""} onClick={() => onSave?.(post.id)}><Bookmark size={17} fill={saved ? "currentColor" : "none"}/>Save</button>
     <button onClick={onShare}><Send size={17}/>Share</button>
   </div>;
 }
 
-function PostDetail({ post, onBack, onLike, onSave, onOpen, mode = "post" }) {
+function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, mode = "post" }) {
   const [reply, setReply] = useState("");
   const [quote, setQuote] = useState("");
   const [replies, setReplies] = useState([
@@ -70,7 +70,7 @@ function PostDetail({ post, onBack, onLike, onSave, onOpen, mode = "post" }) {
         <p className="detail-post__text">{post.x}</p>
         {post.media && <button className="post-media detail-media" onClick={() => onOpen?.("/post/" + post.id + "/media")}><span>Visual expression</span><small>Open media viewer</small></button>}
         {post.music && <div className="audio-card"><strong>Late Night Notes</strong><span>Original audio · 2:48</span></div>}
-        <ActionBar post={post} onLike={onLike} onSave={onSave} onReply={() => document.getElementById("reply-box")?.focus()} onRepost={() => setQuote("")} onShare={share}/>
+        <ActionBar post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onReply={() => document.getElementById("reply-box")?.focus()} onRepost={() => setQuote("")} onShare={share}/>
       </div>
     </article>
 
@@ -112,7 +112,7 @@ function UserDetail({ username, onBack, onOpen }) {
   return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero"><div className="profile-cover"></div><div className="entity-avatar-wrap"><div className="avatar entity-avatar">{person.name[0]}</div></div><div className="entity-hero__content"><h2>{person.name}</h2><span>@{person.username}</span><p>{person.bio}</p><div className="entity-stats"><button onClick={() => onOpen?.("/followers/" + person.username)}><b>1.8K</b><small>Followers</small></button><button onClick={() => onOpen?.("/following/" + person.username)}><b>142</b><small>Following</small></button></div><button className="primary">Follow</button></div></div><div className="entity-tabs"><button className="active">Posts</button><button>Replies</button><button>Media</button><button>Likes</button></div></div>;
 }
 
-export default function EntityRoute({ path, posts, onBack, onOpen, onLike, onSave }) {
+export default function EntityRoute({ path, posts, onBack, onOpen, onLike, onSave, onRepost }) {
   const parts = path.split("/").filter(Boolean);
   const type = parts[0];
   const id = parts[1];
@@ -121,7 +121,7 @@ export default function EntityRoute({ path, posts, onBack, onOpen, onLike, onSav
   if (type === "post" || type === "share") {
     const mode = parts[2] === "replies" ? "replies" : parts[2] === "quote" ? "quote" : parts[2] === "media" ? "media" : "post";
     if (type === "share") return <ShareDetail post={post} onBack={onBack}/>;
-    return <PostDetail post={post} onBack={onBack} onLike={onLike} onSave={onSave} onOpen={onOpen} mode={mode}/>;
+    return <PostDetail post={post} onBack={onBack} onLike={onLike} onSave={onSave} onRepost={onRepost} onOpen={onOpen} mode={mode}/>;
   }
   if (type === "user") return <UserDetail username={id} onBack={onBack} onOpen={onOpen}/>;
   if (type === "topic") return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero topic-hero"><span className="topic-icon">#</span><h2>{decodeURIComponent(id || "community")}</h2><p>Posts and conversations around this topic on S.</p><div className="entity-stats"><b>8.1K <small>Posts</small></b><b>24K <small>People</small></b></div></div>{posts.slice(0, 5).map((item) => <button className="topic-post" key={item.id} onClick={() => onOpen?.("/post/" + item.id)}><b>{item.a}</b><span className="muted"> {item.t}</span><p>{item.x}</p></button>)}</div>;
