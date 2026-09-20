@@ -20,12 +20,18 @@ for (const [file, markers] of checks) {
 }
 
 const appSource = fs.readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
-if (!appSource.includes("function Create({publish,close})")) {
-  throw new Error("Verification failed: legacy Create component was not found in App.jsx");
-}
-if (appSource.includes("CreateModalAdapter")) {
-  throw new Error("Verification failed: App.jsx already references CreateModalAdapter; review integration state manually.");
+
+if (!appSource.includes('import { CreateRoute } from "./features/create/index.js";')) {
+  throw new Error("Verification failed: App.jsx must use the canonical CreateRoute integration.");
 }
 
-console.log("PASS App.jsx remains on the legacy Create path; no integration was applied.");
+if (!appSource.includes("<CreateRoute onPublish={publish} onCancel={() => setCreating(false)}/>")) {
+  throw new Error("Verification failed: App.jsx must render CreateRoute for the create surface.");
+}
+
+if (appSource.includes("function Create({publish,close})")) {
+  throw new Error("Verification failed: obsolete legacy Create component is still present in App.jsx.");
+}
+
+console.log("PASS App.jsx uses the canonical CreateRoute surface.");
 console.log("Create boundary verification completed.");
