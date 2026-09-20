@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import { createRelationshipRequest } from "../src/features/social/socialGraphContract.js";
+import { createModerationRequest } from "../src/features/moderation/moderationContract.js";
+import { createList } from "../src/features/lists/listContract.js";
+import { createBookmarkRequest } from "../src/features/bookmarks/bookmarkContract.js";
+import { createSpace } from "../src/features/spaces/spaceContract.js";
+import { createPoll } from "../src/features/polls/pollContract.js";
+import { createNotificationPreferences } from "../src/features/notifications/notificationPreferencesContract.js";
+assert.deepEqual(createRelationshipRequest({username:"@Maya",relationship:"follow"}),{username:"maya",relationship:"follow",enabled:true});
+assert.equal(createModerationRequest({targetId:7}).targetId,"7");
+assert.equal(createList({name:"Creators"}).name,"Creators");
+assert.deepEqual(createBookmarkRequest({postId:7}),{postId:"7",folderId:null});
+assert.equal(createSpace({title:"Town hall"}).status,"scheduled");
+assert.equal(createPoll({question:"Pick one",options:["A","B"]}).options.length,2);
+assert.equal(createNotificationPreferences({likes:false}).likes,false);
+console.log("X-scale feature contracts: PASS");
