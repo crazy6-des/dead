@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Image, Music2, Palette, Send, Type, X } from "lucide-react";
 import { createEmptyDraft, POST_KINDS } from "./postContract";
+import { createPoll } from "../polls/pollContract.js";
 import { createLocalMediaAsset } from "./mediaContract";
 import { validatePostDraft } from "./postValidation";
 import "./createComposer.css";
@@ -20,6 +21,9 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   const [draft, setDraft] = useState(() => ({ ...createEmptyDraft(), ...initialDraft }));
   const [error, setError] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
+  const [pollEnabled, setPollEnabled] = useState(Boolean(initialDraft?.poll));
+  const [pollQuestion, setPollQuestion] = useState(initialDraft?.poll?.question || "");
+  const [pollOptions, setPollOptions] = useState(initialDraft?.poll?.options?.length ? initialDraft.poll.options : ["", ""]);
   const fileUrls = useRef(new Set());
   const validation = useMemo(() => validatePostDraft(draft), [draft]);
 
@@ -65,6 +69,10 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
       kind: POST_KINDS.BACKGROUND,
     });
   }
+
+  function updatePollQuestion(value) { setPollQuestion(value); updateDraft({ poll: createPoll({ question: value, options: pollOptions }) }); }
+  function updatePollOption(index, value) { const options = pollOptions.map((item, i) => i === index ? value : item); setPollOptions(options); updateDraft({ poll: createPoll({ question: pollQuestion, options }) }); }
+  function togglePoll() { const next = !pollEnabled; setPollEnabled(next); updateDraft({ poll: next ? createPoll({ question: pollQuestion, options: pollOptions }) : null }); }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -127,12 +135,15 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
           <input type="file" accept="audio/*" onChange={handleMusicChange} />
         </label>
 
+        <button type="button" className={pollEnabled ? "is-selected" : ""} onClick={togglePoll}>Poll</button>
         <label className="s-create-composer__picker s-create-composer__color-picker">
           <Palette size={16} aria-hidden="true" />
           Background
           <input type="color" value={draft.background?.value || "#151922"} onChange={handleBackgroundChange} aria-label="Post background color" />
         </label>
       </div>
+
+      {pollEnabled && <div className="s-create-composer__poll"><input value={pollQuestion} onChange={(e) => updatePollQuestion(e.target.value)} placeholder="Ask a question" aria-label="Poll question" />{pollOptions.map((option, index) => <input key={index} value={option} onChange={(e) => updatePollOption(index, e.target.value)} placeholder={"Option " + (index + 1)} aria-label={"Poll option " + (index + 1)} />)}{pollOptions.length < 4 && <button type="button" onClick={() => setPollOptions((items) => [...items, ""])}>Add option</button>}</div>}
 
       {draft.media.length > 0 && (
         <div className="s-create-composer__assets" aria-label="Selected images">
