@@ -16,3 +16,7 @@ export {
   hasInteractionError,
   getInteractionMessage,
 } from "../ui/interactionState";
+export {
+  CREATE_COMPOSER_FLAG,
+  isNewCreateComposerEnabled,
+} from "./create/createFeatureFlag";
