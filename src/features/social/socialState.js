@@ -24,6 +24,15 @@ export function toggleSaved(posts, id) {
   );
 }
 
+export function setFollowUser(posts, username, following) {
+  const target = String(username || "").replace("@", "").toLowerCase();
+  if (!target) return Array.isArray(posts) ? posts : [];
+  return (Array.isArray(posts) ? posts : []).map((post) => {
+    const author = String(post.username || post.h || "").replace("@", "").toLowerCase();
+    return author === target ? { ...post, following: Boolean(following) } : post;
+  });
+}
+
 export function toggleFollowUser(posts, username) {
   const target = String(username || "").replace("@", "").toLowerCase();
   if (!target) return Array.isArray(posts) ? posts : [];
