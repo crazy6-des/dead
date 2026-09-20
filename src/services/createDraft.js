@@ -1,29 +1,37 @@
-import { AUDIENCES, REPLY_POLICIES } from '../domain/models';
+import {
+  createEmptyDraft as createContractDraft,
+  createPublishPayload,
+} from "../features/create/postContract.js";
+import { POST_AUDIENCES, REPLY_POLICIES } from "../features/create/postContract.js";
+
+export { POST_AUDIENCES, REPLY_POLICIES };
 
 export function createEmptyDraft() {
   return {
     id: undefined,
-    text: '',
-    media: [],
-    audio: undefined,
-    background: undefined,
-    audience: AUDIENCES[0],
-    replyPolicy: REPLY_POLICIES[0],
-    status: 'draft',
+    ...createContractDraft(),
+    status: "draft",
   };
 }
 
 export function normalizeDraft(input = {}) {
+  const base = createEmptyDraft();
   return {
-    ...createEmptyDraft(),
+    ...base,
     ...input,
-    text: String(input.text || ''),
+    text: String(input.text || ""),
     media: Array.isArray(input.media) ? input.media : [],
-    status: input.status || 'draft',
+    status: input.status || "draft",
   };
 }
 
 export function canPublishDraft(draft) {
   const normalized = normalizeDraft(draft);
-  return Boolean(normalized.text.trim() || normalized.media.length || normalized.audio || normalized.background);
+  const payload = createPublishPayload(normalized);
+  return Boolean(
+    payload.text ||
+    payload.media.length ||
+    payload.audio ||
+    payload.background,
+  );
 }
