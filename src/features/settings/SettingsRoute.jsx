@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MoreHorizontal, Shield, SlidersHorizontal } from "lucide-react";
+import { MoreHorizontal, Shield } from "lucide-react";
 import { PRODUCT_IDENTITY } from "../../app/productIdentity.js";
 const groups = [
  ["Account",["Profile","Username","Sessions & devices"]],
