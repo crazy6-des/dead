@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Bell, Bookmark, Compass, Home as HomeIcon, Menu, MessageCircle, Plus, Search, Settings as SettingsIcon, Sparkles, UserRound, X, Zap } from "lucide-react";
 import { CreateRoute } from "./features/create/index.js";
 import { toFeedPostFromCreatedPost } from "./features/index.js";
+import { toggleLike, toggleSaved, followPostAuthor } from "./features/social/socialState.js";
 import { useAppRouter } from "./app/useAppRouter.js";
 import { APP_ROUTES, ROUTE_LABELS } from "./app/routes.js";
 import HomeRoute from "./features/home/HomeRoute.jsx";
@@ -38,6 +39,7 @@ export default function App() {
   const [dark,setDark] = useState(true);
   const [creating,setCreating] = useState(false);
   const [toast,setToast] = useState("");
+  const [followingUsers,setFollowingUsers] = useState(() => new Set(["maya", "nia"]));
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
   const like = (id) => setPosts((all) => all.map((p) => p.id === id ? {...p,liked:!p.liked,l:p.l+(p.liked?-1:1)} : p));
   const save = (id) => setPosts((all) => all.map((p) => p.id === id ? {...p,saved:!p.saved,b:p.b+(p.saved?-1:1)} : p));
@@ -46,8 +48,8 @@ export default function App() {
   const open = (path) => go(path);
   const render = () => {
     if (route === APP_ROUTES.HOME) return <HomeRoute posts={posts} onLike={like} onSave={save} onFollow={follow} onCreate={() => setCreating(true)} onOpen={open}/>;
-    if (route === APP_ROUTES.DISCOVER) return <DiscoverRoute posts={posts} onOpen={open} onFollow={() => flash("Followed")}/>;
-    if (route === APP_ROUTES.PROFILE) return <ProfileRoute posts={posts} onLike={like} onSave={save} onFollow={follow} onOpen={open}/>;
+    if (route === APP_ROUTES.DISCOVER) return <DiscoverRoute posts={posts} onOpen={open} followingUsers={followingUsers} onFollow={followUser}/>;
+    if (route === APP_ROUTES.PROFILE) return <ProfileRoute posts={posts} onLike={like} onSave={save} onFollow={follow} onFollowUser={followUser} followingUsers={followingUsers} onOpen={open}/>;
     if (route === APP_ROUTES.NOTIFICATIONS) return <NotificationsRoute onOpen={open}/>;
     if (route === APP_ROUTES.MESSAGES) return <MessagesRoute/>;
     if (route === APP_ROUTES.SAVED) return <SavedRoute posts={posts} onSave={save} onOpen={open}/>;
