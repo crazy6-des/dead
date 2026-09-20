@@ -1,96 +1,131 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Heart, MoreHorizontal, Paperclip, Send } from "lucide-react";
 import { APP_ROUTES } from "../../app/routes.js";
 import PostCard from "../post/PostCard.jsx";
+import { NOTIFICATION_FILTERS } from "../notifications/notificationContract.js";
+import { notificationService } from "../../services/notificationService.js";
+import { messageService } from "../../services/messageService.js";
 
-const NOTIFICATIONS = [
-  { id: "n1", name: "Maya Okafor", type: "like", text: "liked your post", time: "2m", verified: false },
-  { id: "n2", name: "Daniel Cole", type: "follow", text: "started following you", time: "18m", verified: false },
-  { id: "n3", name: "Nia James", type: "reply", text: "replied to your post", time: "1h", verified: false },
-  { id: "n4", name: "S Team", type: "mention", text: "mentioned you", time: "3h", verified: true }
+const NOTIFICATION_SEED = [
+  { id: "n1", actor: "Maya Okafor", type: "like", text: "liked your post", time: "2m" },
+  { id: "n2", actor: "Daniel Cole", type: "follow", text: "started following you", time: "18m" },
+  { id: "n3", actor: "Nia James", type: "reply", text: "replied to your post", time: "1h" },
+  { id: "n4", actor: "S Team", type: "mention", text: "mentioned you", time: "3h", verified: true }
 ];
 
-export function NotificationsRoute({ onOpen }) {
-  const [tab, setTab] = useState("All");
-  const [read, setRead] = useState(() => new Set());
+const MESSAGE_SEED = {
+  "Maya Okafor": [
+    { id: "m1", direction: "in", senderId: "maya", text: "Are you building this tonight?" },
+    { id: "m2", direction: "out", senderId: "me", text: "Yep. Making S feel fast and genuinely social." },
+    { id: "m3", direction: "in", senderId: "maya", text: "I like the direction. The creation surface feels different." }
+  ],
+  "Daniel Cole": [{ id: "d1", direction: "in", senderId: "daniel", text: "Sent a photo" }],
+  "Nia James": [{ id: "n1", direction: "in", senderId: "nia", text: "What are you listening to while you work?" }]
+};
 
-  const visible = useMemo(() => {
-    if (tab === "Mentions") return NOTIFICATIONS.filter((item) => item.type === "mention" || item.type === "reply");
-    if (tab === "Verified") return NOTIFICATIONS.filter((item) => item.verified);
-    return NOTIFICATIONS;
+export function NotificationsRoute({ onOpen }) {
+  const [tab, setTab] = useState(NOTIFICATION_FILTERS.ALL);
+  const [items, setItems] = useState(() => NOTIFICATION_SEED);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    notificationService.list({ filter: tab }).then((page) => {
+      if (active) { setItems(page.items || []); setError(""); setLoading(false); }
+    }).catch((err) => {
+      if (active) { setError(err?.message || "Could not load notifications."); setLoading(false); }
+    });
+    return () => { active = false; };
   }, [tab]);
 
-  const openNotification = (item) => {
-    setRead((current) => new Set(current).add(item.id));
+  const unreadCount = items.filter((item) => !item.read).length;
+
+  const openNotification = async (item) => {
+    try { await notificationService.markRead(item.id); } catch {}
+    setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read: true } : entry));
     onOpen?.(item.type === "mention" || item.type === "reply" ? "/post/1/replies" : APP_ROUTES.PROFILE);
   };
 
+  const markAllRead = async () => {
+    try { await notificationService.markAllRead(); } catch {}
+    setItems((current) => current.map((item) => ({ ...item, read: true })));
+  };
+
   return <div className="page">
-    <div className="heading"><small>INBOX</small><h2>Notifications</h2><p>Every interaction, follow and mention in one place.</p></div>
-    <div className="tabs3">{["All", "Mentions", "Verified"].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}</div>
+    <div className="heading"><small>INBOX</small><h2>Notifications {unreadCount > 0 && <span className="badge">{unreadCount}</span>}</h2><p>Every interaction, follow and mention in one place.</p></div>
+    <div className="tabs3">{[NOTIFICATION_FILTERS.ALL, NOTIFICATION_FILTERS.MENTIONS, NOTIFICATION_FILTERS.VERIFIED].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}</div>
+    {unreadCount > 0 && <div className="page-actions"><button className="outline" onClick={markAllRead}>Mark all as read</button></div>}
     <section className="card">
-      {visible.length ? visible.map((item) => <button className={"notice " + (read.has(item.id) ? "is-read" : "")} key={item.id} onClick={() => openNotification(item)}>
-        <span className="avatar avatar--small">{item.name[0]}</span>
-        <span><p><b>{item.name}</b> {item.text}</p><span>{item.time}{!read.has(item.id) && " · New"}</span></span>
+      {loading ? <div className="empty"><h3>Loading activity…</h3></div> :
+       error ? <div className="empty"><h3>Could not load activity</h3><p>{error}</p></div> :
+       items.length ? items.map((item) => <button className={"notice " + (item.read ? "is-read" : "")} key={item.id} onClick={() => openNotification(item)}>
+        <span className="avatar avatar--small">{String(item.actor || "S")[0]}</span>
+        <span><p><b>{item.actor || "S"}</b> {item.text}</p><span>{item.time}{!item.read && " · New"}</span></span>
         <Heart size={16} fill={item.type === "like" ? "currentColor" : "none"}/>
       </button>) : <div className="empty"><h3>No notifications here yet.</h3><p>New activity will appear in this view.</p></div>}
     </section>
   </div>;
 }
 
-const INITIAL_MESSAGES = {
-  "Maya Okafor": [
-    { id: "m1", direction: "in", text: "Are you building this tonight?" },
-    { id: "m2", direction: "out", text: "Yep. Making S feel fast and genuinely social." },
-    { id: "m3", direction: "in", text: "I like the direction. The creation surface feels different." }
-  ],
-  "Daniel Cole": [
-    { id: "d1", direction: "in", text: "Sent a photo" }
-  ],
-  "Nia James": [
-    { id: "n1", direction: "in", text: "What are you listening to while you work?" }
-  ]
-};
-
 export function MessagesRoute() {
-  const [selected, setSelected] = useState("Maya Okafor");
+  const [conversations, setConversations] = useState(() => Object.keys(MESSAGE_SEED).map((name) => ({ id: name.toLowerCase().replace(/\s+/g, "-"), name })));
+  const [selected, setSelected] = useState("maya-okafor");
   const [draft, setDraft] = useState("");
-  const [messages, setMessages] = useState(INITIAL_MESSAGES);
+  const [messages, setMessages] = useState(MESSAGE_SEED);
+  const [loading, setLoading] = useState(true);
 
-  const currentMessages = messages[selected] || [];
-  const sendMessage = () => {
+  useEffect(() => {
+    let active = true;
+    Promise.all([messageService.listConversations(), messageService.listMessages(selected)]).then(([conversationPage, messagePage]) => {
+      if (!active) return;
+      setConversations(conversationPage.items || conversationPage || []);
+      const selectedName = Object.keys(MESSAGE_SEED).find((name) => name.toLowerCase().replace(/\s+/g, "-") === selected);
+      setMessages((current) => ({ ...current, [selectedName || selected]: messagePage.items || [] }));
+      setLoading(false);
+    }).catch(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [selected]);
+
+  const selectedConversation = conversations.find((item) => item.id === selected);
+  const selectedName = selectedConversation?.name || "Maya Okafor";
+  const currentMessages = messages[selectedName] || [];
+
+  const sendMessage = async () => {
     const text = draft.trim();
     if (!text) return;
-    setMessages((current) => ({
-      ...current,
-      [selected]: [...(current[selected] || []), { id: Date.now(), direction: "out", text }]
-    }));
+    const optimistic = { id: "local-" + Date.now(), direction: "out", senderId: "me", text, status: "sending" };
+    setMessages((current) => ({ ...current, [selectedName]: [...(current[selectedName] || []), optimistic] }));
     setDraft("");
+    try {
+      const sent = await messageService.send({ conversationId: selected, text });
+      setMessages((current) => ({ ...current, [selectedName]: [...(current[selectedName] || []).filter((item) => item.id !== optimistic.id), { ...sent, direction: "out", status: "sent" }] }));
+    } catch {
+      setMessages((current) => ({ ...current, [selectedName]: (current[selectedName] || []).map((item) => item.id === optimistic.id ? { ...item, status: "failed" } : item) }));
+    }
   };
 
-  const selectConversation = (name) => {
-    setSelected(name);
-    setDraft("");
-  };
+  const selectConversation = (id) => { setSelected(id); setDraft(""); };
 
   return <div className="messages">
-    <aside>{Object.keys(INITIAL_MESSAGES).map((name) => {
-      const latest = messages[name]?.at(-1);
-      return <button key={name} className={"conversation " + (selected === name ? "active" : "")} onClick={() => selectConversation(name)}>
-        <span className="avatar avatar--small">{name[0]}</span>
-        <span><b>{name}</b><small>{latest?.text || "Start a conversation"}</small></span>
-        <small>{name === selected ? "now" : "1m"}</small>
+    <aside>{conversations.map((conversation) => {
+      const latest = messages[conversation.name]?.at(-1);
+      return <button key={conversation.id} className={"conversation " + (selected === conversation.id ? "active" : "")} onClick={() => selectConversation(conversation.id)}>
+        <span className="avatar avatar--small">{conversation.name[0]}</span>
+        <span><b>{conversation.name}</b><small>{latest?.text || "Start a conversation"}</small></span>
+        <small>{selected === conversation.id ? "now" : "1m"}</small>
       </button>;
     })}</aside>
     <section className="chat">
-      <header><span className="avatar avatar--small">{selected[0]}</span><span><b>{selected}</b><small>Active recently</small></span><MoreHorizontal/></header>
+      <header><span className="avatar avatar--small">{selectedName[0]}</span><span><b>{selectedName}</b><small>Active recently</small></span><MoreHorizontal/></header>
       <div className="chat-body">
         <small>Today</small>
-        {currentMessages.map((message) => <div className={"bubble " + (message.direction === "out" ? "out" : "in")} key={message.id}>{message.text}</div>)}
+        {loading ? <div className="empty"><p>Loading conversation…</p></div> : currentMessages.map((message) => <div className={"bubble " + (message.direction === "out" ? "out" : "in")} key={message.id}>{message.text}{message.status === "failed" && <small> · Failed</small>}{message.status === "sending" && <small> · Sending</small>}</div>)}
       </div>
       <footer>
         <Paperclip/>
-        <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={"Message " + selected + "..."} aria-label={"Message " + selected}/>
+        <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={"Message " + selectedName + "..."} aria-label={"Message " + selectedName}/>
         <button onClick={sendMessage} disabled={!draft.trim()} aria-label="Send message"><Send/></button>
       </footer>
     </section>
