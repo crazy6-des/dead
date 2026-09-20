@@ -7,21 +7,25 @@ export default function BookmarkFoldersRoute({ posts = [], onOpen }) {
   const [folders, setFolders] = useState([]);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
     bookmarkService.listFolders().then((page) => {
       if (active) { setFolders(page?.items || []); setLoading(false); }
-    }).catch(() => active && setLoading(false));
+    }).catch((err) => { if (active) { setError(err?.message || "Could not load bookmark folders."); setLoading(false); } });
     return () => { active = false; };
   }, []);
 
   const createFolder = async () => {
     const value = name.trim();
     if (!value) return;
-    const folder = await bookmarkService.createFolder({ name: value });
-    setFolders((current) => [...current, folder]);
-    setName("");
+    try {
+      const folder = await bookmarkService.createFolder({ name: value });
+      setFolders((current) => [...current, folder]);
+      setName("");
+      setError("");
+    } catch (err) { setError(err?.message || "Could not create the folder."); }
   };
 
   return <div className="page">
