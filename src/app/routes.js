@@ -40,6 +40,13 @@ export function normalizeRoute(pathname = typeof window === "undefined" ? "/" : 
   return APP_ROUTES.HOME;
 }
 
+export function isRouteActive(currentRoute, targetRoute) {
+  const current = normalizeRoute(currentRoute);
+  const target = normalizeRoute(targetRoute);
+  if (target === APP_ROUTES.HOME) return current === APP_ROUTES.HOME;
+  return current === target || current.startsWith(`${target}/`);
+}
+
 export function navigateTo(route) {
   const raw = String(route || "/");
   const [location, hash = ""] = raw.split("#", 2);
