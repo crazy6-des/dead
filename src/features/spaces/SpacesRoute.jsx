@@ -22,29 +22,32 @@ export default function SpacesRoute() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
+  const [error, setError] = useState("");
+  const [joined, setJoined] = useState(() => new Set());
 
   const load = () => {
     setLoading(true);
-    spaceService.list().then((page) => setSpaces(page.items || [])).finally(() => setLoading(false));
+    spaceService.list().then((page) => { setSpaces(page.items || []); setError(""); }).catch((err) => setError(err?.message || "Could not load Spaces.")).finally(() => setLoading(false));
   };
   useEffect(load, []);
 
   const create = async () => {
     if (!title.trim()) return;
-    await spaceService.create({ title, host: "David", startAt: "Later today" });
+    try { await spaceService.create({ title, host: "David", startAt: "Later today" }); } catch (err) { setError(err?.message || "Could not create the Space."); return; }
     setTitle("");
     setCreating(false);
     load();
   };
 
   const join = async (space) => {
-    await spaceService.join(space.id);
+    try { await spaceService.join(space.id); setJoined((current) => new Set(current).add(String(space.id))); } catch (err) { setError(err?.message || "Could not join that Space."); }
   };
 
   return <div className="page">
     <div className="heading"><small>LIVE CONVERSATIONS</small><h2>Spaces</h2><p>Talk, listen and connect in real time on S.</p></div>
     <div className="page-actions"><button className="primary" onClick={() => setCreating((v) => !v)}><Plus size={16}/>Create a Space</button></div>
     {creating && <section className="card composer-panel"><div className="heading"><small>NEW SPACE</small><h3>Start a conversation</h3></div><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What do you want to talk about?" aria-label="Space title"/><div className="composer-panel__footer"><button className="outline" onClick={() => setCreating(false)}>Cancel</button><button className="primary" disabled={!title.trim()} onClick={create}><Mic size={16}/>Schedule Space</button></div></section>}
+    {error && <div className="inline-notice" role="status">{error}</div>}
     <section className="space-list">{loading ? <div className="empty"><p>Loading Spaces…</p></div> : spaces.map((space) => <SpaceCard key={space.id} space={space} onJoin={join}/>)}</section>
   </div>;
 }
