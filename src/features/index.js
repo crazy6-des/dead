@@ -3,6 +3,13 @@ export { FEED_ACTIONS, toFeedPostViewModel, toFeedPostViewModels } from "./feed/
 export { FEED_MODES, FEED_PAGE_SIZE, createFeedRequest, createFeedPage } from "./feed/feedContract";
 export { toggleLike, toggleSaved, followPostAuthor } from "./social/socialState";
 export {
+  AUTH_MODES,
+  AUTH_STATUSES,
+  createAuthRequest,
+  createAuthState,
+  isAuthenticated,
+} from "./auth/authContract";
+export {
   INITIAL_INTERACTION_STATE,
   createInteractionState,
   isInteractionBusy,
