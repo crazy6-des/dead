@@ -1,4 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { socialGraphService } from "../../services/socialGraphService.js";
+import { SOCIAL_RELATIONSHIPS } from "../social/socialGraphContract.js";
 import {
   ArrowLeft, Bookmark, Check, Copy, Heart, Link2, MessageCircle,
   Repeat2, Send, Users
@@ -109,22 +111,28 @@ function ShareDetail({ post, onBack }) {
 
 function UserDetail({ username, onBack, onOpen, onFollowUser, followingUsers = new Set() }) {
   const person = people.find((item) => item.username === username) || { name: username || "User", username, bio: "Creator on S." };
-  return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero"><div className="profile-cover"></div><div className="entity-avatar-wrap"><div className="avatar entity-avatar">{person.name[0]}</div></div><div className="entity-hero__content"><h2>{person.name}</h2><span>@{person.username}</span><p>{person.bio}</p><div className="entity-stats"><button onClick={() => onOpen?.("/followers/" + person.username)}><b>1.8K</b><small>Followers</small></button><button onClick={() => onOpen?.("/following/" + person.username)}><b>142</b><small>Following</small></button></div><button className={followingUsers.has(person.username) ? "outline" : "primary"} onClick={() => onFollowUser?.(person.username)}>{followingUsers.has(person.username) ? "Following" : "Follow"}</button></div></div><div className="entity-tabs"><button className="active">Posts</button><button>Replies</button><button>Media</button><button>Likes</button></div></div>;
+  const following = followingUsers.has(person.username);
+  return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero"><div className="profile-cover"></div><div className="entity-avatar-wrap"><div className="avatar entity-avatar">{person.name[0]}</div></div><div className="entity-hero__content"><h2>{person.name}</h2><span>@{person.username}</span><p>{person.bio}</p><div className="entity-stats"><button onClick={() => onOpen?.("/followers/" + person.username)}><b>1.8K</b><small>Followers</small></button><button onClick={() => onOpen?.("/following/" + person.username)}><b>142</b><small>Following</small></button></div><button className={following ? "outline" : "primary"} onClick={() => onFollowUser?.(person.username)}>{following ? "Following" : "Follow"}</button></div></div><div className="entity-tabs"><button className="active">Posts</button><button>Replies</button><button>Media</button><button>Likes</button></div></div>;
 }
 
-export default function EntityRoute({ path, posts, onBack, onOpen, onLike, onSave, onRepost, onFollowUser, followingUsers = new Set() }) {
-  const parts = path.split("/").filter(Boolean);
-  const type = parts[0];
-  const id = parts[1];
-  const post = useMemo(() => posts.find((item) => String(item.id) === String(id)) || posts[0], [posts, id]);
-
-  if (type === "post" || type === "share") {
-    const mode = parts[2] === "replies" ? "replies" : parts[2] === "quote" ? "quote" : parts[2] === "media" ? "media" : "post";
-    if (type === "share") return <ShareDetail post={post} onBack={onBack}/>;
-    return <PostDetail post={post} onBack={onBack} onLike={onLike} onSave={onSave} onRepost={onRepost} onOpen={onOpen} mode={mode}/>;
-  }
-  if (type === "user") return <UserDetail username={id} onBack={onBack} onOpen={onOpen} onFollowUser={onFollowUser} followingUsers={followingUsers}/>;
-  if (type === "topic") return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero topic-hero"><span className="topic-icon">#</span><h2>{decodeURIComponent(id || "community")}</h2><p>Posts and conversations around this topic on S.</p><div className="entity-stats"><b>8.1K <small>Posts</small></b><b>24K <small>People</small></b></div></div>{posts.slice(0, 5).map((item) => <button className="topic-post" key={item.id} onClick={() => onOpen?.("/post/" + item.id)}><b>{item.a}</b><span className="muted"> {item.t}</span><p>{item.x}</p></button>)}</div>;
-  if (type === "followers" || type === "following") return <div className="detail-page"><BackButton onBack={onBack}/><div className="heading"><small>PROFILE NETWORK</small><h2>{type === "followers" ? "Followers" : "Following"}</h2></div>{people.map((person) => <div className="network-row" key={person.username}><div className="avatar avatar--small">{person.name[0]}</div><div><b>{person.name}</b><span>@{person.username}</span></div><button className="outline">Follow</button></div>)}</div>;
-  return <div className="detail-page"><div className="empty"><Users/><h3>S surface</h3><p>This destination is part of the frontend route map and is ready for its backend-backed data contract.</p></div></div>;
+function NetworkRoute({ type, username, onBack, followingUsers = new Set(), onFollowUser }) {
+  const [items, setItems] = useState(people);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    const request = type === "followers" ? socialGraphService.listFollowers(username) : socialGraphService.listFollowing(username);
+    request.then((page) => {
+      if (!active) return;
+      if (page?.items?.length) setItems(page.items.map((item) => people.find((person) => person.username === item.username) || item));
+      setLoading(false);
+    }).catch(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [type, username]);
+  if (loading) return <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Loading network…</h3></div></div>;
+  return <div className="detail-page"><BackButton onBack={onBack}/><div className="heading"><small>PROFILE NETWORK</small><h2>{type === "followers" ? "Followers" : "Following"}</h2><p>@{username}</p></div>{items.map((person) => {
+    const target = person.username;
+    const following = followingUsers.has(target);
+    return <div className="network-row" key={target}><div className="avatar avatar--small">{String(person.name || target)[0]}</div><div><b>{person.name || target}</b><span>@{target}</span></div><button className={following ? "is-following" : "outline"} onClick={() => { onFollowUser?.(target); socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled: !following }).catch(() => null); }}>{following ? "Following" : "Follow"}</button></div>;
+  })}</div>;
 }
+
