@@ -3,10 +3,15 @@
  * UI and future API adapters can share these predictable operations.
  */
 
+function count(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export function toggleLike(posts, id) {
   return (Array.isArray(posts) ? posts : []).map((post) =>
     post.id === id
-      ? { ...post, liked: !post.liked, l: post.l + (post.liked ? -1 : 1) }
+      ? { ...post, liked: !post.liked, l: Math.max(0, count(post.l) + (post.liked ? -1 : 1)) }
       : post,
   );
 }
@@ -14,7 +19,7 @@ export function toggleLike(posts, id) {
 export function toggleSaved(posts, id) {
   return (Array.isArray(posts) ? posts : []).map((post) =>
     post.id === id
-      ? { ...post, saved: !post.saved, b: post.b + (post.saved ? -1 : 1) }
+      ? { ...post, saved: !post.saved, b: Math.max(0, count(post.b) + (post.saved ? -1 : 1)) }
       : post,
   );
 }
@@ -37,7 +42,7 @@ export function followPostAuthor(posts, id) {
 export function toggleRepost(posts, id) {
   return (Array.isArray(posts) ? posts : []).map((post) =>
     post.id === id
-      ? { ...post, reposted: !post.reposted, p: Math.max(0, (post.p || 0) + (post.reposted ? -1 : 1)) }
+      ? { ...post, reposted: !post.reposted, p: Math.max(0, count(post.p) + (post.reposted ? -1 : 1)) }
       : post,
   );
 }
