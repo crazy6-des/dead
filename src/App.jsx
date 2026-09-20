@@ -6,6 +6,8 @@ import { toggleLike, toggleSaved, toggleFollowUser, toggleRepost } from "./featu
 import { useAppRouter } from "./app/useAppRouter.js";
 import { APP_ROUTES, ROUTE_LABELS } from "./app/routes.js";
 import { PRODUCT_IDENTITY } from "./app/productIdentity.js";
+import { socialGraphService } from "./services/socialGraphService.js";
+import { SOCIAL_RELATIONSHIPS, normalizeUsername } from "./features/social/socialGraphContract.js";
 import HomeRoute from "./features/home/HomeRoute.jsx";
 import DiscoverRoute from "./features/discover/DiscoverRoute.jsx";
 import ProfileRoute from "./features/profile/ProfileRoute.jsx";
@@ -48,7 +50,8 @@ export default function App() {
   const save = (id) => setPosts((all) => toggleSaved(all, id));
   const repost = (id) => setPosts((all) => toggleRepost(all, id));
   const followUser = (username) => {
-    setPosts((all) => toggleFollowUser(all, username));
+    const target = normalizeUsername(username);
+    setPosts((all) => toggleFollowUser(all, target));
     setFollowingUsers((current) => {
       const target = String(username || "").replace("@", "").toLowerCase();
       const next = new Set(current);
@@ -56,6 +59,7 @@ export default function App() {
       else next.add(target);
       return next;
     });
+    socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled: !followingUsers.has(target) }).catch(() => null);
   };
   const followPost = (id) => {
     const post = posts.find((item) => item.id === id);
