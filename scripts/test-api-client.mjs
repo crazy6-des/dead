@@ -58,9 +58,19 @@ try {
 
   await assert.rejects(
     () => apiRequest("/api/test", { timeoutMs: 5 }),
-    (error) => error instanceof ApiError && error.code === "REQUEST_ABORTED",
+    (error) => error instanceof ApiError && error.code === "REQUEST_TIMEOUT",
   );
   console.log("PASS timeout normalization");
+
+  const externalController = new AbortController();
+  const cancelled = apiRequest("/api/test", { signal: externalController.signal, timeoutMs: 1000 });
+  externalController.abort();
+
+  await assert.rejects(
+    () => cancelled,
+    (error) => error instanceof ApiError && error.code === "REQUEST_ABORTED",
+  );
+  console.log("PASS external cancellation normalization");
 } finally {
   globalThis.fetch = originalFetch;
 }
