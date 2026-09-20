@@ -74,6 +74,12 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   function updatePollOption(index, value) { const options = pollOptions.map((item, i) => i === index ? value : item); setPollOptions(options); updateDraft({ poll: createPoll({ question: pollQuestion, options }) }); }
   function togglePoll() { const next = !pollEnabled; setPollEnabled(next); updateDraft({ poll: next ? createPoll({ question: pollQuestion, options: pollOptions }) : null }); }
 
+  function addPollOption() {
+    const options = [...pollOptions, ""];
+    setPollOptions(options);
+    updateDraft({ poll: createPoll({ question: pollQuestion, options }) });
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     if (!validation.valid) {
@@ -143,7 +149,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
         </label>
       </div>
 
-      {pollEnabled && <div className="s-create-composer__poll"><input value={pollQuestion} onChange={(e) => updatePollQuestion(e.target.value)} placeholder="Ask a question" aria-label="Poll question" />{pollOptions.map((option, index) => <input key={index} value={option} onChange={(e) => updatePollOption(index, e.target.value)} placeholder={"Option " + (index + 1)} aria-label={"Poll option " + (index + 1)} />)}{pollOptions.length < 4 && <button type="button" onClick={() => setPollOptions((items) => [...items, ""])}>Add option</button>}</div>}
+      {pollEnabled && <div className="s-create-composer__poll"><input value={pollQuestion} onChange={(e) => updatePollQuestion(e.target.value)} placeholder="Ask a question" aria-label="Poll question" />{pollOptions.map((option, index) => <input key={index} value={option} onChange={(e) => updatePollOption(index, e.target.value)} placeholder={"Option " + (index + 1)} aria-label={"Poll option " + (index + 1)} />)}{pollOptions.length < 4 && <button type="button" onClick={addPollOption}>Add option</button>}</div>}
 
       {draft.media.length > 0 && (
         <div className="s-create-composer__assets" aria-label="Selected images">
