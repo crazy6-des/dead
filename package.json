@@ -1,8 +1,4 @@
 {
-  "name": "s-social",
-  "private": true,
-  "version": "0.1.0",
-  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,11 +7,12 @@
     "verify:create": "node scripts/verify-create-boundary.mjs",
     "verify:boundaries": "node scripts/verify-service-boundaries.mjs",
     "test:api": "node scripts/test-api-client.mjs",
-    "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:create && npm run test:feed-create && npm run test:contracts && npm run test:post-vocabulary",
+    "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:create && npm run test:feed-create && npm run test:contracts && npm run test:post-vocabulary && npm run test:auth-contract",
     "test:create": "node scripts/test-create-integration.mjs",
     "test:feed-create": "node scripts/test-feed-create-boundary.mjs",
     "test:contracts": "node scripts/test-feed-contracts.mjs",
-    "test:post-vocabulary": "node scripts/test-post-vocabulary.mjs"
+    "test:post-vocabulary": "node scripts/test-post-vocabulary.mjs",
+    "test:auth-contract": "node scripts/test-auth-contract.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -23,11 +20,11 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
-    "eslint": "^9.17.0",
     "@eslint/js": "^9.17.0",
-    "eslint-plugin-react-hooks": "^5.1.0",
-    "eslint-plugin-react-refresh": "^0.4.16",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "eslint-plugin-react-refresh": "^0.4.18",
+    "globals": "^15.14.0",
     "vite": "^6.0.5"
   }
 }
