@@ -52,10 +52,10 @@ const cookie = createSessionCookie(token);
 assert.match(cookie, /^s_session=/);
 assert.match(cookie, /HttpOnly/);
 assert.match(cookie, /Secure/);
-assert.match(cookie, /SameSite=Lax/);
+assert.match(cookie, /SameSite=None/);
 assert.match(cookie, /Path=\//);
 assert.match(cookie, /Max-Age=2592000/);
-assert.equal(clearSessionCookie(), "s_session=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax");
+assert.equal(clearSessionCookie(), "s_session=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None");
 
 const users = [];
 const sessions = [];
@@ -101,6 +101,14 @@ assert.deepEqual(await signUp.json(), { authenticated: true, user: { id: users[0
 assert.match(signUp.headers.get("set-cookie"), /^s_session=.+HttpOnly/);
 assert.equal(users.length, 1);
 assert.equal(sessions.length, 1);
+
+const rejectedOrigin = await worker.fetch(new Request("https://example.test/api/auth/sign-up", {
+  method: "POST",
+  headers: { "content-type": "application/json", Origin: "https://evil.example" },
+  body: JSON.stringify({ username: "blocked_user", email: "blocked@example.com", password: "correct horse battery staple" }),
+}), { DB: mockDb, FRONTEND_ORIGIN: "https://sphere.example" });
+assert.equal(rejectedOrigin.status, 403);
+assert.equal((await rejectedOrigin.json()).error.code, "FORBIDDEN_ORIGIN");
 
 const duplicate = await worker.fetch(new Request("https://example.test/api/auth/sign-up", {
   method: "POST",
