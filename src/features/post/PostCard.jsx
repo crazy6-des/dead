@@ -3,6 +3,7 @@ import { Bookmark, Check, Copy, Flag, Heart, MessageCircle, MoreHorizontal, Musi
 export default function PostCard({ post, onLike, onSave, onFollow, onOpen }) {
   const [menu, setMenu] = useState(false);
   const [reposted, setReposted] = useState(Boolean(post.reposted));
+  const isFollowing = Boolean(post.following);
   const author = post.author || post.a || "S";
   const username = post.username || String(post.h || "@user").replace("@", "").toLowerCase();
   const text = post.text || post.x || "";
@@ -31,7 +32,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onOpen }) {
         <button onClick={() => onOpen?.("/post/" + post.id + "/quote")} aria-label="Quote"><Repeat2 size={16}/></button>
         <button onClick={() => onOpen?.("/share/" + post.id)} aria-label="Share"><Send size={17}/></button>
       </div>
-      <div className="post-foot">{!post.following && <button onClick={() => onFollow?.(post.id)}>Follow {author.split(" ")[0]}</button>}<button onClick={() => onOpen?.("/topic/" + encodeURIComponent(post.topic || "community"))}>#{post.topic || "community"}</button></div>
+      <div className="post-foot"><button onClick={() => onFollow?.(post.id)}>{isFollowing ? "Following" : "Follow " + author.split(" ")[0]}</button><button onClick={() => onOpen?.("/topic/" + encodeURIComponent(post.topic || "community"))}>#{post.topic || "community"}</button></div>
     </div>
   </article>;
 }
