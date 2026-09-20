@@ -3,19 +3,30 @@ import { createPostAdapter } from "../../services";
 /**
  * Creates the publish boundary used by the S composer.
  *
- * The UI can remain independent from whether publishing is handled by the
- * local development adapter or the configured API adapter.
+ * The service owns the actual publish operation. The optional local callback is
+ * invoked only after that operation succeeds, so a future API adapter cannot
+ * cause an optimistic feed update before the server accepts the post.
  */
 export function createCreatePublishHandler({
   onLocalPublish = null,
   serviceOptions = {},
 } = {}) {
-  const adapter = createPostAdapter({
-    ...serviceOptions,
-    ...(typeof onLocalPublish === "function"
-      ? { onPublish: onLocalPublish }
-      : {}),
-  });
+  const adapter = createPostAdapter(serviceOptions);
 
-  return (draft) => adapter.publish(draft);
+  return async (draft) => {
+    const result = await adapter.publish(draft);
+
+    if (typeof onLocalPublish === "function") {
+      const publishedPost =
+        result?.post
+        ?? result?.data?.post
+        ?? result?.data
+        ?? result
+        ?? draft;
+
+      await onLocalPublish(publishedPost);
+    }
+
+    return result;
+  };
 }
