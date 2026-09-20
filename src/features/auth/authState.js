@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { authService } from "../../services/authService.js";
-import { AUTH_STATUSES } from "./authContract.js";
+import { AUTH_STATUSES, getAuthUser } from "./authContract.js";
 
 // Compatibility alias for existing consumers; AUTH_STATUSES is canonical.
 export const AUTH_STATUS = AUTH_STATUSES;
@@ -18,12 +18,18 @@ export function useAuthState({ enabled = true } = {}) {
 
     try {
       const result = await authService.getSession({ signal });
-      const nextUser = result?.user ?? result?.data?.user ?? null;
+      const nextUser = getAuthUser(result);
       setUser(nextUser);
       setStatus(nextUser ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.ANONYMOUS);
       return nextUser;
     } catch (cause) {
       setUser(null);
+      if (cause?.status === 401) {
+        setError(null);
+        setStatus(AUTH_STATUS.ANONYMOUS);
+        return null;
+      }
+      if (cause?.code === "REQUEST_ABORTED") return null;
       setError(cause);
       setStatus(AUTH_STATUS.ERROR);
       return null;
@@ -46,7 +52,7 @@ export function useAuthState({ enabled = true } = {}) {
 
     try {
       const result = await authService.signIn(credentials, { signal });
-      const nextUser = result?.user ?? result?.data?.user ?? null;
+      const nextUser = getAuthUser(result);
       setUser(nextUser);
       setStatus(nextUser ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.ANONYMOUS);
       return result;
