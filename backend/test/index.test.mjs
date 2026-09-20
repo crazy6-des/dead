@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import worker from "../src/index.js";
+import { sha256Hex } from "../src/auth.js";
 
 const response = await worker.fetch(new Request("https://example.test/api/health"));
 assert.equal(response.status, 200);
@@ -21,4 +22,9 @@ const invalidMethod = await worker.fetch(new Request("https://example.test/api/a
 assert.equal(invalidMethod.status, 405);
 assert.equal((await invalidMethod.json()).error.code, "METHOD_NOT_ALLOWED");
 
-console.log("Worker health and auth-session contracts: PASS");
+assert.equal(
+  await sha256Hex("session-token-test"),
+  "c1a2c3d4e5f6",
+);
+
+console.log("Worker health, auth-session, and token-hashing contracts: PASS");
