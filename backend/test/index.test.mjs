@@ -13,11 +13,7 @@ import {
 
 const response = await worker.fetch(new Request("https://example.test/api/health"));
 assert.equal(response.status, 200);
-assert.deepEqual(await response.json(), {
-  ok: true,
-  service: "sss-api",
-  version: "0.1.0",
-});
+assert.deepEqual(await response.json(), { ok: true, service: "sss-api", version: "0.1.0" });
 
 const missing = await worker.fetch(new Request("https://example.test/api/missing"));
 assert.equal(missing.status, 404);
@@ -31,16 +27,9 @@ const invalidMethod = await worker.fetch(new Request("https://example.test/api/a
 assert.equal(invalidMethod.status, 405);
 assert.equal((await invalidMethod.json()).error.code, "METHOD_NOT_ALLOWED");
 
-assert.equal(
-  await sha256Hex("session-token-test"),
-  "84fd062df4bff6a9dbc029aeadf02fef3cf19b112818a1dee8b782673bcb5484",
-);
+assert.equal(await sha256Hex("session-token-test"), "84fd062df4bff6a9dbc029aeadf02fef3cf19b112818a1dee8b782673bcb5484");
 
-const credentials = validateCredentials({
-  username: "  David_01 ",
-  email: " DAVID@example.com ",
-  password: "correct horse battery staple",
-});
+const credentials = validateCredentials({ username: "  David_01 ", email: " DAVID@example.com ", password: "correct horse battery staple" });
 assert.equal(credentials.valid, true);
 assert.equal(credentials.username, "david_01");
 assert.equal(credentials.email, "david@example.com");
@@ -68,4 +57,22 @@ assert.match(cookie, /Path=\//);
 assert.match(cookie, /Max-Age=2592000/);
 assert.equal(clearSessionCookie(), "s_session=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax");
 
-console.log("Worker health, auth-session, hashing, credentials, session, and cookie primitives: PASS");
+let revokedTokenHash = null;
+const mockDb = {
+  prepare(query) {
+    assert.match(query, /^UPDATE sessions SET revoked_at/);
+    return {
+      bind(value) {
+        revokedTokenHash = value;
+        return { run: async () => ({ success: true }) };
+      },
+    };
+  },
+};
+const signOut = await worker.fetch(new Request("https://example.test/api/auth/sign-out", { method: "POST", headers: { Cookie: `s_session=${encodeURIComponent(token)}` } }), { DB: mockDb });
+assert.equal(signOut.status, 200);
+assert.deepEqual(await signOut.json(), { ok: true });
+assert.equal(revokedTokenHash, await sha256Hex(token));
+assert.equal(signOut.headers.get("set-cookie"), clearSessionCookie());
+
+console.log("Worker health, auth-session, hashing, credentials, session, cookie, and sign-out primitives: PASS");
