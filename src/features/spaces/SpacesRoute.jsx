@@ -22,7 +22,8 @@ export default function SpacesRoute() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
-  const [error, setError] = useState("");\n  const [joined, setJoined] = useState(() => new Set());
+  const [error, setError] = useState("");
+  const [joined, setJoined] = useState(() => new Set());
 
   const load = () => {
     setLoading(true);
