@@ -19,7 +19,7 @@ export function createApiSocialGraphAdapter(client = apiClient) {
     },
     listFollowing(username, request = {}) {
       const user = normalizeUsername(username);
-      return client.get("/api/users/" + encodeURIComponent(user) + "/following", request)
+      return client.get("/api/users/" + encodeURIComponent(user) + "/following", { query: request })
         .then((page) => createGraphPage(page?.items || [], page?.nextCursor || null));
     },
   };
