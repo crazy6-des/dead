@@ -1,4 +1,4 @@
-import { resolveSession } from "./auth.js";
+import { clearSessionCookie, resolveSession, revokeSession } from "./auth.js";
 
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
@@ -9,18 +9,18 @@ function corsHeaders(request, env) {
   const origin = request.headers.get("Origin");
   const allowedOrigin = env?.FRONTEND_ORIGIN;
   const headers = new Headers(JSON_HEADERS);
-
   if (origin && allowedOrigin && origin === allowedOrigin) {
     headers.set("access-control-allow-origin", origin);
     headers.set("access-control-allow-credentials", "true");
     headers.set("vary", "Origin");
   }
-
   return headers;
 }
 
-function json(data, status = 200, request, env) {
-  return new Response(JSON.stringify(data), { status, headers: corsHeaders(request, env) });
+function json(data, status = 200, request, env, extraHeaders = {}) {
+  const headers = corsHeaders(request, env);
+  Object.entries(extraHeaders).forEach(([name, value]) => headers.set(name, value));
+  return new Response(JSON.stringify(data), { status, headers });
 }
 
 function errorResponse(code, status, message, request, env, details) {
@@ -34,26 +34,27 @@ function methodNotAllowed(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-
     if (request.method === "OPTIONS") {
       const headers = corsHeaders(request, env);
       headers.set("access-control-allow-methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
       headers.set("access-control-allow-headers", "content-type, authorization, x-request-id");
       return new Response(null, { status: 204, headers });
     }
-
     if (url.pathname === "/health" || url.pathname === "/api/health") {
       if (request.method !== "GET") return methodNotAllowed(request, env);
       return json({ ok: true, service: "sss-api", version: "0.1.0" }, 200, request, env);
     }
-
     if (url.pathname === "/api/auth/session") {
       if (request.method !== "GET") return methodNotAllowed(request, env);
       const session = await resolveSession(request, env);
       if (!session) return json({ authenticated: false, user: null }, 200, request, env);
       return json({ authenticated: true, user: { id: session.user_id, username: session.username, displayName: session.display_name } }, 200, request, env);
     }
-
+    if (url.pathname === "/api/auth/sign-out") {
+      if (request.method !== "POST") return methodNotAllowed(request, env);
+      await revokeSession(request, env);
+      return json({ ok: true }, 200, request, env, { "set-cookie": clearSessionCookie() });
+    }
     return errorResponse("NOT_FOUND", 404, "Route not found.", request, env);
   },
 };
