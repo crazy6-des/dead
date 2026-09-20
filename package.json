@@ -11,8 +11,9 @@
     "verify:create": "node scripts/verify-create-boundary.mjs",
     "verify:boundaries": "node scripts/verify-service-boundaries.mjs",
     "test:api": "node scripts/test-api-client.mjs",
-    "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:create",
-    "test:create": "node scripts/test-create-integration.mjs"
+    "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:create && npm run test:feed-create",
+    "test:create": "node scripts/test-create-integration.mjs",
+    "test:feed-create": "node scripts/test-feed-create-boundary.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
