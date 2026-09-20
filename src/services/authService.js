@@ -6,20 +6,20 @@ import { apiClient } from "./apiClient.js";
  * to the future backend, not to the browser.
  */
 export const authService = Object.freeze({
-  getSession() {
-    return apiClient.get("/api/auth/session");
+  getSession(options = {}) {
+    return apiClient.get("/api/auth/session", options);
   },
 
-  signIn(credentials) {
-    return apiClient.post("/api/auth/sign-in", credentials);
+  signIn(credentials, options = {}) {
+    return apiClient.post("/api/auth/sign-in", credentials, options);
   },
 
-  signUp(input) {
-    return apiClient.post("/api/auth/sign-up", input);
+  signUp(input, options = {}) {
+    return apiClient.post("/api/auth/sign-up", input, options);
   },
 
-  signOut() {
-    return apiClient.post("/api/auth/sign-out");
+  signOut(options = {}) {
+    return apiClient.post("/api/auth/sign-out", undefined, options);
   },
 
   requestPasswordReset(input) {
