@@ -88,5 +88,13 @@ export function sessionExpiry() {
   return new Date(Date.now() + SESSION_TTL_SECONDS * 1000).toISOString();
 }
 
+export function createSessionCookie(token, maxAge = SESSION_TTL_SECONDS) {
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=${maxAge}; Path=/; HttpOnly; Secure; SameSite=Lax`;
+}
+
+export function clearSessionCookie() {
+  return createSessionCookie("", 0);
+}
+
 export const SESSION_COOKIE_NAME = SESSION_COOKIE;
 export const SESSION_TTL = SESSION_TTL_SECONDS;
