@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Image, Music2, Palette, Send, Type, X } from "lucide-react";
 import { createEmptyDraft, POST_KINDS } from "./postContract";
+import { createLocalMediaAsset } from "./mediaContract";
 import { validatePostDraft } from "./postValidation";
 import "./createComposer.css";
 
@@ -12,12 +13,7 @@ const MODES = [
 ];
 
 function toFileAsset(file) {
-  return {
-    name: file.name,
-    type: file.type,
-    size: file.size,
-    url: URL.createObjectURL(file),
-  };
+  return createLocalMediaAsset(file);
 }
 
 export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
