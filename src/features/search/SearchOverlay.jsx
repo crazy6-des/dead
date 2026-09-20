@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ArrowLeft, Clock3, Hash, Music2, Search, UserRound, X } from "lucide-react";
+import { PRODUCT_IDENTITY } from "../../app/productIdentity.js";
 const SEARCH_HISTORY = ["building in public", "Late Night Notes", "Maya"];
 const MUSIC = ["Late Night Notes", "After Hours", "Soft Signals"];
 export default function SearchOverlay({ posts = [], onOpen, onClose }) {
@@ -10,7 +11,7 @@ export default function SearchOverlay({ posts = [], onOpen, onClose }) {
   const topics = useMemo(() => [...new Set(posts.map((p) => p.topic).filter(Boolean))].filter((topic) => !q || topic.toLowerCase().includes(q)).slice(0, 6), [posts, q]);
   const music = MUSIC.filter((item) => !q || item.toLowerCase().includes(q));
   return <div className="search-overlay" role="dialog" aria-modal="true">
-    <div className="search-overlay__bar"><button onClick={onClose} aria-label="Close search"><ArrowLeft/></button><Search/><input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search S"/><button onClick={() => setQuery("")} aria-label="Clear search"><X/></button></div>
+    <div className="search-overlay__bar"><button onClick={onClose} aria-label="Close search"><ArrowLeft/></button><Search/><input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder={PRODUCT_IDENTITY.searchPlaceholder}/><button onClick={() => setQuery("")} aria-label="Clear search"><X/></button></div>
     {!q && <section className="search-section"><header><h3>Recent searches</h3></header>{SEARCH_HISTORY.map((item) => <button className="search-history" key={item} onClick={() => setQuery(item)}><Clock3 size={16}/>{item}</button>)}</section>}
     <div className="search-results">
       <section className="search-section"><header><h3>People</h3></header>{people.map(([name,username]) => <button className="search-result" key={username} onClick={() => onOpen?.("/user/"+username)}><span className="avatar avatar--small">{name[0]}</span><span><b>{name}</b><small>@{username}</small></span><UserRound size={16}/></button>)}</section>
