@@ -1,6 +1,6 @@
-export { default as CreateComposer } from "./CreateComposer";
-export { default as CreateRoute } from "./CreateRoute";
-export { default as CreateModalAdapter } from "./CreateModalAdapter";
+export { default as CreateComposer } from "./CreateComposer.jsx";
+export { default as CreateRoute } from "./CreateRoute.jsx";
+export { default as CreateModalAdapter } from "./CreateModalAdapter.jsx";
 export {
   POST_KINDS,
   POST_AUDIENCES,
@@ -8,17 +8,17 @@ export {
   createEmptyDraft,
   createPublishPayload,
   normalizeCreatedPostResponse,
-} from "./postContract";
-export { validatePostDraft } from "./postValidation";
-export { createCreatePublishHandler } from "./createIntegration";
+} from "./postContract.js";
+export { validatePostDraft } from "./postValidation.js";
+export { createCreatePublishHandler } from "./createIntegration.js";
 export {
   CREATE_COMPOSER_FLAG,
   isNewCreateComposerEnabled,
-} from "./createFeatureFlag";
+} from "./createFeatureFlag.js";
 export {
   MEDIA_UPLOAD_STATUS,
   isLocalMediaAsset,
   isUploadReadyMediaAsset,
   createLocalMediaAsset,
   createUploadedMediaAsset,
-} from "./mediaContract";
+} from "./mediaContract.js";
