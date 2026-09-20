@@ -1,14 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { Image, Music2, Palette, Send, Type } from "lucide-react";
-import { createEmptyDraft } from "./postContract";
+import { createEmptyDraft, POST_KINDS } from "./postContract";
 import { validatePostDraft } from "./postValidation";
 import "./createComposer.css";
 
 const MODES = [
-  { id: "text", label: "Text", icon: Type },
-  { id: "image", label: "Image", icon: Image },
-  { id: "music", label: "Music", icon: Music2 },
-  { id: "background", label: "Background", icon: Palette },
+  { id: POST_KINDS.TEXT, label: "Text", icon: Type },
+  { id: POST_KINDS.IMAGE, label: "Image", icon: Image },
+  { id: POST_KINDS.MUSIC, label: "Music", icon: Music2 },
+  { id: POST_KINDS.BACKGROUND, label: "Background", icon: Palette },
 ];
 
 export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
@@ -25,7 +25,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   async function handleSubmit(event) {
     event.preventDefault();
     if (!validation.valid) {
-      setError(Object.values(validation.errors)[0]);
+      setError(Object.values(validation.errors)[0] || "Please review your post.");
       return;
     }
 
