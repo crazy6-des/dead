@@ -21,8 +21,8 @@ function ActionBar({ post, onLike, onSave, onReply, onRepost, onShare }) {
   const saved = Boolean(post.saved);
   return <div className="detail-actions">
     <button onClick={onReply}><MessageCircle size={17}/>{post.r ?? 0} Reply</button>
-    <button className={reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)}><Repeat2 size={17}/>{(post.p ?? 0) + (reposted ? 1 : 0)} Repost</button>
-    <button className={liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)}><Heart size={17} fill={liked ? "currentColor" : "none"}/>{(post.l ?? 0) + (liked ? 1 : 0)} Like</button>
+    <button className={reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)}><Repeat2 size={17}/>{post.p ?? 0} Repost</button>
+    <button className={liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)}><Heart size={17} fill={liked ? "currentColor" : "none"}/>{post.l ?? 0} Like</button>
     <button className={saved ? "is-saved" : ""} onClick={() => onSave?.(post.id)}><Bookmark size={17} fill={saved ? "currentColor" : "none"}/>Save</button>
     <button onClick={onShare}><Send size={17}/>Share</button>
   </div>;
@@ -70,7 +70,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, mode = "po
         <p className="detail-post__text">{post.x}</p>
         {post.media && <button className="post-media detail-media" onClick={() => onOpen?.("/post/" + post.id + "/media")}><span>Visual expression</span><small>Open media viewer</small></button>}
         {post.music && <div className="audio-card"><strong>Late Night Notes</strong><span>Original audio · 2:48</span></div>}
-        <ActionBar post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onReply={() => document.getElementById("reply-box")?.focus()} onRepost={() => setQuote("")} onShare={share}/>
+        <ActionBar post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onReply={() => document.getElementById("reply-box")?.focus()} onShare={share}/>
       </div>
     </article>
 
@@ -107,12 +107,12 @@ function ShareDetail({ post, onBack }) {
   return <div className="detail-page"><BackButton onBack={onBack}/><div className="share-sheet"><div className="heading"><small>SHARE</small><h2>Share this post</h2></div><div className="share-preview"><b>{post.a}</b><p>{post.x}</p></div><div className="share-options"><button onClick={copy}><Copy/>Copy link</button><button onClick={() => window.open("mailto:?subject=Post on S&body=" + encodeURIComponent(window.location.origin + "/post/" + post.id), "_self")}><Send/>Send by email</button><button><Users/>Share with followers</button></div>{copied && <p className="inline-notice">Link copied.</p>}</div></div>;
 }
 
-function UserDetail({ username, onBack, onOpen }) {
+function UserDetail({ username, onBack, onOpen, onFollowUser, followingUsers = new Set() }) {
   const person = people.find((item) => item.username === username) || { name: username || "User", username, bio: "Creator on S." };
-  return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero"><div className="profile-cover"></div><div className="entity-avatar-wrap"><div className="avatar entity-avatar">{person.name[0]}</div></div><div className="entity-hero__content"><h2>{person.name}</h2><span>@{person.username}</span><p>{person.bio}</p><div className="entity-stats"><button onClick={() => onOpen?.("/followers/" + person.username)}><b>1.8K</b><small>Followers</small></button><button onClick={() => onOpen?.("/following/" + person.username)}><b>142</b><small>Following</small></button></div><button className="primary">Follow</button></div></div><div className="entity-tabs"><button className="active">Posts</button><button>Replies</button><button>Media</button><button>Likes</button></div></div>;
+  return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero"><div className="profile-cover"></div><div className="entity-avatar-wrap"><div className="avatar entity-avatar">{person.name[0]}</div></div><div className="entity-hero__content"><h2>{person.name}</h2><span>@{person.username}</span><p>{person.bio}</p><div className="entity-stats"><button onClick={() => onOpen?.("/followers/" + person.username)}><b>1.8K</b><small>Followers</small></button><button onClick={() => onOpen?.("/following/" + person.username)}><b>142</b><small>Following</small></button></div><button className={followingUsers.has(person.username) ? "outline" : "primary"} onClick={() => onFollowUser?.(person.username)}>{followingUsers.has(person.username) ? "Following" : "Follow"}</button></div></div><div className="entity-tabs"><button className="active">Posts</button><button>Replies</button><button>Media</button><button>Likes</button></div></div>;
 }
 
-export default function EntityRoute({ path, posts, onBack, onOpen, onLike, onSave, onRepost }) {
+export default function EntityRoute({ path, posts, onBack, onOpen, onLike, onSave, onRepost, onFollowUser, followingUsers = new Set() }) {
   const parts = path.split("/").filter(Boolean);
   const type = parts[0];
   const id = parts[1];
@@ -123,7 +123,7 @@ export default function EntityRoute({ path, posts, onBack, onOpen, onLike, onSav
     if (type === "share") return <ShareDetail post={post} onBack={onBack}/>;
     return <PostDetail post={post} onBack={onBack} onLike={onLike} onSave={onSave} onRepost={onRepost} onOpen={onOpen} mode={mode}/>;
   }
-  if (type === "user") return <UserDetail username={id} onBack={onBack} onOpen={onOpen}/>;
+  if (type === "user") return <UserDetail username={id} onBack={onBack} onOpen={onOpen} onFollowUser={onFollowUser} followingUsers={followingUsers}/>;
   if (type === "topic") return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero topic-hero"><span className="topic-icon">#</span><h2>{decodeURIComponent(id || "community")}</h2><p>Posts and conversations around this topic on S.</p><div className="entity-stats"><b>8.1K <small>Posts</small></b><b>24K <small>People</small></b></div></div>{posts.slice(0, 5).map((item) => <button className="topic-post" key={item.id} onClick={() => onOpen?.("/post/" + item.id)}><b>{item.a}</b><span className="muted"> {item.t}</span><p>{item.x}</p></button>)}</div>;
   if (type === "followers" || type === "following") return <div className="detail-page"><BackButton onBack={onBack}/><div className="heading"><small>PROFILE NETWORK</small><h2>{type === "followers" ? "Followers" : "Following"}</h2></div>{people.map((person) => <div className="network-row" key={person.username}><div className="avatar avatar--small">{person.name[0]}</div><div><b>{person.name}</b><span>@{person.username}</span></div><button className="outline">Follow</button></div>)}</div>;
   return <div className="detail-page"><div className="empty"><Users/><h3>S surface</h3><p>This destination is part of the frontend route map and is ready for its backend-backed data contract.</p></div></div>;
