@@ -16,6 +16,7 @@ import SettingsRoute from "./features/settings/SettingsRoute.jsx";
 import EarnRoute from "./features/earn/EarnRoute.jsx";
 import EntityRoute from "./features/explore/EntityRoute.jsx";
 import SearchOverlay from "./features/search/SearchOverlay.jsx";
+import { BookmarkFoldersRoute, ListsRoute } from "./features/library/LibraryRoutes.jsx";
 
 const seed = [
  {id:1,a:"S Team",h:"@s",t:"2h",x:"Welcome to S — a place for ideas, images, music, and the people behind them.",l:128,r:18,p:9,b:31,liked:false,saved:false,following:false,topic:"Community",verified:true},
@@ -31,7 +32,7 @@ function PageHeader({ route, onSearch, onTheme }) {
   <header className="top"><div><h1>{label}</h1><small>{route === APP_ROUTES.HOME ? PRODUCT_IDENTITY.tagline : `Your ${PRODUCT_IDENTITY.name} space.`}</small></div><button onClick={onSearch} aria-label="Search"><Search/></button></header></>;
 }
 function Sidebar({ route, go, onCreate }) {
-  const items = [[HomeIcon,"Home",APP_ROUTES.HOME],[Compass,"Discover",APP_ROUTES.DISCOVER],[Bell,"Notifications",APP_ROUTES.NOTIFICATIONS],[MessageCircle,"Messages",APP_ROUTES.MESSAGES],[Bookmark,"Saved",APP_ROUTES.SAVED],[UserRound,"Profile",APP_ROUTES.PROFILE],[SettingsIcon,"Settings",APP_ROUTES.SETTINGS],[Zap,"Earn",APP_ROUTES.EARN]];
+  const items = [[HomeIcon,"Home",APP_ROUTES.HOME],[Compass,"Discover",APP_ROUTES.DISCOVER],[Bell,"Notifications",APP_ROUTES.NOTIFICATIONS],[MessageCircle,"Messages",APP_ROUTES.MESSAGES],[Bookmark,"Saved",APP_ROUTES.SAVED],[Bookmark,"Bookmarks",APP_ROUTES.BOOKMARKS],[UserRound,"Profile",APP_ROUTES.PROFILE],[SettingsIcon,"Settings",APP_ROUTES.SETTINGS],[Zap,"Earn",APP_ROUTES.EARN]];
   return <aside className="sidebar"><button className="brand brand-button" onClick={() => go(APP_ROUTES.HOME)}><b>S</b><span>Social</span></button>{items.map(([Icon,label,path]) => <button key={path} className={"nav " + (route === path ? "active" : "")} onClick={() => go(path)}><Icon/><span>{label}</span></button>)}<button className="create-btn" onClick={onCreate}><Plus/>Create</button><button className="me" onClick={() => go(APP_ROUTES.PROFILE)}><span className="avatar avatar--small">D</span><span><b>David</b>@david</span></button></aside>;
 }
 function RightRail({ go, followingUsers, onFollowUser, onSearch }) {
@@ -75,6 +76,8 @@ export default function App() {
     if (route === APP_ROUTES.NOTIFICATIONS) return <NotificationsRoute onOpen={open}/>;
     if (route === APP_ROUTES.MESSAGES) return <MessagesRoute/>;
     if (route === APP_ROUTES.SAVED) return <SavedRoute posts={posts} onSave={save} onOpen={open}/>;
+    if (route === APP_ROUTES.BOOKMARKS) return <BookmarkFoldersRoute posts={posts} onOpen={open}/>;
+    if (route === APP_ROUTES.LISTS) return <ListsRoute/>;
     if (route === APP_ROUTES.SETTINGS) return <SettingsRoute/>;
     if (route === APP_ROUTES.EARN) return <EarnRoute onOpen={open}/>;
     return <EntityRoute path={route} posts={posts} onBack={() => go(APP_ROUTES.HOME)} onOpen={open} onSave={save} onLike={like} onRepost={repost} onFollowUser={followUser} followingUsers={followingUsers}/>;
