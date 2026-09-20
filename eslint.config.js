@@ -40,6 +40,7 @@ export default [
     rules: {
       ...js.configs.recommended.rules,
       ...reactHooks.configs["recommended-latest"].rules,
+      "no-unused-vars": "off",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     },
   },
