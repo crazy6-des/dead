@@ -9,7 +9,7 @@ export function createApiMessageAdapter(client = apiClient) {
 }
 export function createDevMessageAdapter(seed = {}) {
   return {
-    listConversations() { return Promise.resolve(Object.keys(seed).map((name) => ({ id:name.toLowerCase().replace(/\s+/g,"-"), name }))); },
+    listConversations() { return Promise.resolve({ items: Object.keys(seed).map((name) => ({ id:name.toLowerCase().replace(/\s+/g,"-"), name })) }); },
     listMessages(conversationId) { const name = Object.keys(seed).find((key) => key.toLowerCase().replace(/\s+/g,"-") === conversationId); return Promise.resolve({ items:(seed[name] || []).map((item) => normalizeMessage({ ...item, conversationId })) }); },
     send(input) { return Promise.resolve(normalizeMessage({ ...input, id:Date.now(), senderId:"me", createdAt:new Date().toISOString() })); }
   };
