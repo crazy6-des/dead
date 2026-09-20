@@ -1,0 +1,37 @@
+/* S alignment layer: shared rhythm across every surface. */
+:root {
+  --s-border-width: 1px;
+  --s-control-height: 40px;
+  --s-post-gap: 12px;
+  --s-section-gap: 16px;
+}
+
+* { box-sizing: border-box; }
+
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+
+.post, .card, .settings, .rail-card, .earn, .earn-grid > div, .messages {
+  border-radius: var(--s-radius-md);
+}
+
+.post__meta, .post-foot, .post__actions, .person, .notice, .conversation,
+.suggest, .discover-row { min-height: var(--s-touch-target); }
+
+.post__meta { gap: var(--s-space-2); align-items: center; }
+.post__text { margin-block: var(--s-space-3); overflow-wrap: anywhere; }
+.post__actions { gap: var(--s-space-2); align-items: center; justify-content: space-between; }
+.post__actions button { min-width: var(--s-touch-target); min-height: var(--s-touch-target); }
+
+.feed-tabs, .tabs3, .tabs4, .tabs5 { min-height: var(--s-touch-target); }
+.feed-tabs button, .tabs3 button, .tabs4 button, .tabs5 button { min-height: var(--s-touch-target); }
+
+input, textarea, select { min-height: var(--s-control-height); }
+textarea { resize: vertical; }
+
+@media (max-width: 640px) {
+  .post__actions { gap: 0; }
+  .post__actions button { min-width: 34px; }
+  .card, .settings, .rail-card { border-radius: 0; }
+}
