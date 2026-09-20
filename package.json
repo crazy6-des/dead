@@ -14,7 +14,8 @@
     "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:create && npm run test:feed-create && npm run test:contracts",
     "test:create": "node scripts/test-create-integration.mjs",
     "test:feed-create": "node scripts/test-feed-create-boundary.mjs",
-    "test:contracts": "node scripts/test-feed-contracts.mjs"
+    "test:contracts": "node scripts/test-feed-contracts.mjs",
+    "test:post-vocabulary": "node scripts/test-post-vocabulary.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
