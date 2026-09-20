@@ -14,3 +14,10 @@ export {
   CREATE_COMPOSER_FLAG,
   isNewCreateComposerEnabled,
 } from "./createFeatureFlag";
+export {
+  MEDIA_UPLOAD_STATUS,
+  isLocalMediaAsset,
+  isUploadReadyMediaAsset,
+  createLocalMediaAsset,
+  createUploadedMediaAsset,
+} from "./mediaContract";
