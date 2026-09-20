@@ -23,5 +23,8 @@ jobs:
       - name: Verify boundaries and integration
         run: npm run verify:all
 
+      - name: Lint
+        run: npm run lint
+
       - name: Production build
         run: npm run build
