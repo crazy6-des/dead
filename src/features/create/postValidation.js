@@ -1,4 +1,5 @@
 import { POST_KINDS, POST_AUDIENCES, REPLY_POLICIES, createPublishPayload } from "./postContract.js";
+import { isCatalogMusicAsset } from "./mediaContract.js";
 
 const MAX_TEXT_LENGTH = 5000;
 const MAX_IMAGES = 4;
@@ -25,6 +26,22 @@ function validateAsset(asset, { kind, index, maxSize, allowedTypes }) {
   return errors;
 }
 
+function validateAudioAsset(asset) {
+  if (isCatalogMusicAsset(asset)) {
+    const errors = [];
+    if (!asset.name || typeof asset.name !== "string") errors.push("Catalog track is missing a title.");
+    if (!asset.type || !AUDIO_TYPES.has(asset.type)) errors.push("Unsupported audio type.");
+    return errors;
+  }
+
+  return validateAsset(asset, {
+    kind: "audio",
+    index: 0,
+    maxSize: MAX_AUDIO_SIZE,
+    allowedTypes: AUDIO_TYPES,
+  });
+}
+
 export function validatePostDraft(draft) {
   const payload = createPublishPayload(draft);
   const errors = {};
@@ -49,12 +66,7 @@ export function validatePostDraft(draft) {
   }
 
   if (payload.audio) {
-    const audioErrors = validateAsset(payload.audio, {
-      kind: "audio",
-      index: 0,
-      maxSize: MAX_AUDIO_SIZE,
-      allowedTypes: AUDIO_TYPES,
-    });
+    const audioErrors = validateAudioAsset(payload.audio);
     if (audioErrors.length) errors.audio = audioErrors[0];
   }
 
