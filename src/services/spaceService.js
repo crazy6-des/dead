@@ -9,7 +9,7 @@ const DEV_SPACES = [
 export function createApiSpaceAdapter(client = apiClient) {
   return {
     list(request = {}) {
-      return client.get("/api/spaces", request).then((page) => createSpacePage((page?.items || []).map(createSpace), page?.nextCursor || null));
+      return client.get("/api/spaces", { query: request }).then((page) => createSpacePage((page?.items || []).map(createSpace), page?.nextCursor || null));
     },
     create(input) {
       return client.post("/api/spaces", createSpaceRequest(input)).then(createSpace);
