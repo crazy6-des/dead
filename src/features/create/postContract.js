@@ -22,6 +22,10 @@ export const REPLY_POLICIES = Object.freeze({
   MENTIONED: "mentioned",
 });
 
+export const POST_RESPONSE_STATUSES = Object.freeze({
+  CREATED: "created",
+});
+
 export function createEmptyDraft() {
   return {
     text: "",
@@ -44,4 +48,13 @@ export function createPublishPayload(draft) {
     audience: draft?.audience || POST_AUDIENCES.PUBLIC,
     replyPolicy: draft?.replyPolicy || REPLY_POLICIES.EVERYONE,
   };
+}
+
+export function normalizeCreatedPostResponse(response) {
+  const post = response?.post ?? response?.data?.post ?? response?.data ?? response;
+  if (!post || typeof post !== "object" || Array.isArray(post)) {
+    throw new Error("The post service returned an invalid post response.");
+  }
+
+  return post;
 }
