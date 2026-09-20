@@ -33,5 +33,6 @@ export { socialGraphService } from "../services/socialGraphService.js";
 export { moderationService } from "../services/moderationService.js";
 export { bookmarkService } from "../services/bookmarkService.js";
 export { spaceService } from "../services/spaceService.js";
+export { listService } from "../services/listService.js";
 
 export { PRODUCT_IDENTITY } from "../app/productIdentity.js";
