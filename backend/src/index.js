@@ -1,3 +1,5 @@
+import { resolveSession } from "./auth.js";
+
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
@@ -18,25 +20,11 @@ function corsHeaders(request, env) {
 }
 
 function json(data, status = 200, request, env) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: corsHeaders(request, env),
-  });
+  return new Response(JSON.stringify(data), { status, headers: corsHeaders(request, env) });
 }
 
 function errorResponse(code, status, message, request, env, details) {
-  return json({
-    error: {
-      code,
-      status,
-      message,
-      ...(details === undefined ? {} : { details }),
-    },
-  }, status, request, env);
-}
-
-function routeNotFound(request, env) {
-  return errorResponse("NOT_FOUND", 404, "Route not found.", request, env);
+  return json({ error: { code, status, message, ...(details === undefined ? {} : { details }) } }, status, request, env);
 }
 
 function methodNotAllowed(request, env) {
@@ -59,6 +47,13 @@ export default {
       return json({ ok: true, service: "sss-api", version: "0.1.0" }, 200, request, env);
     }
 
-    return routeNotFound(request, env);
+    if (url.pathname === "/api/auth/session") {
+      if (request.method !== "GET") return methodNotAllowed(request, env);
+      const session = await resolveSession(request, env);
+      if (!session) return json({ authenticated: false, user: null }, 200, request, env);
+      return json({ authenticated: true, user: { id: session.user_id, username: session.username, displayName: session.display_name } }, 200, request, env);
+    }
+
+    return errorResponse("NOT_FOUND", 404, "Route not found.", request, env);
   },
 };
