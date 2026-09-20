@@ -5,6 +5,7 @@ assert.equal(normalizeRoute("/"), APP_ROUTES.HOME);
 assert.equal(normalizeRoute("/profile"), APP_ROUTES.PROFILE);
 assert.equal(normalizeRoute("/settings?section=profile"), APP_ROUTES.SETTINGS);
 assert.equal(normalizeRoute("/settings/profile#security"), "/settings/profile");
+assert.equal(normalizeRoute("/search/music?tab=tracks"), "/search/music");
 assert.equal(normalizeRoute("/post/123?view=replies"), "/post/123");
 assert.equal(normalizeRoute("/user/david"), "/user/david");
 assert.equal(normalizeRoute("/topic/music/"), "/topic/music");
@@ -12,6 +13,7 @@ assert.equal(normalizeRoute("/unknown-route"), APP_ROUTES.HOME);
 assert.equal(normalizeRoute(""), APP_ROUTES.HOME);
 
 assert.equal(isRouteActive("/settings/profile", APP_ROUTES.SETTINGS), true);
+assert.equal(isRouteActive("/search/music", APP_ROUTES.SEARCH), true);
 assert.equal(isRouteActive("/settings", APP_ROUTES.SETTINGS), true);
 assert.equal(isRouteActive("/settings/profile", APP_ROUTES.PROFILE), false);
 assert.equal(isRouteActive("/discover", APP_ROUTES.HOME), false);
