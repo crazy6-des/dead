@@ -26,10 +26,12 @@ export default function SpacesRoute() {
   const [joined, setJoined] = useState(() => new Set());
 
   const load = () => {
-    setLoading(true);
     spaceService.list().then((page) => { setSpaces(page.items || []); setError(""); }).catch((err) => setError(err?.message || "Could not load Spaces.")).finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => {
+    const timer = window.setTimeout(load, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const create = async () => {
     if (!title.trim()) return;
@@ -40,7 +42,12 @@ export default function SpacesRoute() {
   };
 
   const join = async (space) => {
-    try { await spaceService.join(space.id); } catch (err) { setError(err?.message || "Could not join that Space."); }
+    try {
+      await spaceService.join(space.id);
+      setJoined((current) => new Set(current).add(space.id));
+      setSpaces((current) => current.map((item) => item.id === space.id ? { ...item, participants: [...(item.participants || []), "david"] } : item));
+      setError("");
+    } catch (err) { setError(err?.message || "Could not join that Space."); }
   };
 
   return <div className="page">
