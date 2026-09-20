@@ -26,17 +26,34 @@ const descriptions = {
   Legal: "Review S terms and policies.",
 };
 
+const getSectionId = (item) => `setting-${item.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+
 export default function SettingsRoute() {
-  const [open, setOpen] = useState(() => new URLSearchParams(window.location.search).get("section") || null);
+  const [open, setOpen] = useState(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("section") || null;
+  });
+
   return <div className="page">
     <div className="heading"><small>CONTROL CENTER</small><h2>Settings</h2><p>Control your account, privacy and {PRODUCT_IDENTITY.name} experience.</p></div>
     {groups.map(([title, items]) => <section className="settings" key={title}>
       <h3>{title}</h3>
-      {items.map((item) => <button key={item} className={open === item ? "is-open" : ""} onClick={() => setOpen(open === item ? null : item)}>
-        <span><b>{item}</b><small>{open === item ? descriptions[item] : "Manage your S experience"}</small></span>
-        {open === item ? <Check size={17}/> : <MoreHorizontal/>}
-      </button>)}
+      {items.map((item) => {
+        const expanded = open === item;
+        const sectionId = getSectionId(item);
+        return <button
+          key={item}
+          type="button"
+          className={expanded ? "is-open" : ""}
+          aria-expanded={expanded}
+          aria-controls={sectionId}
+          onClick={() => setOpen(expanded ? null : item)}
+        >
+          <span><b>{item}</b><small id={sectionId}>{expanded ? descriptions[item] : "Manage your S experience"}</small></span>
+          {expanded ? <Check size={17} aria-hidden="true" /> : <MoreHorizontal aria-hidden="true" />}
+        </button>;
+      })}
     </section>)}
-    <section className="settings"><h3>Security</h3><div className="setting-callout"><Shield/><span><b>Your account protection</b><small>Authentication and session controls are isolated behind the server API and can connect to Cloudflare later.</small></span></div></section>
+    <section className="settings"><h3>Security</h3><div className="setting-callout"><Shield aria-hidden="true"/><span><b>Your account protection</b><small>Authentication and session controls are isolated behind the server API and can connect to Cloudflare later.</small></span></div></section>
   </div>;
 }
