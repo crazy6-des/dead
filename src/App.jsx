@@ -1,7 +1,7 @@
 import React,{useState}from"react";
 import { CreateRoute, isNewCreateComposerEnabled } from "./features/create";
 import { toFeedPostFromCreatedPost } from "./features";
-import{Bell,Bookmark,Check,Compass,Copy,FileImage,Flag,Heart,Home as HomeIcon,Link2,Menu,MessageCircle,MoreHorizontal,Music2,Paperclip,PenLine,Plus,Repeat2,Search,Send,Settings,Shield,Sparkles,UserRound,Users,X,Zap}from"lucide-react";
+import{Bell,Bookmark,Check,Compass,Copy,FileImage,Flag,Heart,Home as HomeIcon,Link2,Menu,MessageCircle,MoreHorizontal,Music2,Paperclip,PenLine,Plus,Repeat2,Search,Send,Settings as SettingsIcon,Shield,Sparkles,UserRound,Users,X,Zap}from"lucide-react";
 const seed=[{id:1,a:"S Team",h:"@s",t:"2h",x:"Welcome to S — a place for ideas, images, music, and the people behind them.",l:128,r:18,p:9,b:31,liked:false,saved:false,following:false,topic:"Community"},{id:2,a:"Maya Okafor",h:"@maya",t:"34m",x:"A quiet thought: the best communities make you feel like your presence matters.",l:74,r:12,p:4,b:19,liked:true,saved:false,following:true,topic:"Culture"},{id:3,a:"Daniel Cole",h:"@daniel",t:"18m",x:"Building something small today that I hope makes someone's day a little easier.",l:46,r:7,p:3,b:8,liked:false,saved:true,following:false,topic:"Creators",media:true},{id:4,a:"Nia James",h:"@nia",t:"6m",x:"What are you listening to while you work? I need a new soundtrack.",l:91,r:21,p:6,b:14,liked:false,saved:false,following:true,topic:"Music",music:true}];
 const trends=[["Music","Late Night Notes","8.1K posts"],["Community","Creators of S","1.7K posts"],["Culture","#NewBeginnings","2.4K posts"]],people=["Maya Okafor","Daniel Cole","Nia James"];
 const Avatar=({label="S",small=false,cls=""})=><div className={"avatar "+(small?"avatar--small ":"")+cls}>{label[0]}</div>;
