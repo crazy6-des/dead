@@ -6,6 +6,7 @@ import { createLocalMediaAsset } from "./mediaContract";
 import { validatePostDraft } from "./postValidation";
 import PollEditor from "./PollEditor";
 import MediaPicker from "./MediaPicker";
+import PostVisibilityControls from "./PostVisibilityControls";
 import "./createComposer.css";
 
 const MODES = [
@@ -66,10 +67,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   }
 
   function handleBackgroundChange(event) {
-    updateDraft({
-      background: { type: "color", value: event.target.value },
-      kind: POST_KINDS.BACKGROUND,
-    });
+    updateDraft({ background: { type: "color", value: event.target.value }, kind: POST_KINDS.BACKGROUND });
   }
 
   function updatePollQuestion(value) {
@@ -101,7 +99,6 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
       setError(Object.values(validation.errors)[0] || "Please review your post.");
       return;
     }
-
     setIsPublishing(true);
     setError("");
     try {
@@ -116,44 +113,22 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   return (
     <form className="s-create-composer" onSubmit={handleSubmit}>
       <div className="s-create-composer__header">
-        <div>
-          <span className="s-create-composer__eyebrow">Create</span>
-          <h2 id="create-dialog-title">Share something real.</h2>
-        </div>
+        <div><span className="s-create-composer__eyebrow">Create</span><h2 id="create-dialog-title">Share something real.</h2></div>
         {onCancel && <button type="button" className="s-create-composer__cancel" onClick={onCancel}>Cancel</button>}
       </div>
-
       <textarea value={draft.text} maxLength={5000} onChange={(event) => updateDraft({ text: event.target.value })} placeholder="What do you want people to see, hear, or feel?" aria-label="Post text" />
-
       <div className="s-create-composer__modes" aria-label="Post content type">
         {MODES.map(({ id, label, icon: Icon }) => {
           const selected = draft.kind === id;
           return <button key={id} type="button" className={selected ? "is-selected" : ""} aria-pressed={selected} onClick={() => updateDraft({ kind: id })}><Icon size={17} aria-hidden="true" />{label}</button>;
         })}
       </div>
-
-      <MediaPicker
-        onImageChange={handleImageChange}
-        onMusicChange={handleMusicChange}
-        pollEnabled={pollEnabled}
-        onTogglePoll={togglePoll}
-        backgroundValue={draft.background?.value || "#151922"}
-        onBackgroundChange={handleBackgroundChange}
-      />
-
+      <MediaPicker onImageChange={handleImageChange} onMusicChange={handleMusicChange} pollEnabled={pollEnabled} onTogglePoll={togglePoll} backgroundValue={draft.background?.value || "#151922"} onBackgroundChange={handleBackgroundChange} />
       {pollEnabled && <PollEditor question={pollQuestion} options={pollOptions} onQuestionChange={updatePollQuestion} onOptionChange={updatePollOption} onAddOption={addPollOption} />}
-
       {draft.media.length > 0 && <div className="s-create-composer__assets" aria-label="Selected images">{draft.media.map((asset, index) => <div className="s-create-composer__asset" key={asset.url || asset.name + index}><img src={asset.url} alt={asset.name} /><button type="button" onClick={() => removeImage(index)} aria-label={`Remove ${asset.name}`}><X size={14} aria-hidden="true" /></button></div>)}</div>}
-
       {draft.audio && <div className="s-create-composer__audio"><Music2 size={16} aria-hidden="true" /><span>{draft.audio.name}</span><audio controls src={draft.audio.url} /></div>}
-
       {draft.background && <div className="s-create-composer__background-preview" style={{ background: draft.background.value }} aria-label="Selected post background">Background preview</div>}
-
-      <div className="s-create-composer__controls">
-        <label>Audience<select value={draft.audience} onChange={(event) => updateDraft({ audience: event.target.value })}><option value="public">Everyone</option><option value="followers">Followers</option><option value="private">Only me</option></select></label>
-        <label>Replies<select value={draft.replyPolicy} onChange={(event) => updateDraft({ replyPolicy: event.target.value })}><option value="everyone">Everyone</option><option value="following">People you follow</option><option value="mentioned">Mentioned people</option></select></label>
-      </div>
-
+      <PostVisibilityControls audience={draft.audience} replyPolicy={draft.replyPolicy} onAudienceChange={(audience) => updateDraft({ audience })} onReplyPolicyChange={(replyPolicy) => updateDraft({ replyPolicy })} />
       {error && <p className="s-create-composer__error" role="alert">{error}</p>}
       <div className="s-create-composer__footer"><span>{draft.text.length}/5000</span><button type="submit" disabled={isPublishing || !validation.valid}><Send size={16} aria-hidden="true" />{isPublishing ? "Publishing…" : "Publish"}</button></div>
     </form>
