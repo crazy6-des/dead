@@ -1,21 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Image, Music2, Palette, Send, Type } from "lucide-react";
-import { createEmptyDraft, POST_KINDS } from "./postContract";
+import React, { useEffect, useRef, useState } from "react";
+import { Image, Music2, Palette, Plus, Send } from "lucide-react";
+import { createEmptyDraft } from "./postContract";
 import { createPoll } from "../polls/pollContract.js";
 import { createLocalMediaAsset } from "./mediaContract";
 import { validatePostDraft } from "./postValidation";
 import PollEditor from "./PollEditor";
-import MediaPicker from "./MediaPicker";
 import PostMediaPreview from "./PostMediaPreview";
-import PostVisibilityControls from "./PostVisibilityControls";
 import "./createComposer.css";
-
-const MODES = [
-  { id: POST_KINDS.TEXT, label: "Text", icon: Type },
-  { id: POST_KINDS.IMAGE, label: "Image", icon: Image },
-  { id: POST_KINDS.MUSIC, label: "Music", icon: Music2 },
-  { id: POST_KINDS.BACKGROUND, label: "Background", icon: Palette },
-];
 
 function toFileAsset(file) {
   return createLocalMediaAsset(file);
@@ -29,11 +20,9 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   const [pollQuestion, setPollQuestion] = useState(initialDraft?.poll?.question || "");
   const [pollOptions, setPollOptions] = useState(initialDraft?.poll?.options?.length ? initialDraft.poll.options : ["", ""]);
   const fileUrls = useRef(new Set());
-  const validation = useMemo(() => validatePostDraft(draft), [draft]);
+  const validation = validatePostDraft(draft);
 
-  useEffect(() => () => {
-    fileUrls.current.forEach((url) => URL.revokeObjectURL(url));
-  }, []);
+  useEffect(() => () => fileUrls.current.forEach((url) => URL.revokeObjectURL(url)), []);
 
   function updateDraft(patch) {
     setDraft((current) => ({ ...current, ...patch }));
@@ -41,11 +30,9 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   }
 
   function handleImageChange(event) {
-    const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
-    const assets = files.map(toFileAsset);
+    const assets = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/")).map(toFileAsset);
     assets.forEach((asset) => fileUrls.current.add(asset.url));
-    setDraft((current) => ({ ...current, media: [...current.media, ...assets], kind: POST_KINDS.IMAGE }));
-    setError("");
+    updateDraft({ media: [...draft.media, ...assets] });
     event.target.value = "";
   }
 
@@ -53,38 +40,18 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
     const file = Array.from(event.target.files || [])[0];
     if (!file || !file.type.startsWith("audio/")) return;
     const asset = toFileAsset(file);
-    const previousUrl = draft.audio?.url;
+    if (draft.audio?.url) URL.revokeObjectURL(draft.audio.url);
     fileUrls.current.add(asset.url);
-    if (previousUrl) {
-      URL.revokeObjectURL(previousUrl);
-      fileUrls.current.delete(previousUrl);
-    }
-    updateDraft({ audio: asset, kind: POST_KINDS.MUSIC });
+    updateDraft({ audio: asset });
     event.target.value = "";
   }
 
-  function removeImage(index) {
-    const asset = draft.media[index];
-    if (asset?.url) {
-      URL.revokeObjectURL(asset.url);
-      fileUrls.current.delete(asset.url);
-    }
-    updateDraft({ media: draft.media.filter((_, assetIndex) => assetIndex !== index) });
-  }
-
   function handleBackgroundChange(event) {
-    updateDraft({ background: { type: "color", value: event.target.value }, kind: POST_KINDS.BACKGROUND });
+    updateDraft({ background: { type: "color", value: event.target.value } });
   }
 
-  function updatePollQuestion(value) {
-    setPollQuestion(value);
-    updateDraft({ poll: createPoll({ question: value, options: pollOptions }) });
-  }
-
-  function updatePollOption(index, value) {
-    const options = pollOptions.map((item, i) => i === index ? value : item);
-    setPollOptions(options);
-    updateDraft({ poll: createPoll({ question: pollQuestion, options }) });
+  function updatePoll(question, options) {
+    updateDraft({ poll: createPoll({ question, options }) });
   }
 
   function togglePoll() {
@@ -93,16 +60,10 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
     updateDraft({ poll: next ? createPoll({ question: pollQuestion, options: pollOptions }) : null });
   }
 
-  function addPollOption() {
-    const options = [...pollOptions, ""];
-    setPollOptions(options);
-    updateDraft({ poll: createPoll({ question: pollQuestion, options }) });
-  }
-
   async function handleSubmit(event) {
     event.preventDefault();
     if (!validation.valid) {
-      setError(Object.values(validation.errors)[0] || "Please review your post.");
+      setError(Object.values(validation.errors)[0] || "Add something before publishing.");
       return;
     }
     setIsPublishing(true);
@@ -119,22 +80,24 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   return (
     <form className="s-create-composer" onSubmit={handleSubmit}>
       <div className="s-create-composer__header">
-        <div><span className="s-create-composer__eyebrow">Create</span><h2 id="create-dialog-title">Share something real.</h2></div>
-        {onCancel && <button type="button" className="s-create-composer__cancel" onClick={onCancel}>Cancel</button>}
+        <strong>Create</strong>
+        {onCancel && <button type="button" className="s-create-composer__cancel" onClick={onCancel}>Close</button>}
       </div>
-      <textarea value={draft.text} maxLength={5000} onChange={(event) => updateDraft({ text: event.target.value })} placeholder="What do you want people to see, hear, or feel?" aria-label="Post text" />
-      <div className="s-create-composer__modes" aria-label="Post content type">
-        {MODES.map(({ id, label, icon: Icon }) => {
-          const selected = draft.kind === id;
-          return <button key={id} type="button" className={selected ? "is-selected" : ""} aria-pressed={selected} onClick={() => updateDraft({ kind: id })}><Icon size={17} aria-hidden="true" />{label}</button>;
-        })}
+
+      <textarea value={draft.text} maxLength={5000} onChange={(event) => updateDraft({ text: event.target.value })} placeholder="Share something… #hashtag" aria-label="Post text" />
+
+      <div className="s-create-composer__media" aria-label="Add to post">
+        <label className="s-create-composer__picker" title="Add image"><Image size={16} aria-hidden="true" /><input type="file" accept="image/*" multiple onChange={handleImageChange} /></label>
+        <label className="s-create-composer__picker" title="Choose a song"><Music2 size={16} aria-hidden="true" /><input type="file" accept="audio/*" onChange={handleMusicChange} /></label>
+        <label className="s-create-composer__picker s-create-composer__color-picker" title="Choose background"><Palette size={16} aria-hidden="true" /><input type="color" value={draft.background?.value || "#151922"} onChange={handleBackgroundChange} aria-label="Post background color" /></label>
+        <button type="button" className={pollEnabled ? "is-selected" : ""} onClick={togglePoll} title="Add poll">Poll</button>
+        <span className="s-create-composer__hint">Songs: library coming soon</span>
       </div>
-      <MediaPicker onImageChange={handleImageChange} onMusicChange={handleMusicChange} pollEnabled={pollEnabled} onTogglePoll={togglePoll} backgroundValue={draft.background?.value || "#151922"} onBackgroundChange={handleBackgroundChange} />
-      {pollEnabled && <PollEditor question={pollQuestion} options={pollOptions} onQuestionChange={updatePollQuestion} onOptionChange={updatePollOption} onAddOption={addPollOption} />}
-      <PostMediaPreview media={draft.media} audio={draft.audio} background={draft.background} onRemoveImage={removeImage} />
-      <PostVisibilityControls audience={draft.audience} replyPolicy={draft.replyPolicy} onAudienceChange={(audience) => updateDraft({ audience })} onReplyPolicyChange={(replyPolicy) => updateDraft({ replyPolicy })} />
+
+      {pollEnabled && <PollEditor question={pollQuestion} options={pollOptions} onQuestionChange={(value) => { setPollQuestion(value); updatePoll(value, pollOptions); }} onOptionChange={(index, value) => { const options = pollOptions.map((item, i) => i === index ? value : item); setPollOptions(options); updatePoll(pollQuestion, options); }} onAddOption={() => { const options = [...pollOptions, ""]; setPollOptions(options); updatePoll(pollQuestion, options); }} />}
+      <PostMediaPreview media={draft.media} audio={draft.audio} background={draft.background} onRemoveImage={(index) => updateDraft({ media: draft.media.filter((_, i) => i !== index) })} />
       {error && <p className="s-create-composer__error" role="alert">{error}</p>}
-      <div className="s-create-composer__footer"><span>{draft.text.length}/5000</span><button type="submit" disabled={isPublishing || !validation.valid}><Send size={16} aria-hidden="true" />{isPublishing ? "Publishing…" : "Publish"}</button></div>
+      <div className="s-create-composer__footer"><span>{draft.text.length}/5000</span><button type="submit" disabled={isPublishing}><Send size={15} aria-hidden="true" />{isPublishing ? "Publishing…" : "Publish"}</button></div>
     </form>
   );
 }
