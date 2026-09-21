@@ -68,7 +68,7 @@ assert.equal(validatePostDraft({
 
 console.log("PASS Create publish integration");
 const normalizedPost = normalizeCreatedPostResponse({ data: { post: { id: "server-1", text: "Created" } } });
-assert.deepEqual(normalizedPost, { id: "server-1", text: "Created" });
+assert.deepEqual(normalizedPost, { id: "server-1", text: "Created", kind: "text" });
 assert.throws(() => normalizeCreatedPostResponse(null), /invalid post response/i);
 
 const originalFetch = globalThis.fetch;
