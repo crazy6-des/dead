@@ -1,0 +1,66 @@
+import assert from "node:assert/strict";
+import worker from "../src/index.js";
+import { sha256Hex } from "../src/auth.js";
+
+const state = {
+  posts: [{ id: "post-1", author_id: "user-2", deleted_at: null }],
+  reactions: new Set(),
+  bookmarks: new Set(),
+};
+
+const db = {
+  prepare(query) {
+    return {
+      bind(...values) {
+        return {
+          async first() {
+            if (query.startsWith("SELECT s.id")) {
+              if (values[0] === await sha256Hex("session-1")) return { id: "session-1", user_id: "user-1", username: "user1", display_name: "User 1" };
+            }
+            if (query.startsWith("SELECT id, author_id, deleted_at")) return state.posts.find((post) => post.id === values[0]) || null;
+            if (query.includes("relationship_type = 'block'")) return null;
+            if (query.startsWith("SELECT COUNT(*)")) {
+              const count = query.includes("FROM bookmarks")
+                ? [...state.bookmarks].filter((key) => key.endsWith(`:${values[0]}`)).length
+                : [...state.reactions].filter((key) => key.endsWith(`:${values[0]}:${values[1]}`)).length;
+              return { count };
+            }
+            return null;
+          },
+          async run() {
+            if (query.startsWith("INSERT OR IGNORE INTO bookmarks")) state.bookmarks.add(`${values[0]}:${values[1]}`);
+            if (query.startsWith("DELETE FROM bookmarks")) state.bookmarks.delete(`${values[0]}:${values[1]}`);
+            if (query.startsWith("INSERT OR IGNORE INTO post_reactions")) state.reactions.add(`${values[0]}:${values[1]}:${values[2]}`);
+            if (query.startsWith("DELETE FROM post_reactions")) state.reactions.delete(`${values[0]}:${values[1]}:${values[2]}`);
+            return { success: true };
+          },
+        };
+      },
+    };
+  },
+};
+
+const request = (path, method = "POST", body) => new Request(`https://example.test${path}`, {
+  method,
+  headers: { Cookie: "s_session=session-1", ...(body === undefined ? {} : { "content-type": "application/json" }) },
+  ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+});
+
+const unauthenticated = await worker.fetch(new Request("https://example.test/api/social/posts/post-1/like", { method: "POST" }), { DB: db });
+assert.equal(unauthenticated.status, 401);
+
+const liked = await worker.fetch(request("/api/social/posts/post-1/like"), { DB: db });
+assert.equal(liked.status, 200);
+assert.deepEqual(await liked.json(), { ok: true, postId: "post-1", action: "like", enabled: true, count: 1, likes: 1 });
+
+const duplicateLike = await worker.fetch(request("/api/social/posts/post-1/like"), { DB: db });
+assert.equal((await duplicateLike.json()).count, 1);
+
+const unliked = await worker.fetch(request("/api/social/posts/post-1/like", "DELETE"), { DB: db });
+assert.equal((await unliked.json()).enabled, false);
+assert.equal((await unliked.json()).count, 0);
+
+const bookmarked = await worker.fetch(request("/api/social/posts/post-1/bookmark"), { DB: db });
+assert.equal((await bookmarked.json()).bookmarks, 1);
+
+console.log("Social post action contracts: PASS");
