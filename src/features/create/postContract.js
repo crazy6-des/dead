@@ -58,10 +58,8 @@ export function normalizeCreatedPostResponse(response) {
     throw new Error("The post service returned an invalid post response.");
   }
 
-  // Backend posts currently expose `body`; preserve the feed contract's
-  // discriminator so the UI routes every successful post through its adapter.
-  return {
-    ...post,
-    kind: post.kind || POST_KINDS.TEXT,
-  };
+  // Preserve object identity for publish callbacks while supplying the UI
+  // discriminator when an API response omits it.
+  if (!post.kind) post.kind = POST_KINDS.TEXT;
+  return post;
 }
