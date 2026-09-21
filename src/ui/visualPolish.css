@@ -8,6 +8,8 @@ body { background: var(--bg); }
 .app { grid-template-columns: 232px minmax(0, var(--s-content-width)) 300px; gap: var(--s-column-gap); }
 .main { background: var(--bg); }
 .top { padding: 12px 18px; }
+.top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; flex-wrap: nowrap; }
+.top-actions button { flex: 0 0 36px; }
 .heading { padding: 22px 18px 14px; }
 .heading h2 { margin: 0 0 6px; font-size: clamp(24px, 3vw, 30px); line-height: 1.12; }
 .quick { padding: 12px 18px; }
@@ -20,7 +22,10 @@ body { background: var(--bg); }
 .avatar { background: var(--surface2); }
 .post-media { height: 180px; margin: 10px 0; border-radius: 12px; }
 .rail { padding-top: 16px; }
+/* Search is kept in the horizontal top action row; avoid a second vertical block. */
+.rail-search { display: none; }
 .rail-card, .card { margin-top: 14px; border-radius: 14px; }
+.rail-card:first-of-type { margin-top: 0; }
 .rail-card > h3, .card > header { padding: 14px; }
 .trend, .suggest { padding: 11px 14px; }
 .trend + .trend, .suggest + .suggest { border-top-color: color-mix(in srgb, var(--line) 75%, transparent); }
@@ -44,6 +49,8 @@ body { background: var(--bg); }
 
 @media (max-width: 640px) {
   .top { padding: 9px 14px; }
+  .top-actions { gap: 2px; }
+  .top-actions button { flex-basis: 34px; width: 34px; }
   .heading { padding: 20px 16px 12px; }
   .quick, .post { padding-inline: 14px; }
   .post { padding-block: 14px; }
