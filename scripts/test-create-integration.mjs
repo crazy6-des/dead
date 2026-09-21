@@ -24,13 +24,11 @@ const publish = createCreatePublishHandler({
   },
 });
 
-const result = await publish(draft);
-
-assert.equal(result.developmentOnly, true);
-assert.equal(typeof result.post.id, "string");
-assert.match(result.post.id, /^dev-/);
-assert.deepEqual({ ...result.post, id: undefined }, { ...draft, id: undefined });
-assert.equal(received, result.post);
+await assert.rejects(
+  () => publish(draft),
+  (error) => error?.code === "BACKEND_NOT_CONNECTED",
+);
+assert.equal(received, null);
 
 const validRichDraft = {
   ...draft,
@@ -90,7 +88,7 @@ assert.equal(validatePostDraft({
   poll: createPoll({ question: "Valid question", options: ["A", "B", "C", "D", "E"] }),
 }).valid, false);
 
-console.log("PASS Create publish integration");
+console.log("PASS Create publish backend guard");
 const normalizedPost = normalizeCreatedPostResponse({ data: { post: { id: "server-1", text: "Created" } } });
 assert.deepEqual(normalizedPost, { id: "server-1", text: "Created", kind: "text" });
 assert.throws(() => normalizeCreatedPostResponse(null), /invalid post response/i);
