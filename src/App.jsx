@@ -6,7 +6,7 @@ import { toggleLike, toggleSaved, setFollowUser, toggleRepost } from "./features
 import { useAppRouter } from "./app/useAppRouter.js";
 import { APP_ROUTES, ROUTE_LABELS, isRouteActive } from "./app/routes.js";
 import { PRODUCT_IDENTITY } from "./app/productIdentity.js";
-import { PRIMARY_NAVIGATION, MOBILE_NAVIGATION } from "./app/navigation.js";
+import { PRIMARY_NAVIGATION, HEADER_NAVIGATION, MOBILE_NAVIGATION } from "./app/navigation.js";
 import { socialGraphService } from "./services/socialGraphService.js";
 import { socialService } from "./services/socialService.js";
 import { createFeedAdapter } from "./services/feedService.js";
@@ -32,27 +32,21 @@ const demoSeed = [
  {id:4,a:"Nia James",h:"@nia",t:"6m",x:"What are you listening to while you work? I need a new soundtrack.",l:91,r:21,p:6,b:14,liked:false,saved:false,following:true,topic:"Music",music:true}
 ];
 const demoTrends = [["Music","Late Night Notes","8.1K posts"],["Community","Creators of S","1.7K posts"],["Culture","#NewBeginnings","2.4K posts"]];
-const demoPeople = [
-  { name: "Maya Okafor", username: "maya" },
-  { name: "Daniel Cole", username: "daniel" },
-  { name: "Nia James", username: "nia" },
-];
+const demoPeople = [{ name: "Maya Okafor", username: "maya" },{ name: "Daniel Cole", username: "daniel" },{ name: "Nia James", username: "nia" }];
 const seed = demoOnly(demoSeed, []);
 const trends = demoOnly(demoTrends, []);
 const people = demoOnly(demoPeople, []);
 
-function PageHeader({ route, onSearch, onTheme, onMenu, mobileMenuOpen }) {
+function PageHeader({ route, onSearch, onTheme, onMenu, mobileMenuOpen, go }) {
   const label = ROUTE_LABELS[route] || PRODUCT_IDENTITY.name;
   return <><header className="mobile-head"><button onClick={onMenu} aria-label="Open navigation menu" aria-expanded={mobileMenuOpen} aria-controls="s-mobile-menu"><Menu/></button><div className="brand"><b>S</b></div><button onClick={onTheme} aria-label="Theme"><Sparkles/></button></header>
-  <header className="top"><div><h1>{label}</h1><small>{route === APP_ROUTES.HOME ? PRODUCT_IDENTITY.tagline : `Your ${PRODUCT_IDENTITY.name} space.`}</small></div><button onClick={onSearch} aria-label="Search"><Search/></button></header></>;
+  <header className="top"><div><h1>{label}</h1><small>{route === APP_ROUTES.HOME ? PRODUCT_IDENTITY.tagline : `Your ${PRODUCT_IDENTITY.name} space.`}</small></div><div className="top-actions">{HEADER_NAVIGATION.map(({ label: actionLabel, route: path, icon: Icon }) => <button key={path} onClick={() => go(path)} aria-label={actionLabel} title={actionLabel}><Icon/></button>)}<button onClick={onSearch} aria-label="Search" title="Search"><Search/></button></div></header></>;
 }
 function Sidebar({ route, go, onCreate }) {
-  const icons = { Home: HomeIcon, Discover: Compass, Notifications: Bell, Messages: MessageCircle, Spaces: RadioIcon, Saved: Bookmark, Lists: List, Profile: UserRound, Settings: SettingsIcon, Earn: Zap };
-  return <aside className="sidebar"><button className="brand brand-button" onClick={() => go(APP_ROUTES.HOME)}><b>S</b><span>Social</span></button>{PRIMARY_NAVIGATION.map(({ label, route: path }) => { const Icon = icons[label]; return <button key={path} className={"nav " + (isRouteActive(route, path) ? "active" : "")} onClick={() => go(path)}><Icon/><span>{label}</span></button>; })}<button className="create-btn" onClick={onCreate}><Plus/>Create</button><button className="me" onClick={() => go(APP_ROUTES.PROFILE)}><span className="avatar avatar--small">D</span><span><b>David</b>@david</span></button></aside>;
+  return <aside className="sidebar"><button className="brand brand-button" onClick={() => go(APP_ROUTES.HOME)}><b>S</b><span>Social</span></button>{PRIMARY_NAVIGATION.map(({ label, route: path, icon: Icon }) => <button key={path} className={"nav " + (isRouteActive(route, path) ? "active" : "")} onClick={() => go(path)}><Icon/><span>{label}</span></button>)}<button className="create-btn" onClick={onCreate}><Plus/>Create</button><button className="me" onClick={() => go(APP_ROUTES.PROFILE)}><span className="avatar avatar--small">D</span><span><b>David</b>@david</span></button></aside>;
 }
 function MobileMenu({ route, go, onCreate, onClose }) {
-  const icons = { Home: HomeIcon, Discover: Compass, Notifications: Bell, Profile: UserRound };
-  return <div className="mobile-menu-layer" role="presentation"><button className="mobile-menu-backdrop" aria-label="Close navigation menu" onClick={onClose}/><aside id="s-mobile-menu" className="mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation"><div className="mobile-menu-head"><b>S</b><button className="icon-btn" onClick={onClose} aria-label="Close navigation menu"><X/></button></div>{MOBILE_NAVIGATION.map(({ label, route: path, icon: ConfigIcon }) => { const Icon = label === "Create" ? Plus : icons[label] || ConfigIcon; return <button key={label} className={"nav " + (path && isRouteActive(route, path) ? "active" : "")} onClick={() => { onClose(); path ? go(path) : onCreate(); }}><Icon/><span>{label}</span></button>; })}<button className="nav" onClick={() => { onClose(); go(APP_ROUTES.SETTINGS); }}><SettingsIcon/><span>Settings</span></button></aside></div>;
+  return <div className="mobile-menu-layer" role="presentation"><button className="mobile-menu-backdrop" aria-label="Close navigation menu" onClick={onClose}/><aside id="s-mobile-menu" className="mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation"><div className="mobile-menu-head"><b>S</b><button className="icon-btn" onClick={onClose} aria-label="Close navigation menu"><X/></button></div>{HEADER_NAVIGATION.map(({ label, route: path, icon: Icon }) => <button key={path} className={"nav " + (isRouteActive(route, path) ? "active" : "")} onClick={() => { onClose(); go(path); }}><Icon/><span>{label}</span></button>)}{MOBILE_NAVIGATION.map(({ label, route: path, icon: ConfigIcon }) => { const Icon = label === "Create" ? Plus : ConfigIcon; return <button key={label} className={"nav " + (path && isRouteActive(route, path) ? "active" : "")} onClick={() => { onClose(); path ? go(path) : onCreate(); }}><Icon/><span>{label}</span></button>; })}<button className="nav" onClick={() => { onClose(); go(APP_ROUTES.SETTINGS); }}><SettingsIcon/><span>Settings</span></button></aside></div>;
 }
 function RightRail({ go, followingUsers, onFollowUser, onSearch }) {
   return <aside className="rail"><button className="rail-search" onClick={onSearch}><Search/><span>{PRODUCT_IDENTITY.searchPlaceholder}</span></button>{trends.length > 0 && <section className="rail-card"><h3>{PRODUCT_IDENTITY.activityTitle}</h3>{trends.map(([a,b,c]) => <button className="trend" key={b} onClick={() => go("/topic/" + encodeURIComponent(b))}><small>{a}</small><b>{b}</b><small>{c}</small></button>)}</section>}{people.length > 0 && <section className="rail-card"><h3>People to connect with</h3>{people.map(({ name, username }) => { const following = followingUsers.has(username); return <div className="suggest" key={username}><button className="avatar avatar--small" onClick={() => go("/user/" + username)}>{name[0]}</button><button className="suggest__person" onClick={() => go("/user/" + username)}><b>{name}</b>@{username}</button><button className={following ? "is-following" : ""} onClick={() => onFollowUser(username)}>{following ? "Following" : "Follow"}</button></div>; })}</section>}</aside>;
@@ -68,71 +62,18 @@ export default function App() {
   const [followingUsers,setFollowingUsers] = useState(() => new Set(demoOnly(["maya", "nia"], [])));
   const [searchOpen,setSearchOpen] = useState(false);
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
-  useEffect(() => {
-    if (!creating) return undefined;
-    const onKeyDown = (event) => { if (event.key === "Escape") setCreating(false); };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
-    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", onKeyDown); };
-  }, [creating]);
-  useEffect(() => {
-    if (!mobileMenuOpen) return undefined;
-    const onKeyDown = (event) => { if (event.key === "Escape") setMobileMenuOpen(false); };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
-    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", onKeyDown); };
-  }, [mobileMenuOpen]);
-  useEffect(() => {
-    let active = true;
-    const feed = createFeedAdapter({ seedPosts: seed });
-    feed.list().then((page) => { if (active && Array.isArray(page?.items)) setPosts(page.items); }).catch(() => {});
-    return () => { active = false; };
-  }, []);
-  const persistPostAction = async (id, action, enabled, rollback) => {
-    if (!hasApiBaseUrl()) return;
-    try { await socialService.setPostAction(id, action, enabled); }
-    catch { rollback(); flash("Could not save that change"); }
-  };
-  const like = (id) => {
-    const current = posts.find((post) => post.id === id);
-    if (!current) return;
-    const enabled = !Boolean(current.liked);
-    setPosts((all) => toggleLike(all, id));
-    void persistPostAction(id, "like", enabled, () => setPosts((all) => toggleLike(all, id)));
-  };
-  const save = (id) => {
-    const current = posts.find((post) => post.id === id);
-    if (!current) return;
-    const enabled = !Boolean(current.saved);
-    setPosts((all) => toggleSaved(all, id));
-    void persistPostAction(id, "bookmark", enabled, () => setPosts((all) => toggleSaved(all, id)));
-  };
-  const repost = (id) => {
-    const current = posts.find((post) => post.id === id);
-    if (!current) return;
-    const enabled = !Boolean(current.reposted);
-    setPosts((all) => toggleRepost(all, id));
-    void persistPostAction(id, "repost", enabled, () => setPosts((all) => toggleRepost(all, id)));
-  };
-  const followUser = async (username) => {
-    const target = normalizeUsername(username);
-    const wasFollowing = followingUsers.has(target);
-    const enabled = !wasFollowing;
-    setPosts((all) => setFollowUser(all, target, enabled));
-    setFollowingUsers((current) => { const next = new Set(current); if (enabled) next.add(target); else next.delete(target); return next; });
-    try { await socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled }); }
-    catch {
-      setPosts((all) => setFollowUser(all, target, wasFollowing));
-      setFollowingUsers((current) => { const next = new Set(current); if (wasFollowing) next.add(target); else next.delete(target); return next; });
-      flash("Could not update follow status");
-    }
-  };
+  useEffect(() => { if (!creating) return undefined; const onKeyDown = (event) => { if (event.key === "Escape") setCreating(false); }; const previousOverflow = document.body.style.overflow; document.body.style.overflow = "hidden"; window.addEventListener("keydown", onKeyDown); return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", onKeyDown); }; }, [creating]);
+  useEffect(() => { if (!mobileMenuOpen) return undefined; const onKeyDown = (event) => { if (event.key === "Escape") setMobileMenuOpen(false); }; const previousOverflow = document.body.style.overflow; document.body.style.overflow = "hidden"; window.addEventListener("keydown", onKeyDown); return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", onKeyDown); }; }, [mobileMenuOpen]);
+  useEffect(() => { let active = true; const feed = createFeedAdapter({ seedPosts: seed }); feed.list().then((page) => { if (active && Array.isArray(page?.items)) setPosts(page.items); }).catch(() => {}); return () => { active = false; }; }, []);
+  const persistPostAction = async (id, action, enabled, rollback) => { if (!hasApiBaseUrl()) return; try { await socialService.setPostAction(id, action, enabled); } catch { rollback(); flash("Could not save that change"); } };
+  const like = (id) => { const current = posts.find((post) => post.id === id); if (!current) return; const enabled = !Boolean(current.liked); setPosts((all) => toggleLike(all, id)); void persistPostAction(id, "like", enabled, () => setPosts((all) => toggleLike(all, id))); };
+  const save = (id) => { const current = posts.find((post) => post.id === id); if (!current) return; const enabled = !Boolean(current.saved); setPosts((all) => toggleSaved(all, id)); void persistPostAction(id, "bookmark", enabled, () => setPosts((all) => toggleSaved(all, id))); };
+  const repost = (id) => { const current = posts.find((post) => post.id === id); if (!current) return; const enabled = !Boolean(current.reposted); setPosts((all) => toggleRepost(all, id)); void persistPostAction(id, "repost", enabled, () => setPosts((all) => toggleRepost(all, id))); };
+  const followUser = async (username) => { const target = normalizeUsername(username); const wasFollowing = followingUsers.has(target); const enabled = !wasFollowing; setPosts((all) => setFollowUser(all, target, enabled)); setFollowingUsers((current) => { const next = new Set(current); if (enabled) next.add(target); else next.delete(target); return next; }); try { await socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled }); } catch { setPosts((all) => setFollowUser(all, target, wasFollowing)); setFollowingUsers((current) => { const next = new Set(current); if (wasFollowing) next.add(target); else next.delete(target); return next; }); flash("Could not update follow status"); } };
   const followPost = (id) => { const post = posts.find((item) => item.id === id); if (post) followUser(String(post.h || "").replace("@", "").toLowerCase()); };
   const publish = (value) => { const next = value?.kind ? toFeedPostFromCreatedPost(value) : {id:Date.now(),a:"David",h:"@david",t:"now",x:value.text,l:0,r:0,p:0,b:0,liked:false,saved:false,following:false,topic:"Your post",...value}; setPosts((all) => [next,...all]); setCreating(false); flash(PRODUCT_IDENTITY.postedMessage); go(APP_ROUTES.HOME); };
   const open = (path) => go(path);
   const openSearch = () => setSearchOpen(true);
   const render = () => { if (route === APP_ROUTES.HOME) return <HomeRoute posts={posts} onLike={like} onSave={save} onFollow={followPost} onRepost={repost} onCreate={() => setCreating(true)} onOpen={open} />; if (route === APP_ROUTES.DISCOVER) return <DiscoverRoute posts={posts} onLike={like} onSave={save} onRepost={repost} onOpen={open} followingUsers={followingUsers} onFollow={followUser}/>; if (route === APP_ROUTES.PROFILE) return <ProfileRoute posts={posts} onLike={like} onSave={save} onFollow={followPost} onRepost={repost} onFollowUser={followUser} followingUsers={followingUsers} onOpen={open}/>; if (route === APP_ROUTES.NOTIFICATIONS) return <NotificationsRoute onOpen={open}/>; if (route === APP_ROUTES.MESSAGES) return <MessagesRoute/>; if (route === APP_ROUTES.SPACES) return <SpacesRoute/>; if (route === APP_ROUTES.SAVED) return <SavedRoute posts={posts} onSave={save} onOpen={open}/>; if (route === APP_ROUTES.BOOKMARKS) return <BookmarkFoldersRoute posts={posts} onOpen={open}/>; if (route === APP_ROUTES.LISTS) return <ListsRoute/>; if (route === APP_ROUTES.SETTINGS || route.startsWith(`${APP_ROUTES.SETTINGS}/`)) return <SettingsRoute/>; if (route === APP_ROUTES.EARN) return <EarnRoute onOpen={open}/>; if (route === APP_ROUTES.SEARCH || route.startsWith(`${APP_ROUTES.SEARCH}/`)) return <SearchOverlay posts={posts} onOpen={open} onClose={() => go(APP_ROUTES.HOME)}/>; return <EntityRoute path={route} posts={posts} onBack={() => go(APP_ROUTES.HOME)} onOpen={open} onSave={save} onLike={like} onRepost={repost} onFollowUser={followUser} followingUsers={followingUsers}/>; };
-  return <div className={"app " + (dark ? "" : "light")} aria-busy={auth.isLoading}><Sidebar route={route} go={go} onCreate={() => setCreating(true)}/><main className="main"><PageHeader route={route} onSearch={openSearch} onTheme={() => setDark((v) => !v)} onMenu={() => setMobileMenuOpen(true)} mobileMenuOpen={mobileMenuOpen}/>{render()}</main><RightRail go={go} followingUsers={followingUsers} onFollowUser={followUser} onSearch={openSearch}/><nav className="mobile-nav">{MOBILE_NAVIGATION.map(({ label, route: path }) => { const Icon = label === "Create" ? Plus : label === "Home" ? HomeIcon : label === "Discover" ? Compass : label === "Notifications" ? Bell : UserRound; return <button key={label} onClick={() => path ? go(path) : setCreating(true)} className={path && isRouteActive(route, path) ? "active" : ""}><Icon/><small>{label}</small></button>; })}</nav>{mobileMenuOpen && <MobileMenu route={route} go={go} onCreate={() => setCreating(true)} onClose={() => setMobileMenuOpen(false)}/>} {searchOpen && <SearchOverlay posts={posts} onOpen={(path) => { setSearchOpen(false); open(path); }} onClose={() => setSearchOpen(false)}/>} {creating && <div className="modal" role="dialog" aria-modal="true" aria-labelledby="create-dialog-title"><div className="create"><CreateRoute onPublish={publish} onCancel={() => setCreating(false)}/></div><button className="modal-close" onClick={() => setCreating(false)} aria-label="Close create dialog"><X/></button></div>}{toast && <div className="toast">{toast}</div>}</div>;
+  return <div className={"app " + (dark ? "" : "light")} aria-busy={auth.isLoading}><Sidebar route={route} go={go} onCreate={() => setCreating(true)}/><main className="main"><PageHeader route={route} go={go} onSearch={openSearch} onTheme={() => setDark((v) => !v)} onMenu={() => setMobileMenuOpen(true)} mobileMenuOpen={mobileMenuOpen}/>{render()}</main><RightRail go={go} followingUsers={followingUsers} onFollowUser={followUser} onSearch={openSearch}/><nav className="mobile-nav">{MOBILE_NAVIGATION.map(({ label, route: path, icon: ConfigIcon }) => { const Icon = label === "Create" ? Plus : ConfigIcon; return <button key={label} onClick={() => path ? go(path) : setCreating(true)} className={path && isRouteActive(route, path) ? "active" : ""}><Icon/><small>{label}</small></button>; })}</nav>{mobileMenuOpen && <MobileMenu route={route} go={go} onCreate={() => setCreating(true)} onClose={() => setMobileMenuOpen(false)}/>} {searchOpen && <SearchOverlay posts={posts} onOpen={(path) => { setSearchOpen(false); open(path); }} onClose={() => setSearchOpen(false)}/>} {creating && <div className="modal" role="dialog" aria-modal="true" aria-labelledby="create-dialog-title"><div className="create"><CreateRoute onPublish={publish} onCancel={() => setCreating(false)}/></div><button className="modal-close" onClick={() => setCreating(false)} aria-label="Close create dialog"><X/></button></div>}{toast && <div className="toast">{toast}</div>}</div>;
 }
