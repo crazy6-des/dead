@@ -6,6 +6,7 @@ import "./styles.css";
 import "./ui/designSystem.css";
 import "./ui/alignment.css";
 import "./ui/mobileNavigation.css";
+import "./ui/visualPolish.css";
 
 const isFeedPreview = new URLSearchParams(window.location.search).get("preview") === "feed";
 
