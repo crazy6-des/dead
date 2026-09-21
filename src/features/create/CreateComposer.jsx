@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Image, Music2, Palette, Send, Type, X } from "lucide-react";
+import { Image, Music2, Palette, Send, Type } from "lucide-react";
 import { createEmptyDraft, POST_KINDS } from "./postContract";
 import { createPoll } from "../polls/pollContract.js";
 import { createLocalMediaAsset } from "./mediaContract";
 import { validatePostDraft } from "./postValidation";
 import PollEditor from "./PollEditor";
 import MediaPicker from "./MediaPicker";
+import PostMediaPreview from "./PostMediaPreview";
 import PostVisibilityControls from "./PostVisibilityControls";
 import "./createComposer.css";
 
@@ -125,9 +126,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
       </div>
       <MediaPicker onImageChange={handleImageChange} onMusicChange={handleMusicChange} pollEnabled={pollEnabled} onTogglePoll={togglePoll} backgroundValue={draft.background?.value || "#151922"} onBackgroundChange={handleBackgroundChange} />
       {pollEnabled && <PollEditor question={pollQuestion} options={pollOptions} onQuestionChange={updatePollQuestion} onOptionChange={updatePollOption} onAddOption={addPollOption} />}
-      {draft.media.length > 0 && <div className="s-create-composer__assets" aria-label="Selected images">{draft.media.map((asset, index) => <div className="s-create-composer__asset" key={asset.url || asset.name + index}><img src={asset.url} alt={asset.name} /><button type="button" onClick={() => removeImage(index)} aria-label={`Remove ${asset.name}`}><X size={14} aria-hidden="true" /></button></div>)}</div>}
-      {draft.audio && <div className="s-create-composer__audio"><Music2 size={16} aria-hidden="true" /><span>{draft.audio.name}</span><audio controls src={draft.audio.url} /></div>}
-      {draft.background && <div className="s-create-composer__background-preview" style={{ background: draft.background.value }} aria-label="Selected post background">Background preview</div>}
+      <PostMediaPreview media={draft.media} audio={draft.audio} background={draft.background} onRemoveImage={removeImage} />
       <PostVisibilityControls audience={draft.audience} replyPolicy={draft.replyPolicy} onAudienceChange={(audience) => updateDraft({ audience })} onReplyPolicyChange={(replyPolicy) => updateDraft({ replyPolicy })} />
       {error && <p className="s-create-composer__error" role="alert">{error}</p>}
       <div className="s-create-composer__footer"><span>{draft.text.length}/5000</span><button type="submit" disabled={isPublishing || !validation.valid}><Send size={16} aria-hidden="true" />{isPublishing ? "Publishing…" : "Publish"}</button></div>
