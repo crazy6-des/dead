@@ -63,7 +63,16 @@ const unlikeBody = await unliked.json();
 assert.equal(unlikeBody.enabled, false);
 assert.equal(unlikeBody.count, 0);
 
+const reposted = await worker.fetch(request("/api/social/posts/post-1/repost"), { DB: db });
+assert.equal((await reposted.json()).reposts, 1);
+
+const unreposted = await worker.fetch(request("/api/social/posts/post-1/repost", "DELETE"), { DB: db });
+assert.equal((await unreposted.json()).reposts, 0);
+
 const bookmarked = await worker.fetch(request("/api/social/posts/post-1/bookmark"), { DB: db });
 assert.equal((await bookmarked.json()).bookmarks, 1);
+
+const unbookmarked = await worker.fetch(request("/api/social/posts/post-1/bookmark", "DELETE"), { DB: db });
+assert.equal((await unbookmarked.json()).bookmarks, 0);
 
 console.log("Social post action contracts: PASS");
