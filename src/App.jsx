@@ -8,7 +8,7 @@ import { APP_ROUTES, ROUTE_LABELS, isRouteActive } from "./app/routes.js";
 import { PRODUCT_IDENTITY } from "./app/productIdentity.js";
 import { PRIMARY_NAVIGATION, MOBILE_NAVIGATION } from "./app/navigation.js";
 import { socialGraphService } from "./services/socialGraphService.js";
-import { bookmarkService } from "./services/bookmarkService.js";
+import { socialService } from "./services/socialService.js";
 import { createFeedAdapter } from "./services/feedService.js";
 import { SOCIAL_RELATIONSHIPS, normalizeUsername } from "./features/social/socialGraphContract.js";
 import HomeRoute from "./features/home/HomeRoute.jsx";
@@ -70,64 +70,62 @@ export default function App() {
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
   useEffect(() => {
     if (!creating) return undefined;
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") setCreating(false);
-    };
+    const onKeyDown = (event) => { if (event.key === "Escape") setCreating(false); };
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", onKeyDown); };
   }, [creating]);
-
   useEffect(() => {
     if (!mobileMenuOpen) return undefined;
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") setMobileMenuOpen(false);
-    };
+    const onKeyDown = (event) => { if (event.key === "Escape") setMobileMenuOpen(false); };
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", onKeyDown); };
   }, [mobileMenuOpen]);
-
   useEffect(() => {
     let active = true;
     const feed = createFeedAdapter({ seedPosts: seed });
-    feed.list().then((page) => {
-      if (active && Array.isArray(page?.items)) setPosts(page.items);
-    }).catch(() => {});
+    feed.list().then((page) => { if (active && Array.isArray(page?.items)) setPosts(page.items); }).catch(() => {});
     return () => { active = false; };
   }, []);
-  const like = (id) => setPosts((all) => toggleLike(all, id));
-  const save = (id) => { const current = posts.find((post) => post.id === id); if (!current) return; const nextSaved = !current.saved; setPosts((all) => toggleSaved(all, id)); const request = nextSaved ? bookmarkService.save({ postId: id, folderId: null }) : bookmarkService.remove(id); request.catch(() => setPosts((all) => toggleSaved(all, id))); };
-  const repost = (id) => setPosts((all) => toggleRepost(all, id));
+  const persistPostAction = async (id, action, enabled, rollback) => {
+    if (!hasApiBaseUrl()) return;
+    try { await socialService.setPostAction(id, action, enabled); }
+    catch { rollback(); flash("Could not save that change"); }
+  };
+  const like = (id) => {
+    const current = posts.find((post) => post.id === id);
+    if (!current) return;
+    const enabled = !Boolean(current.liked);
+    setPosts((all) => toggleLike(all, id));
+    void persistPostAction(id, "like", enabled, () => setPosts((all) => toggleLike(all, id)));
+  };
+  const save = (id) => {
+    const current = posts.find((post) => post.id === id);
+    if (!current) return;
+    const enabled = !Boolean(current.saved);
+    setPosts((all) => toggleSaved(all, id));
+    void persistPostAction(id, "bookmark", enabled, () => setPosts((all) => toggleSaved(all, id)));
+  };
+  const repost = (id) => {
+    const current = posts.find((post) => post.id === id);
+    if (!current) return;
+    const enabled = !Boolean(current.reposted);
+    setPosts((all) => toggleRepost(all, id));
+    void persistPostAction(id, "repost", enabled, () => setPosts((all) => toggleRepost(all, id)));
+  };
   const followUser = async (username) => {
     const target = normalizeUsername(username);
     const wasFollowing = followingUsers.has(target);
     const enabled = !wasFollowing;
     setPosts((all) => setFollowUser(all, target, enabled));
-    setFollowingUsers((current) => {
-      const next = new Set(current);
-      if (enabled) next.add(target);
-      else next.delete(target);
-      return next;
-    });
-    try {
-      await socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled });
-    } catch {
+    setFollowingUsers((current) => { const next = new Set(current); if (enabled) next.add(target); else next.delete(target); return next; });
+    try { await socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled }); }
+    catch {
       setPosts((all) => setFollowUser(all, target, wasFollowing));
-      setFollowingUsers((current) => {
-        const next = new Set(current);
-        if (wasFollowing) next.add(target);
-        else next.delete(target);
-        return next;
-      });
+      setFollowingUsers((current) => { const next = new Set(current); if (wasFollowing) next.add(target); else next.delete(target); return next; });
       flash("Could not update follow status");
     }
   };
