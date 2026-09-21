@@ -1,0 +1,55 @@
+/* S visual polish: lighter rhythm, clearer hierarchy, less dead card space. */
+:root {
+  --s-content-width: 620px;
+  --s-column-gap: 20px;
+}
+
+body { background: var(--bg); }
+.app { grid-template-columns: 232px minmax(0, var(--s-content-width)) 300px; gap: var(--s-column-gap); }
+.main { background: var(--bg); }
+.top { padding: 12px 18px; }
+.heading { padding: 22px 18px 14px; }
+.heading h2 { margin: 0 0 6px; font-size: clamp(24px, 3vw, 30px); line-height: 1.12; }
+.quick { padding: 12px 18px; }
+.post { padding: 16px 18px; gap: 11px; }
+.post__text { margin: 7px 0 11px; line-height: 1.52; }
+.post__actions { max-width: none; margin-inline: -4px; }
+.post__actions button { min-height: 36px; min-width: 36px; padding: 5px 8px; }
+.post__actions button:hover { color: var(--brand); background: transparent; }
+.post__actions span { font-size: 12px; }
+.avatar { background: var(--surface2); }
+.post-media { height: 180px; margin: 10px 0; border-radius: 12px; }
+.rail { padding-top: 16px; }
+.rail-card, .card { margin-top: 14px; border-radius: 14px; }
+.rail-card > h3, .card > header { padding: 14px; }
+.trend, .suggest { padding: 11px 14px; }
+.trend + .trend, .suggest + .suggest { border-top-color: color-mix(in srgb, var(--line) 75%, transparent); }
+.empty { margin: 16px; padding: 32px 18px; }
+.earn { margin: 16px; padding: 22px; border-radius: 16px; }
+.earn h2 { font-size: clamp(24px, 4vw, 30px); line-height: 1.15; }
+.earn-grid { gap: 10px; margin: 0 16px; }
+.earn-grid > div { padding: 14px; }
+
+/* Avoid oversized blank dark panels when content is short. */
+.card:empty, .rail-card:empty, .post-media:empty { display: none; }
+.card > header:only-child, .rail-card > h3:only-child { padding-bottom: 13px; }
+
+@media (min-width: 1280px) {
+  .app { grid-template-columns: minmax(210px, 232px) minmax(0, var(--s-content-width)) minmax(270px, 300px); }
+}
+
+@media (max-width: 1100px) {
+  .app { grid-template-columns: 72px minmax(0, var(--s-content-width)); gap: 0; }
+}
+
+@media (max-width: 640px) {
+  .top { padding: 9px 14px; }
+  .heading { padding: 20px 16px 12px; }
+  .quick, .post { padding-inline: 14px; }
+  .post { padding-block: 14px; }
+  .post__text { font-size: 15px; }
+  .post-media { height: 160px; border-radius: 10px; }
+  .empty { margin: 14px; padding: 28px 16px; }
+  .earn { margin: 14px; padding: 20px; }
+  .earn-grid { margin-inline: 14px; }
+}
