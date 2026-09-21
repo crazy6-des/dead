@@ -4,3 +4,4 @@ export { createFeedRequest, createFeedResponse, createDevFeedAdapter, createApiF
 export { createPostRequest, createApiPostAdapter, createDevPostAdapter, createPostAdapter } from "./postService.js";
 export { notificationService, createNotificationAdapter, createApiNotificationAdapter, createDevNotificationAdapter } from "./notificationService.js";
 export { messageService, createMessageAdapter, createApiMessageAdapter, createDevMessageAdapter } from "./messageService.js";
+export { socialService } from "./socialService.js";
