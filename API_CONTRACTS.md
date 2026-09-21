@@ -98,6 +98,36 @@ Response shape:
 
 Unsupported post content returns `400` with `UNSUPPORTED_POST_CONTENT` until media, polls, and other publishing capabilities receive their own backend contracts.
 
+## Social relationships
+
+- `POST /api/social/relationships`
+- Requires an authenticated session and the configured frontend origin.
+- Supported relationships: `follow`, `block`, and `mute`.
+- The target is identified by normalized username.
+- `enabled: true` uses an idempotent insert; `enabled: false` removes the relationship.
+- Self-relationships are rejected.
+
+Request shape:
+
+```json
+{
+  "username": "someone",
+  "relationship": "follow",
+  "enabled": true
+}
+```
+
+Successful response:
+
+```json
+{
+  "ok": true,
+  "username": "someone",
+  "relationship": "follow",
+  "enabled": true
+}
+```
+
 ## Authentication
 
 Session endpoints are owned by the Cloudflare API:
