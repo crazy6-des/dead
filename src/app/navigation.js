@@ -19,5 +19,7 @@ export const MOBILE_NAVIGATION = Object.freeze([
   PRIMARY_NAVIGATION[1],
   { label: "Create", route: null, icon: null },
   PRIMARY_NAVIGATION[2],
+  PRIMARY_NAVIGATION[3],
   PRIMARY_NAVIGATION[7],
+  PRIMARY_NAVIGATION[9],
 ]);
