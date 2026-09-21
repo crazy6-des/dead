@@ -126,10 +126,11 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
         <div className="modal" role="dialog" aria-modal="true" aria-labelledby="edit-profile-title">
           <form className="create s-profile-editor" onSubmit={saveProfile}>
             <header>
-              <div><small>YOUR IDENTITY</small><h2 id="edit-profile-title">Edit profile</h2></div>
+              <div><small>YOUR IDENTITY · LOCAL PREVIEW</small><h2 id="edit-profile-title">Edit profile</h2></div>
               <button type="button" className="icon-btn" onClick={() => setEditing(false)} aria-label="Close"><X /></button>
             </header>
             <div className="s-profile-editor__body">
+              <p className="s-create-composer__hint" role="note">Preview only: profile edits stay in this session until the authenticated profile API is connected. They are not saved to the server.</p>
               <div className="s-profile-editor__avatar">
                 <div className="profile-avatar avatar">{draft.avatarUrl ? <img src={draft.avatarUrl} alt="Selected profile" /> : draft.displayName.charAt(0).toUpperCase() || "D"}</div>
                 <button type="button" className="outline" onClick={() => fileRef.current?.click()}><Camera size={15} /> Choose picture</button>
@@ -140,11 +141,11 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
               <label>Bio<textarea value={draft.bio} maxLength={MAX_LENGTHS.bio} rows={3} onChange={(event) => updateDraft({ bio: event.target.value })} /></label>
               <label>Location<input value={draft.location} maxLength={MAX_LENGTHS.location} placeholder="Your city or region" onChange={(event) => updateDraft({ location: event.target.value })} /></label>
               <label>Website or social link<input value={draft.website} maxLength={MAX_LENGTHS.website} placeholder="https://…" onChange={(event) => updateDraft({ website: event.target.value })} /></label>
-              <label className="s-profile-editor__check"><input type="checkbox" checked={draft.privateAccount} onChange={(event) => updateDraft({ privateAccount: event.target.checked })} /> Private account</label>
-              <label className="s-profile-editor__check"><input type="checkbox" checked={draft.showFollowerCount} onChange={(event) => updateDraft({ showFollowerCount: event.target.checked })} /> Show follower count</label>
+              <label className="s-profile-editor__check"><input type="checkbox" checked={draft.privateAccount} onChange={(event) => updateDraft({ privateAccount: event.target.checked })} /> Private account <small>(preview only)</small></label>
+              <label className="s-profile-editor__check"><input type="checkbox" checked={draft.showFollowerCount} onChange={(event) => updateDraft({ showFollowerCount: event.target.checked })} /> Show follower count <small>(preview only)</small></label>
               {error && <p className="s-create-composer__error" role="alert">{error}</p>}
             </div>
-            <footer><button type="button" className="outline" onClick={() => setEditing(false)}>Cancel</button><button className="primary" type="submit">Save changes</button></footer>
+            <footer><button type="button" className="outline" onClick={() => setEditing(false)}>Cancel</button><button className="primary" type="submit">Save preview</button></footer>
           </form>
         </div>
       )}
