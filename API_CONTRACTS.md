@@ -106,6 +106,7 @@ Unsupported post content returns `400` with `UNSUPPORTED_POST_CONTENT` until med
 - The target is identified by normalized username.
 - `enabled: true` uses an idempotent insert; `enabled: false` removes the relationship.
 - Self-relationships are rejected.
+- Enabling a block removes follow relationships in both directions before storing the block.
 
 Request shape:
 
@@ -127,6 +128,34 @@ Successful response:
   "enabled": true
 }
 ```
+
+## Post social actions
+
+All post-action routes require authentication and the configured frontend origin.
+
+- `POST /api/social/posts/:postId/like`
+- `POST /api/social/posts/:postId/repost`
+- `POST /api/social/posts/:postId/bookmark`
+- `DELETE /api/social/posts/:postId/like`
+- `DELETE /api/social/posts/:postId/repost`
+- `DELETE /api/social/posts/:postId/bookmark`
+
+`POST` enables the action by default. A JSON body of `{ "enabled": false }` disables it. `DELETE` always disables the action. Inserts are idempotent, and blocked users cannot interact with each other's posts.
+
+Successful response shape:
+
+```json
+{
+  "ok": true,
+  "postId": "…",
+  "action": "like",
+  "enabled": true,
+  "count": 1,
+  "likes": 1
+}
+```
+
+The action-specific count field is `likes`, `reposts`, or `bookmarks`.
 
 ## Authentication
 
