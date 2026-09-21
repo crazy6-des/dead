@@ -4,6 +4,7 @@ import { createEmptyDraft, POST_KINDS } from "./postContract";
 import { createPoll } from "../polls/pollContract.js";
 import { createLocalMediaAsset } from "./mediaContract";
 import { validatePostDraft } from "./postValidation";
+import PollEditor from "./PollEditor";
 import "./createComposer.css";
 
 const MODES = [
@@ -70,9 +71,22 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
     });
   }
 
-  function updatePollQuestion(value) { setPollQuestion(value); updateDraft({ poll: createPoll({ question: value, options: pollOptions }) }); }
-  function updatePollOption(index, value) { const options = pollOptions.map((item, i) => i === index ? value : item); setPollOptions(options); updateDraft({ poll: createPoll({ question: pollQuestion, options }) }); }
-  function togglePoll() { const next = !pollEnabled; setPollEnabled(next); updateDraft({ poll: next ? createPoll({ question: pollQuestion, options: pollOptions }) : null }); }
+  function updatePollQuestion(value) {
+    setPollQuestion(value);
+    updateDraft({ poll: createPoll({ question: value, options: pollOptions }) });
+  }
+
+  function updatePollOption(index, value) {
+    const options = pollOptions.map((item, i) => i === index ? value : item);
+    setPollOptions(options);
+    updateDraft({ poll: createPoll({ question: pollQuestion, options }) });
+  }
+
+  function togglePoll() {
+    const next = !pollEnabled;
+    setPollEnabled(next);
+    updateDraft({ poll: next ? createPoll({ question: pollQuestion, options: pollOptions }) : null });
+  }
 
   function addPollOption() {
     const options = [...pollOptions, ""];
@@ -108,108 +122,37 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
         {onCancel && <button type="button" className="s-create-composer__cancel" onClick={onCancel}>Cancel</button>}
       </div>
 
-      <textarea
-        value={draft.text}
-        maxLength={5000}
-        onChange={(event) => updateDraft({ text: event.target.value })}
-        placeholder="What do you want people to see, hear, or feel?"
-        aria-label="Post text"
-      />
+      <textarea value={draft.text} maxLength={5000} onChange={(event) => updateDraft({ text: event.target.value })} placeholder="What do you want people to see, hear, or feel?" aria-label="Post text" />
 
       <div className="s-create-composer__modes" aria-label="Post content type">
         {MODES.map(({ id, label, icon: Icon }) => {
           const selected = draft.kind === id;
-          return (
-            <button key={id} type="button" className={selected ? "is-selected" : ""} aria-pressed={selected} onClick={() => updateDraft({ kind: id })}>
-              <Icon size={17} aria-hidden="true" />
-              {label}
-            </button>
-          );
+          return <button key={id} type="button" className={selected ? "is-selected" : ""} aria-pressed={selected} onClick={() => updateDraft({ kind: id })}><Icon size={17} aria-hidden="true" />{label}</button>;
         })}
       </div>
 
       <div className="s-create-composer__media">
-        <label className="s-create-composer__picker">
-          <Image size={16} aria-hidden="true" />
-          Add images
-          <input type="file" accept="image/*" multiple onChange={handleImageChange} />
-        </label>
-
-        <label className="s-create-composer__picker">
-          <Music2 size={16} aria-hidden="true" />
-          Add music
-          <input type="file" accept="audio/*" onChange={handleMusicChange} />
-        </label>
-
+        <label className="s-create-composer__picker"><Image size={16} aria-hidden="true" />Add images<input type="file" accept="image/*" multiple onChange={handleImageChange} /></label>
+        <label className="s-create-composer__picker"><Music2 size={16} aria-hidden="true" />Add music<input type="file" accept="audio/*" onChange={handleMusicChange} /></label>
         <button type="button" className={pollEnabled ? "is-selected" : ""} onClick={togglePoll}>Poll</button>
-        <label className="s-create-composer__picker s-create-composer__color-picker">
-          <Palette size={16} aria-hidden="true" />
-          Background
-          <input type="color" value={draft.background?.value || "#151922"} onChange={handleBackgroundChange} aria-label="Post background color" />
-        </label>
+        <label className="s-create-composer__picker s-create-composer__color-picker"><Palette size={16} aria-hidden="true" />Background<input type="color" value={draft.background?.value || "#151922"} onChange={handleBackgroundChange} aria-label="Post background color" /></label>
       </div>
 
-      {pollEnabled && <div className="s-create-composer__poll"><input value={pollQuestion} onChange={(e) => updatePollQuestion(e.target.value)} placeholder="Ask a question" aria-label="Poll question" />{pollOptions.map((option, index) => <input key={index} value={option} onChange={(e) => updatePollOption(index, e.target.value)} placeholder={"Option " + (index + 1)} aria-label={"Poll option " + (index + 1)} />)}{pollOptions.length < 4 && <button type="button" onClick={addPollOption}>Add option</button>}</div>}
+      {pollEnabled && <PollEditor question={pollQuestion} options={pollOptions} onQuestionChange={updatePollQuestion} onOptionChange={updatePollOption} onAddOption={addPollOption} />}
 
-      {draft.media.length > 0 && (
-        <div className="s-create-composer__assets" aria-label="Selected images">
-          {draft.media.map((asset, index) => (
-            <div className="s-create-composer__asset" key={asset.url || asset.name + index}>
-              <img src={asset.url} alt={asset.name} />
-              <button type="button" onClick={() => removeImage(index)} aria-label={`Remove ${asset.name}`}>
-                <X size={14} aria-hidden="true" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      {draft.media.length > 0 && <div className="s-create-composer__assets" aria-label="Selected images">{draft.media.map((asset, index) => <div className="s-create-composer__asset" key={asset.url || asset.name + index}><img src={asset.url} alt={asset.name} /><button type="button" onClick={() => removeImage(index)} aria-label={`Remove ${asset.name}`}><X size={14} aria-hidden="true" /></button></div>)}</div>}
 
-      {draft.audio && (
-        <div className="s-create-composer__audio">
-          <Music2 size={16} aria-hidden="true" />
-          <span>{draft.audio.name}</span>
-          <audio controls src={draft.audio.url} />
-        </div>
-      )}
+      {draft.audio && <div className="s-create-composer__audio"><Music2 size={16} aria-hidden="true" /><span>{draft.audio.name}</span><audio controls src={draft.audio.url} /></div>}
 
-      {draft.background && (
-        <div
-          className="s-create-composer__background-preview"
-          style={{ background: draft.background.value }}
-          aria-label="Selected post background"
-        >
-          Background preview
-        </div>
-      )}
+      {draft.background && <div className="s-create-composer__background-preview" style={{ background: draft.background.value }} aria-label="Selected post background">Background preview</div>}
 
       <div className="s-create-composer__controls">
-        <label>
-          Audience
-          <select value={draft.audience} onChange={(event) => updateDraft({ audience: event.target.value })}>
-            <option value="public">Everyone</option>
-            <option value="followers">Followers</option>
-            <option value="private">Only me</option>
-          </select>
-        </label>
-        <label>
-          Replies
-          <select value={draft.replyPolicy} onChange={(event) => updateDraft({ replyPolicy: event.target.value })}>
-            <option value="everyone">Everyone</option>
-            <option value="following">People you follow</option>
-            <option value="mentioned">Mentioned people</option>
-          </select>
-        </label>
+        <label>Audience<select value={draft.audience} onChange={(event) => updateDraft({ audience: event.target.value })}><option value="public">Everyone</option><option value="followers">Followers</option><option value="private">Only me</option></select></label>
+        <label>Replies<select value={draft.replyPolicy} onChange={(event) => updateDraft({ replyPolicy: event.target.value })}><option value="everyone">Everyone</option><option value="following">People you follow</option><option value="mentioned">Mentioned people</option></select></label>
       </div>
 
       {error && <p className="s-create-composer__error" role="alert">{error}</p>}
-
-      <div className="s-create-composer__footer">
-        <span>{draft.text.length}/5000</span>
-        <button type="submit" disabled={isPublishing || !validation.valid}>
-          <Send size={16} aria-hidden="true" />
-          {isPublishing ? "Publishing…" : "Publish"}
-        </button>
-      </div>
+      <div className="s-create-composer__footer"><span>{draft.text.length}/5000</span><button type="submit" disabled={isPublishing || !validation.valid}><Send size={16} aria-hidden="true" />{isPublishing ? "Publishing…" : "Publish"}</button></div>
     </form>
   );
 }
