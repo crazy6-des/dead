@@ -24,20 +24,24 @@ export function toFeedPostFromCreatedPost(
 ) {
   const media = normalizeMedia(post.media);
   const audio = post.audio ? sanitizeMediaAsset(post.audio) : null;
+  const author = post.author && typeof post.author === "object" ? post.author : {};
+  const resolvedAuthorName = post.a ?? post.authorName ?? author.displayName ?? authorName;
+  const resolvedAuthorHandle = post.h ?? post.authorHandle ?? (author.username ? `@${author.username}` : authorHandle);
 
   return {
-    id: post.id ?? Date.now(),
-    a: post.a ?? post.authorName ?? authorName,
-    h: post.h ?? post.authorHandle ?? authorHandle,
+    id: post.id,
+    a: resolvedAuthorName,
+    h: resolvedAuthorHandle,
     t: post.t ?? post.createdAt ?? "now",
-    x: post.x ?? post.text ?? "",
-    l: Number(post.l ?? post.likes ?? 0),
-    r: Number(post.r ?? post.replies ?? 0),
-    p: Number(post.p ?? post.reposts ?? 0),
-    b: Number(post.b ?? post.bookmarks ?? 0),
+    x: post.x ?? post.text ?? post.body ?? "",
+    l: Number(post.l ?? post.likes ?? post.stats?.likes ?? 0),
+    r: Number(post.r ?? post.replies ?? post.stats?.replies ?? 0),
+    p: Number(post.p ?? post.reposts ?? post.stats?.reposts ?? 0),
+    b: Number(post.b ?? post.bookmarks ?? post.stats?.bookmarks ?? 0),
     liked: Boolean(post.liked),
     saved: Boolean(post.saved),
     following: Boolean(post.following),
+    reposted: Boolean(post.reposted),
     topic: post.topic ?? "Your post",
     media,
     music: post.music ?? audio,
