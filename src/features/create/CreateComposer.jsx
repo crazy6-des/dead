@@ -5,6 +5,7 @@ import { createPoll } from "../polls/pollContract.js";
 import { createLocalMediaAsset } from "./mediaContract";
 import { validatePostDraft } from "./postValidation";
 import PollEditor from "./PollEditor";
+import MediaPicker from "./MediaPicker";
 import "./createComposer.css";
 
 const MODES = [
@@ -131,12 +132,14 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
         })}
       </div>
 
-      <div className="s-create-composer__media">
-        <label className="s-create-composer__picker"><Image size={16} aria-hidden="true" />Add images<input type="file" accept="image/*" multiple onChange={handleImageChange} /></label>
-        <label className="s-create-composer__picker"><Music2 size={16} aria-hidden="true" />Add music<input type="file" accept="audio/*" onChange={handleMusicChange} /></label>
-        <button type="button" className={pollEnabled ? "is-selected" : ""} onClick={togglePoll}>Poll</button>
-        <label className="s-create-composer__picker s-create-composer__color-picker"><Palette size={16} aria-hidden="true" />Background<input type="color" value={draft.background?.value || "#151922"} onChange={handleBackgroundChange} aria-label="Post background color" /></label>
-      </div>
+      <MediaPicker
+        onImageChange={handleImageChange}
+        onMusicChange={handleMusicChange}
+        pollEnabled={pollEnabled}
+        onTogglePoll={togglePoll}
+        backgroundValue={draft.background?.value || "#151922"}
+        onBackgroundChange={handleBackgroundChange}
+      />
 
       {pollEnabled && <PollEditor question={pollQuestion} options={pollOptions} onQuestionChange={updatePollQuestion} onOptionChange={updatePollOption} onAddOption={addPollOption} />}
 
