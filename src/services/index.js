@@ -5,3 +5,4 @@ export { createPostRequest, createApiPostAdapter, createDevPostAdapter, createPo
 export { notificationService, createNotificationAdapter, createApiNotificationAdapter, createDevNotificationAdapter } from "./notificationService.js";
 export { messageService, createMessageAdapter, createApiMessageAdapter, createDevMessageAdapter } from "./messageService.js";
 export { socialService } from "./socialService.js";
+export { profileService, normalizeProfilePatch } from "./profileService.js";
