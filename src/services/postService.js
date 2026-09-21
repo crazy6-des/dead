@@ -47,12 +47,18 @@ export function createApiPostAdapter({ endpoint = "/api/posts" } = {}) {
   };
 }
 
+function createDevelopmentPostId() {
+  if (typeof crypto?.randomUUID === "function") return `dev-${crypto.randomUUID()}`;
+  return `dev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function createDevPostAdapter({ onPublish = null } = {}) {
   return {
     async publish(draft) {
       const payload = createPostRequest(draft);
-      if (typeof onPublish === "function") await onPublish(payload);
-      return { post: payload, developmentOnly: true };
+      const post = { ...payload, id: createDevelopmentPostId() };
+      if (typeof onPublish === "function") await onPublish(post);
+      return { post, developmentOnly: true };
     },
   };
 }
