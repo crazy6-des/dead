@@ -3,6 +3,18 @@ import { moderationService } from "../../services/moderationService.js";
 import { pollService } from "../../services/pollService.js";
 import { MODERATION_ACTIONS, REPORT_REASONS } from "../moderation/moderationContract.js";
 import { Bookmark, Check, Copy, Flag, Heart, MessageCircle, MoreHorizontal, Music2, Repeat2, Send, Shield, X, BarChart3 } from "lucide-react";
+
+function getMediaItems(media) {
+  if (!Array.isArray(media)) return media && typeof media === "object" ? [media] : [];
+  return media.filter(Boolean);
+}
+
+function getMediaSource(item) {
+  if (typeof item === "string") return item;
+  if (!item || typeof item !== "object") return "";
+  return item.url || item.src || item.previewUrl || item.preview || "";
+}
+
 export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onOpen }) {
   const [moderation, setModeration] = useState(null);
   const [moderationBusy, setModerationBusy] = useState(false);
@@ -17,6 +29,8 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const author = post.author || post.a || "S";
   const username = post.username || String(post.h || "@user").replace("@", "").toLowerCase();
   const text = post.text || post.x || "";
+  const mediaItems = getMediaItems(post.media);
+  const mediaSources = mediaItems.map(getMediaSource).filter(Boolean);
   const runModeration = async (action, reason = null) => {
     setModerationBusy(true);
     try {
@@ -35,24 +49,14 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
         <span>@{username}</span><span>·</span>
         <button className="post-time" onClick={() => onOpen?.("/post/" + post.id)}>{post.createdAt || post.t || "now"}</button>
         <div className="post-menu"><button className="icon-btn" onClick={() => setMenu((v) => !v)} aria-label="More"><MoreHorizontal size={18}/></button>
-          {menu && <div className="popover">
-            <button onClick={() => navigator.clipboard?.writeText(window.location.origin + "/post/" + post.id)}><Copy size={16}/>Copy link</button>
-            <button onClick={() => runModeration(MODERATION_ACTIONS.MUTE)} disabled={moderationBusy}><Shield size={16}/>Mute author</button><button onClick={() => runModeration(MODERATION_ACTIONS.BLOCK)} disabled={moderationBusy}><X size={16}/>Block author</button><button className="danger" onClick={() => setModeration("report")}><Flag size={16}/>Report post</button>
-          </div>}
+          {menu && <div className="popover"><button onClick={() => navigator.clipboard?.writeText(window.location.origin + "/post/" + post.id)}><Copy size={16}/>Copy link</button><button onClick={() => runModeration(MODERATION_ACTIONS.MUTE)} disabled={moderationBusy}><Shield size={16}/>Mute author</button><button onClick={() => runModeration(MODERATION_ACTIONS.BLOCK)} disabled={moderationBusy}><X size={16}/>Block author</button><button className="danger" onClick={() => setModeration("report")}><Flag size={16}/>Report post</button></div>}
         </div>
       </div>
-      <button className="post-content-hit" onClick={() => onOpen?.("/post/" + post.id)}><p className="post__text">{text}</p></button>
-      {(post.media || post.media === true) && <button className="post-media" onClick={() => onOpen?.("/post/" + post.id + "/media")}><span>Visual expression</span><small>Open media</small></button>}
+      {text && <button className="post-content-hit" onClick={() => onOpen?.("/post/" + post.id)}><p className="post__text">{text}</p></button>}
+      {mediaSources.length > 0 && <div className="post-media-grid">{mediaSources.map((source, index) => <button className="post-media" key={source + index} onClick={() => onOpen?.("/post/" + post.id + "/media")}><img src={source} alt={mediaItems[index]?.alt || "Post media"} loading="lazy" /></button>)}</div>}
       {post.poll && <div className="poll-card"><div className="poll-card__question"><BarChart3 size={17}/><strong>{post.poll.question}</strong></div>{(localPoll?.options || post.poll.options || []).map((option, index) => { const selected = pollVotes[post.poll.id || post.id] === index; const total = Number(localPoll?.totalVotes ?? post.poll.totalVotes ?? 0); const votes = Number(option.votes || 0); const percent = total > 0 ? Math.round((votes / total) * 100) : 0; return <button className={"poll-option " + (selected ? "is-selected" : "")} key={index} onClick={async () => { if (pollBusy) return; const pollId = post.poll.id || post.id; setPollBusy(true); setPollError(""); try { await pollService.vote(pollId, index); setLocalPoll((current) => { const base = current || post.poll; const options = (base.options || []).map((item, optionIndex) => optionIndex === index ? { ...item, votes: Number(item.votes || 0) + 1 } : item); return { ...base, options, totalVotes: Number(base.totalVotes || 0) + 1 }; }); setPollVotes((current) => ({ ...current, [pollId]: index })); } catch (err) { setPollError(err?.message || "Could not record your vote."); } finally { setPollBusy(false); } }}><span>{option.text || option}</span><span>{percent}%</span></button>; })}<small>{pollError || `${localPoll?.totalVotes ?? post.poll.totalVotes ?? 0} votes`}</small></div>}
       {(post.audio || post.music) && <div className="audio-card"><div className="audio-art"><Music2 size={20}/></div><div><strong>{post.audio?.title || "Late Night Notes"}</strong><span>{post.audio?.artist || "Original audio"} · 2:48</span></div><button className="play">▶</button></div>}
-      <div className="post__actions">
-        <button onClick={() => onOpen?.("/post/" + post.id + "/replies")}><MessageCircle size={18}/><span>{post.replies ?? post.r ?? 0}</span></button>
-        <button className={reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)}><Repeat2 size={18}/><span>{post.reposts ?? post.p ?? 0}</span></button>
-        <button className={post.liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)}><Heart size={18} fill={post.liked ? "currentColor" : "none"}/><span>{post.likes ?? post.l ?? 0}</span></button>
-        <button className={post.saved ? "is-saved" : ""} onClick={() => onSave?.(post.id)}><Bookmark size={18} fill={post.saved ? "currentColor" : "none"}/><span>{post.bookmarks ?? post.b ?? 0}</span></button>
-        <button onClick={() => onOpen?.("/post/" + post.id + "/quote")} aria-label="Quote"><Repeat2 size={16}/></button>
-        <button onClick={() => onOpen?.("/share/" + post.id)} aria-label="Share"><Send size={17}/></button>
-      </div>
+      <div className="post__actions"><button onClick={() => onOpen?.("/post/" + post.id + "/replies")}><MessageCircle size={18}/><span>{post.replies ?? post.r ?? 0}</span></button><button className={reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)}><Repeat2 size={18}/><span>{post.reposts ?? post.p ?? 0}</span></button><button className={post.liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)}><Heart size={18} fill={post.liked ? "currentColor" : "none"}/><span>{post.likes ?? post.l ?? 0}</span></button><button className={post.saved ? "is-saved" : ""} onClick={() => onSave?.(post.id)}><Bookmark size={18} fill={post.saved ? "currentColor" : "none"}/><span>{post.bookmarks ?? post.b ?? 0}</span></button><button onClick={() => onOpen?.("/post/" + post.id + "/quote")} aria-label="Quote"><Repeat2 size={16}/></button><button onClick={() => onOpen?.("/share/" + post.id)} aria-label="Share"><Send size={17}/></button></div>
       {moderation === "report" && <div className="moderation-sheet"><strong>Report this post</strong><small>Choose a reason</small><div>{Object.entries(REPORT_REASONS).map(([key, value]) => <button key={value} onClick={() => runModeration(MODERATION_ACTIONS.REPORT, value)} disabled={moderationBusy}>{key.replace("_", " ")}</button>)}</div><button className="outline" onClick={() => setModeration(null)}>Cancel</button></div>}
       {moderationMessage && <div className="inline-notice" role="status">{moderationMessage}</div>}
       <div className="post-foot"><button onClick={() => onFollow?.(post.id)}>{isFollowing ? "Following" : "Follow " + author.split(" ")[0]}</button><button onClick={() => onOpen?.("/topic/" + encodeURIComponent(post.topic || "community"))}>#{post.topic || "community"}</button></div>
