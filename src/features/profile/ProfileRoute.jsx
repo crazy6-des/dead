@@ -1,17 +1,28 @@
-import React, { useState } from "react";
-import { Check, Link2, MoreHorizontal } from "lucide-react";
+import React, { useMemo, useRef, useState } from "react";
+import { Camera, Check, Link2, MapPin, MoreHorizontal, X } from "lucide-react";
 import PostCard from "../post/PostCard.jsx";
-export default function ProfileRoute({ posts, onLike, onSave, onFollow, onRepost, onFollowUser, followingUsers = new Set(), onOpen }) {
+
+const DEFAULT_PROFILE = { name: "David", username: "david", bio: "Building S — a place to be seen, connect, create and belong.", location: "", website: "s.social", avatarUrl: "", privateAccount: false, showFollowerCount: true };
+
+export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onRepost, onOpen, onProfileUpdate }) {
   const [tab, setTab] = useState("Posts");
-  const tabs = ["Posts","Replies","Media","Likes"];
-  const isOwnProfile = true;
-  const following = followingUsers.has("david");
-  const visible = tab === "Media" ? posts.filter((p) => p.media || p.music) : tab === "Likes" ? posts.filter((p) => p.liked) : tab === "Replies" ? posts.filter((p) => p.r > 0) : posts;
+  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const [draft, setDraft] = useState(DEFAULT_PROFILE);
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState("");
+  const fileRef = useRef(null);
+  const tabs = ["Posts", "Replies", "Media", "Likes"];
+  const visible = useMemo(() => tab === "Media" ? posts.filter((p) => Array.isArray(p.media) && p.media.length) : tab === "Likes" ? posts.filter((p) => p.liked) : tab === "Replies" ? posts.filter((p) => Number(p.r ?? 0) > 0) : posts, [posts, tab]);
+  const openEditor = () => { setDraft({ ...profile }); setError(""); setEditing(true); };
+  const updateDraft = (patch) => { setDraft((current) => ({ ...current, ...patch })); setError(""); };
+  const chooseAvatar = (event) => { const file = event.target.files?.[0]; if (!file) return; if (!file.type.startsWith("image/")) return setError("Choose an image file."); if (file.size > 10 * 1024 * 1024) return setError("Profile picture must be 10 MB or smaller."); updateDraft({ avatarUrl: URL.createObjectURL(file) }); };
+  const saveProfile = (event) => { event.preventDefault(); const username = draft.username.trim().replace(/^@/, "").toLowerCase(); if (!draft.name.trim()) return setError("Name is required."); if (!/^[a-z0-9_]{2,30}$/.test(username)) return setError("Username must be 2–30 letters, numbers, or underscores."); const next = { ...draft, name: draft.name.trim(), username, bio: draft.bio.trim(), location: draft.location.trim(), website: draft.website.trim() }; setProfile(next); onProfileUpdate?.(next); setEditing(false); };
   return <div className="profile">
-    <div className="cover"><div/></div>
-    <div className="identity"><div className="profile-avatar avatar">D</div><div className="profile-actions"><button className="icon-btn"><MoreHorizontal/></button><button className={following ? "outline" : "primary"} onClick={() => isOwnProfile ? onOpen?.("/settings?section=profile") : onFollowUser?.("david")}>{isOwnProfile ? "Edit profile" : "Follow"}</button></div></div>
-    <div className="profile-info"><h2>David <span className="verified"><Check size={10}/></span></h2><span>@david</span><p>Building S — a place to be seen, connect, create and belong.</p><div className="links"><span><Link2/>s.social</span><span>Joined September 2026</span></div><div className="stats"><button onClick={() => onOpen?.("/following/david")}><b>142</b> Following</button><button onClick={() => onOpen?.("/followers/david")}><b>1.8K</b> Followers</button></div></div>
-    <div className="tabs4">{tabs.map((x) => <button key={x} className={tab === x ? "active" : ""} onClick={() => setTab(x)}>{x}</button>)}</div>
-    {visible.length ? visible.slice(0,8).map((p) => <PostCard key={p.id} post={p} onLike={onLike} onSave={onSave} onFollow={onFollow} onRepost={onRepost} onOpen={onOpen}/>) : <div className="empty"><h3>No {tab.toLowerCase()} yet</h3><p>This space will fill as your activity grows.</p></div>}
+    <div className="cover"><div /></div>
+    <div className="identity"><div className="profile-avatar avatar">{profile.avatarUrl ? <img src={profile.avatarUrl} alt={`${profile.name} profile`} /> : profile.name[0]}</div><div className="profile-actions"><button className="icon-btn" onClick={() => onOpen?.("/settings")} aria-label="Profile options"><MoreHorizontal /></button><button className="outline" onClick={openEditor}>Edit profile</button></div></div>
+    <div className="profile-info"><h2>{profile.name} <span className="verified"><Check size={10} /></span></h2><span>@{profile.username}</span><p>{profile.bio || "No bio yet."}</p><div className="links">{profile.location && <span><MapPin />{profile.location}</span>}{profile.website && <span><Link2 />{profile.website}</span>}<span>Joined September 2026</span></div><div className="stats"><button onClick={() => onOpen?.(`/following/${profile.username}`)}><b>0</b> Following</button>{profile.showFollowerCount && <button onClick={() => onOpen?.(`/followers/${profile.username}`)}><b>0</b> Followers</button>}</div></div>
+    <div className="tabs4">{tabs.map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}</div>
+    {visible.length ? visible.slice(0, 8).map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onFollow={onFollow} onRepost={onRepost} onOpen={onOpen} />) : <div className="empty"><h3>No {tab.toLowerCase()} yet</h3><p>This space will fill as your activity grows.</p></div>}
+    {editing && <div className="modal" role="dialog" aria-modal="true" aria-labelledby="edit-profile-title"><form className="create s-profile-editor" onSubmit={saveProfile}><header><div><small>YOUR IDENTITY</small><h2 id="edit-profile-title">Edit profile</h2></div><button type="button" className="icon-btn" onClick={() => setEditing(false)} aria-label="Close"><X /></button></header><div className="s-profile-editor__body"><div className="s-profile-editor__avatar"><div className="profile-avatar avatar">{draft.avatarUrl ? <img src={draft.avatarUrl} alt="Selected profile" /> : draft.name[0] || "D"}</div><button type="button" className="outline" onClick={() => fileRef.current?.click()}><Camera size={15} /> Choose picture</button><input ref={fileRef} hidden type="file" accept="image/*" onChange={chooseAvatar} /></div><label>Name<input value={draft.name} maxLength={80} onChange={(e) => updateDraft({ name: e.target.value })} /></label><label>Username<input value={draft.username} maxLength={30} onChange={(e) => updateDraft({ username: e.target.value })} /></label><label>Bio<textarea value={draft.bio} maxLength={160} rows={3} onChange={(e) => updateDraft({ bio: e.target.value })} /></label><label>Location<input value={draft.location} maxLength={80} placeholder="Your city or region" onChange={(e) => updateDraft({ location: e.target.value })} /></label><label>Website or social link<input value={draft.website} maxLength={160} placeholder="https://…" onChange={(e) => updateDraft({ website: e.target.value })} /></label><label className="s-profile-editor__check"><input type="checkbox" checked={draft.privateAccount} onChange={(e) => updateDraft({ privateAccount: e.target.checked })} /> Private account</label><label className="s-profile-editor__check"><input type="checkbox" checked={draft.showFollowerCount} onChange={(e) => updateDraft({ showFollowerCount: e.target.checked })} /> Show follower count</label>{error && <p className="s-create-composer__error" role="alert">{error}</p>}</div><footer><button type="button" className="outline" onClick={() => setEditing(false)}>Cancel</button><button className="primary" type="submit">Save changes</button></footer></form></div>}
   </div>;
 }
