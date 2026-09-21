@@ -3,6 +3,7 @@ import { createCreatePublishHandler } from "../src/features/create/createIntegra
 import { validatePostDraft } from "../src/features/create/postValidation.js";
 import { normalizeCreatedPostResponse } from "../src/features/create/postContract.js";
 import { createApiPostAdapter } from "../src/services/postService.js";
+import { createPoll } from "../src/features/polls/pollContract.js";
 
 const draft = {
   text: "Integration test post",
@@ -66,6 +67,29 @@ assert.equal(validatePostDraft({
   })),
 }).valid, false);
 
+const poll = createPoll({ question: "  Choose one?  ", options: [" A ", "B"], multipleChoice: true, durationMinutes: 60 });
+assert.equal(Object.isFrozen(poll), true);
+assert.equal(poll.question, "Choose one?");
+assert.deepEqual(poll.options, [" A ", "B"]);
+assert.equal(poll.multipleChoice, true);
+assert.equal(poll.durationMinutes, 60);
+assert.throws(() => { poll.question = "Changed"; }, TypeError);
+
+assert.equal(validatePostDraft({
+  ...draft,
+  poll: poll,
+}).valid, true);
+
+assert.equal(validatePostDraft({
+  ...draft,
+  poll: createPoll({ question: "No", options: ["Only one"] }),
+}).valid, false);
+
+assert.equal(validatePostDraft({
+  ...draft,
+  poll: createPoll({ question: "Valid question", options: ["A", "B", "C", "D", "E"] }),
+}).valid, false);
+
 console.log("PASS Create publish integration");
 const normalizedPost = normalizeCreatedPostResponse({ data: { post: { id: "server-1", text: "Created" } } });
 assert.deepEqual(normalizedPost, { id: "server-1", text: "Created", kind: "text" });
@@ -87,4 +111,5 @@ try {
 }
 
 console.log("PASS Create rich-media validation");
+console.log("PASS Create poll contract and validation");
 console.log("PASS Create API media boundary");
