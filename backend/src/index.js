@@ -9,6 +9,7 @@ import {
   verifyPassword,
 } from "./auth.js";
 import { createPost, listFeed } from "./posts.js";
+import { setRelationship } from "./social.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const MAX_BODY_BYTES = 16 * 1024;
@@ -113,6 +114,13 @@ export default {
     if (url.pathname === "/api/feed") {
       if (request.method !== "GET") return methodNotAllowed(request, env);
       const result = await listFeed(request, env);
+      if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details);
+      return json(result.response, 200, request, env);
+    }
+    if (url.pathname === "/api/social/relationships") {
+      if (request.method !== "POST") return methodNotAllowed(request, env);
+      if (!mutationOriginAllowed(request, env)) return originRejected(request, env);
+      const result = await setRelationship(request, env);
       if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details);
       return json(result.response, 200, request, env);
     }
