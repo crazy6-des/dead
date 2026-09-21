@@ -42,10 +42,10 @@ const db = {
   },
 };
 
-const request = (path, method = "POST", body) => new Request(`https://example.test${path}`, {
+const request = (path, method = "POST", body = {}) => new Request(`https://example.test${path}`, {
   method,
-  headers: { Cookie: "s_session=session-1", ...(body === undefined ? {} : { "content-type": "application/json" }) },
-  ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  headers: { Cookie: "s_session=session-1", "content-type": "application/json" },
+  body: JSON.stringify(body),
 });
 
 const unauthenticated = await worker.fetch(new Request("https://example.test/api/social/posts/post-1/like", { method: "POST" }), { DB: db });
