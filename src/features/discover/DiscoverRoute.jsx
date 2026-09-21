@@ -1,18 +1,24 @@
 import React, { useMemo, useState } from "react";
-import { MoreHorizontal, Search, Users } from "lucide-react";
+import { Hash, Search, Users } from "lucide-react";
 import PostCard from "../post/PostCard.jsx";
-const trends = [["Music","Late Night Notes","8.1K posts"],["Community","Creators of S","1.7K posts"],["Culture","#NewBeginnings","2.4K posts"],["Technology","Building in public","5.6K posts"]];
-const people = ["Maya Okafor","Daniel Cole","Nia James"];
-export default function DiscoverRoute({ posts, onLike, onSave, onOpen, onFollow, onRepost, followingUsers = new Set() }) {
+import { extractHashtags, getSuggestedPeople, matchesDiscoverQuery } from "./discoverUtils.js";
+
+export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFollow, onRepost, followingUsers = new Set() }) {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("For you");
-  const filtered = useMemo(() => posts.filter((p) => !query || (String(p.a || "") + " " + String(p.x || "") + " " + String(p.topic || "")).toLowerCase().includes(query.toLowerCase())), [posts, query]);
+  const trends = useMemo(() => extractHashtags(posts), [posts]);
+  const people = useMemo(() => getSuggestedPeople(posts, followingUsers), [posts, followingUsers]);
+  const filtered = useMemo(() => posts.filter((post) => matchesDiscoverQuery(post, query)), [posts, query]);
+
   return <div className="page">
-    <div className="discover-search"><Search/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search people, posts, topics, music"/></div>
-    <div className="tabs5">{["For you","People","Posts","Topics","Music"].map((x) => <button key={x} className={tab === x ? "active" : ""} onClick={() => setTab(x)}>{x}</button>)}</div>
-    {(tab === "For you" || tab === "Topics") && <section className="card"><header><div><small>TRENDING NOW</small><h2>What's happening</h2></div><button onClick={() => setTab("Topics")}>See all</button></header>{trends.map(([category,title,count]) => <button className="discover-row" key={title} onClick={() => onOpen?.("/topic/" + encodeURIComponent(title))}><span><small>{category}</small><strong>{title}</strong><small>{count}</small></span><MoreHorizontal size={17}/></button>)}</section>}
-    {(tab === "For you" || tab === "People") && <section className="card"><header><div><small>PEOPLE</small><h2>People to connect</h2></div><Users size={18}/></header>{people.map((name) => { const username = name.split(" ")[0].toLowerCase(); const following = followingUsers.has(username); return <div className="person" key={name}><button className="avatar avatar--small" onClick={() => onOpen?.("/user/" + username)}>{name[0]}</button><div><strong>{name}</strong><span>@{username} · Creator</span></div><button className={"follow " + (following ? "is-following" : "")} onClick={() => onFollow?.(username)}>{following ? "Following" : "Follow"}</button></div>; })}</section>}
-    {(tab === "For you" || tab === "Posts") && <section className="card discover-posts"><header><div><small>POSTS</small><h2>Posts for you</h2></div></header>{filtered.slice(0,8).map((p) => <PostCard key={p.id} post={p} onLike={onLike} onSave={onSave} onRepost={onRepost} onFollow={() => onFollow?.(String(p.h || "").replace("@", "").toLowerCase())} onOpen={onOpen}/>)}</section>}
-    {tab === "Music" && <div className="empty"><h3>Music discovery</h3><p>Browse sounds, tracks and original audio shared across S.</p></div>}
+    <div className="discover-search"><Search aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search people, posts, topics, music" aria-label="Search discover" /></div>
+    <div className="tabs5" role="tablist" aria-label="Discover sections">{["For you", "People", "Posts", "Topics", "Music"].map((item) => <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}</div>
+
+    {(tab === "For you" || tab === "Topics") && <section className="card"><header><div><small>FROM THE COMMUNITY</small><h2>Trending hashtags</h2></div><Hash size={18} aria-hidden="true" /></header>{trends.length ? trends.map(({ tag, count }) => <button className="discover-row" key={tag} type="button" onClick={() => { setQuery(tag); setTab("Posts"); }}><span><strong>{tag}</strong><small>{count} {count === 1 ? "post" : "posts"}</small></span></button>) : <div className="empty"><p>Hashtags from published posts will appear here.</p></div>}</section>}
+
+    {(tab === "For you" || tab === "People") && <section className="card"><header><div><small>DISCOVER PEOPLE</small><h2>People to connect</h2></div><Users size={18} aria-hidden="true" /></header>{people.length ? people.map(({ username, name, location, interests }) => <div className="person" key={username}><button type="button" className="avatar avatar--small" onClick={() => onOpen?.("/user/" + username)} aria-label={`Open ${name}`}>{String(name || username).charAt(0).toUpperCase()}</button><div><strong>{name}</strong><span>@{username}{location ? ` · ${location}` : interests.length ? ` · ${interests.slice(0, 2).join(", ")}` : ""}</span></div><button type="button" className="follow" onClick={() => onFollow?.(username)}>Follow</button></div>) : <div className="empty"><p>People recommendations will appear when user profiles provide matching information.</p></div>}</section>}
+
+    {(tab === "For you" || tab === "Posts") && <section className="card discover-posts"><header><div><small>POSTS</small><h2>Explore posts</h2></div></header>{filtered.length ? filtered.slice(0, 8).map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onFollow={() => onFollow?.(String(post.h || "").replace("@", "").toLowerCase())} onOpen={onOpen} />) : <div className="empty"><p>No posts match your search yet.</p></div>}</section>}
+    {tab === "Music" && <div className="empty"><h3>Music discovery</h3><p>Music discovery will use real shared audio when the catalog endpoint is connected.</p></div>}
   </div>;
 }
