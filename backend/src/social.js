@@ -1,49 +1,77 @@
 import { resolveSession } from "./auth.js";
 
 const RELATIONSHIPS = new Set(["follow", "block", "mute"]);
+const POST_ACTIONS = new Set(["like", "repost", "bookmark"]);
 
 function failure(code, status, message) {
   return { response: null, error: { code, status, message } };
 }
 
-export async function setRelationship(request, env) {
+async function sessionOrFailure(request, env) {
   const session = await resolveSession(request, env);
-  if (!session?.user_id) return failure("UNAUTHORIZED", 401, "Authentication is required.");
-  if (!env?.DB) return failure("SERVICE_UNAVAILABLE", 503, "Social service is not configured.");
+  if (!session?.user_id) return { session: null, failure: failure("UNAUTHORIZED", 401, "Authentication is required.") };
+  if (!env?.DB) return { session: null, failure: failure("SERVICE_UNAVAILABLE", 503, "Social service is not configured.") };
+  return { session, failure: null };
+}
+
+export async function setRelationship(request, env) {
+  const { session, failure: authFailure } = await sessionOrFailure(request, env);
+  if (authFailure) return authFailure;
 
   let body;
   try { body = await request.json(); } catch { return failure("INVALID_JSON", 400, "Request body must be valid JSON."); }
 
   const username = String(body?.username || "").replace(/^@/, "").trim().toLowerCase();
   const relationship = String(body?.relationship || "");
-  const enabled = Boolean(body?.enabled);
-  if (!username || !RELATIONSHIPS.has(relationship)) {
-    return failure("VALIDATION_ERROR", 400, "A valid username and relationship are required.");
-  }
+  const enabled = body?.enabled === true;
+  if (!username || !RELATIONSHIPS.has(relationship)) return failure("VALIDATION_ERROR", 400, "A valid username and relationship are required.");
 
-  const target = await env.DB.prepare(
-    "SELECT id, username, display_name FROM users WHERE username = ?1 AND deleted_at IS NULL LIMIT 1",
-  ).bind(username).first();
+  const target = await env.DB.prepare("SELECT id, username, display_name FROM users WHERE username = ?1 AND deleted_at IS NULL LIMIT 1").bind(username).first();
   if (!target) return failure("USER_NOT_FOUND", 404, "User was not found.");
   if (target.id === session.user_id) return failure("INVALID_RELATIONSHIP", 400, "You cannot create a relationship with yourself.");
 
   if (enabled) {
-    await env.DB.prepare(
-      "INSERT OR IGNORE INTO relationships (source_user_id, target_user_id, relationship_type) VALUES (?1, ?2, ?3)",
-    ).bind(session.user_id, target.id, relationship).run();
+    if (relationship === "block") {
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM relationships WHERE source_user_id = ?1 AND target_user_id = ?2 AND relationship_type = 'follow'").bind(session.user_id, target.id),
+        env.DB.prepare("DELETE FROM relationships WHERE source_user_id = ?1 AND target_user_id = ?2 AND relationship_type = 'follow'").bind(target.id, session.user_id),
+      ]);
+    }
+    await env.DB.prepare("INSERT OR IGNORE INTO relationships (source_user_id, target_user_id, relationship_type) VALUES (?1, ?2, ?3)").bind(session.user_id, target.id, relationship).run();
   } else {
-    await env.DB.prepare(
-      "DELETE FROM relationships WHERE source_user_id = ?1 AND target_user_id = ?2 AND relationship_type = ?3",
-    ).bind(session.user_id, target.id, relationship).run();
+    await env.DB.prepare("DELETE FROM relationships WHERE source_user_id = ?1 AND target_user_id = ?2 AND relationship_type = ?3").bind(session.user_id, target.id, relationship).run();
   }
 
-  return {
-    response: {
-      ok: true,
-      username: target.username,
-      relationship,
-      enabled,
-    },
-    error: null,
-  };
+  return { response: { ok: true, username: target.username, relationship, enabled }, error: null };
+}
+
+export async function setPostAction(request, env, postId, action) {
+  const { session, failure: authFailure } = await sessionOrFailure(request, env);
+  if (authFailure) return authFailure;
+  if (!postId || !POST_ACTIONS.has(action)) return failure("VALIDATION_ERROR", 400, "A valid post and action are required.");
+
+  const post = await env.DB.prepare("SELECT id, author_id, deleted_at FROM posts WHERE id = ?1 LIMIT 1").bind(postId).first();
+  if (!post || post.deleted_at) return failure("POST_NOT_FOUND", 404, "Post was not found.");
+  if (post.author_id !== session.user_id) {
+    const blocked = await env.DB.prepare("SELECT 1 FROM relationships WHERE relationship_type = 'block' AND ((source_user_id = ?1 AND target_user_id = ?2) OR (source_user_id = ?2 AND target_user_id = ?1)) LIMIT 1").bind(session.user_id, post.author_id).first();
+    if (blocked) return failure("FORBIDDEN", 403, "This post is not available.");
+  }
+
+  let body = {};
+  try { if (request.method !== "DELETE") body = await request.json(); } catch { return failure("INVALID_JSON", 400, "Request body must be valid JSON."); }
+  const enabled = request.method === "DELETE" ? false : body?.enabled !== false;
+
+  if (action === "bookmark") {
+    if (enabled) await env.DB.prepare("INSERT OR IGNORE INTO bookmarks (user_id, post_id) VALUES (?1, ?2)").bind(session.user_id, postId).run();
+    else await env.DB.prepare("DELETE FROM bookmarks WHERE user_id = ?1 AND post_id = ?2").bind(session.user_id, postId).run();
+  } else {
+    if (enabled) await env.DB.prepare("INSERT OR IGNORE INTO post_reactions (user_id, post_id, reaction_type) VALUES (?1, ?2, ?3)").bind(session.user_id, postId, action).run();
+    else await env.DB.prepare("DELETE FROM post_reactions WHERE user_id = ?1 AND post_id = ?2 AND reaction_type = ?3").bind(session.user_id, postId, action).run();
+  }
+
+  const countColumn = action === "bookmark" ? "bookmarks" : `${action}s`;
+  const count = action === "bookmark"
+    ? await env.DB.prepare("SELECT COUNT(*) AS count FROM bookmarks WHERE post_id = ?1").bind(postId).first()
+    : await env.DB.prepare("SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = ?1 AND reaction_type = ?2").bind(postId, action).first();
+  return { response: { ok: true, postId, action, enabled, count: Number(count?.count || 0), [countColumn]: Number(count?.count || 0) }, error: null };
 }
