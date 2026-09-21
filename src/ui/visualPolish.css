@@ -1,9 +1,5 @@
 /* S visual polish: lighter rhythm, clearer hierarchy, less dead card space. */
-:root {
-  --s-content-width: 620px;
-  --s-column-gap: 20px;
-}
-
+:root { --s-content-width: 620px; --s-column-gap: 20px; }
 body { background: var(--bg); }
 .app { grid-template-columns: 232px minmax(0, var(--s-content-width)) 300px; gap: var(--s-column-gap); }
 .main { background: var(--bg); }
@@ -20,9 +16,11 @@ body { background: var(--bg); }
 .post__actions button:hover { color: var(--brand); background: transparent; }
 .post__actions span { font-size: 12px; }
 .avatar { background: var(--surface2); }
-.post-media { height: 180px; margin: 10px 0; border-radius: 12px; }
+.avatar img, .profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.post-media-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
+.post-media { width: 100%; height: 180px; margin: 0; padding: 0; overflow: hidden; border-radius: 12px; border: 1px solid var(--line); background: var(--surface2); }
+.post-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .rail { padding-top: 16px; }
-/* Search is kept in the horizontal top action row; avoid a second vertical block. */
 .rail-search { display: none; }
 .rail-card, .card { margin-top: 14px; border-radius: 14px; }
 .rail-card:first-of-type { margin-top: 0; }
@@ -34,29 +32,21 @@ body { background: var(--bg); }
 .earn h2 { font-size: clamp(24px, 4vw, 30px); line-height: 1.15; }
 .earn-grid { gap: 10px; margin: 0 16px; }
 .earn-grid > div { padding: 14px; }
-
-/* Avoid oversized blank dark panels when content is short. */
 .card:empty, .rail-card:empty, .post-media:empty { display: none; }
 .card > header:only-child, .rail-card > h3:only-child { padding-bottom: 13px; }
-
-@media (min-width: 1280px) {
-  .app { grid-template-columns: minmax(210px, 232px) minmax(0, var(--s-content-width)) minmax(270px, 300px); }
-}
-
-@media (max-width: 1100px) {
-  .app { grid-template-columns: 72px minmax(0, var(--s-content-width)); gap: 0; }
-}
-
-@media (max-width: 640px) {
-  .top { padding: 9px 14px; }
-  .top-actions { gap: 2px; }
-  .top-actions button { flex-basis: 34px; width: 34px; }
-  .heading { padding: 20px 16px 12px; }
-  .quick, .post { padding-inline: 14px; }
-  .post { padding-block: 14px; }
-  .post__text { font-size: 15px; }
-  .post-media { height: 160px; border-radius: 10px; }
-  .empty { margin: 14px; padding: 28px 16px; }
-  .earn { margin: 14px; padding: 20px; }
-  .earn-grid { margin-inline: 14px; }
-}
+.s-profile-editor { width: min(560px, 100%); max-height: min(760px, 90vh); overflow: auto; }
+.s-profile-editor__body { display: grid; gap: 12px; padding: 0 20px 16px; }
+.s-profile-editor__body label { display: grid; gap: 6px; font-size: 12px; font-weight: 700; }
+.s-profile-editor__body input:not([type="checkbox"]), .s-profile-editor__body textarea { width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); padding: 10px; }
+.s-profile-editor__avatar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.s-profile-editor__avatar .profile-avatar { width: 72px; height: 72px; }
+.s-profile-editor__check { display: flex !important; grid-template-columns: auto 1fr; align-items: center; gap: 8px !important; font-weight: 500 !important; }
+.setting-row { border-top: 1px solid var(--line); }
+.setting-row > button { border-top: 0; }
+.setting-panel { padding: 0 0 14px; display: grid; gap: 10px; color: var(--muted); font-size: 12px; }
+.setting-toggle { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
+.setting-toggle span { display: grid; gap: 3px; }
+.setting-toggle small { color: var(--muted); }
+@media (min-width: 1280px) { .app { grid-template-columns: minmax(210px, 232px) minmax(0, var(--s-content-width)) minmax(270px, 300px); } }
+@media (max-width: 1100px) { .app { grid-template-columns: 72px minmax(0, var(--s-content-width)); gap: 0; } }
+@media (max-width: 640px) { .top { padding: 9px 14px; } .top-actions { gap: 2px; } .top-actions button { flex-basis: 34px; width: 34px; } .heading { padding: 20px 16px 12px; } .quick, .post { padding-inline: 14px; } .post { padding-block: 14px; } .post__text { font-size: 15px; } .post-media { height: 160px; border-radius: 10px; } .post-media-grid { gap: 6px; } .empty { margin: 14px; padding: 28px 16px; } .earn { margin: 14px; padding: 20px; } .earn-grid { margin-inline: 14px; } .s-profile-editor__body { padding-inline: 14px; } }
