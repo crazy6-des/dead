@@ -44,7 +44,8 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
     const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
     const assets = files.map(toFileAsset);
     assets.forEach((asset) => fileUrls.current.add(asset.url));
-    updateDraft({ media: [...draft.media, ...assets], kind: POST_KINDS.IMAGE });
+    setDraft((current) => ({ ...current, media: [...current.media, ...assets], kind: POST_KINDS.IMAGE }));
+    setError("");
     event.target.value = "";
   }
 
@@ -52,8 +53,12 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
     const file = Array.from(event.target.files || [])[0];
     if (!file || !file.type.startsWith("audio/")) return;
     const asset = toFileAsset(file);
+    const previousUrl = draft.audio?.url;
     fileUrls.current.add(asset.url);
-    if (draft.audio?.url) URL.revokeObjectURL(draft.audio.url);
+    if (previousUrl) {
+      URL.revokeObjectURL(previousUrl);
+      fileUrls.current.delete(previousUrl);
+    }
     updateDraft({ audio: asset, kind: POST_KINDS.MUSIC });
     event.target.value = "";
   }
