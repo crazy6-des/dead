@@ -20,6 +20,10 @@ export function createCreatePublishHandler({
     if (typeof onLocalPublish === "function") {
       const publishedPost = normalizeCreatedPostResponse(result);
 
+      if (!publishedPost || typeof publishedPost !== "object" || !publishedPost.id) {
+        throw new TypeError("Published post response is missing a stable server id.");
+      }
+
       await onLocalPublish(publishedPost);
     }
 
