@@ -26,8 +26,10 @@ const publish = createCreatePublishHandler({
 const result = await publish(draft);
 
 assert.equal(result.developmentOnly, true);
-assert.deepEqual(result.post, draft);
-assert.deepEqual(received, draft);
+assert.equal(typeof result.post.id, "string");
+assert.match(result.post.id, /^dev-/);
+assert.deepEqual({ ...result.post, id: undefined }, { ...draft, id: undefined });
+assert.equal(received, result.post);
 
 const validRichDraft = {
   ...draft,
