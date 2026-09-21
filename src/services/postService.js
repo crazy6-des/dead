@@ -64,5 +64,15 @@ export function createDevPostAdapter({ onPublish = null } = {}) {
 }
 
 export function createPostAdapter(options = {}) {
-  return hasApiBaseUrl() ? createApiPostAdapter(options) : createDevPostAdapter(options);
+  if (!hasApiBaseUrl()) {
+    const error = new Error("Publishing is unavailable until the Cloudflare backend is connected.");
+    error.code = "BACKEND_NOT_CONNECTED";
+    return {
+      async publish() {
+        throw error;
+      },
+    };
+  }
+
+  return createApiPostAdapter(options);
 }
