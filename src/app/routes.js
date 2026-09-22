@@ -7,7 +7,7 @@ export const APP_ROUTES = Object.freeze({
   SAVED: "/saved",
   BOOKMARKS: "/bookmarks",
   LISTS: "/lists",
-  PROFILE: "/david",
+  PROFILE: "/profile",
   SETTINGS: "/settings",
   EARN: "/earn",
   SEARCH: "/search",
@@ -34,7 +34,7 @@ function getPathname(value) {
 
 export function normalizeRoute(pathname = typeof window === "undefined" ? "/" : window.location.pathname) {
   const path = getPathname(pathname);
-  if (path === "/profile") return APP_ROUTES.PROFILE;
+  if (path === "/david" || path === "/profile") return APP_ROUTES.PROFILE;
   if (Object.values(APP_ROUTES).includes(path)) return path;
   if (/^\/(post|share|user|topic|followers|following|search|settings)(\/|$)/.test(path)) return path;
   return APP_ROUTES.HOME;
