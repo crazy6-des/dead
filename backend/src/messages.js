@@ -109,7 +109,7 @@ export async function sendMessage(request, env) {
     env.DB.prepare("UPDATE conversations SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?1").bind(conversationId),
     env.DB.prepare("UPDATE post_media SET metadata_json = json_set(COALESCE(metadata_json, '{}'), '$.messageId', ?1) WHERE id = ?1 AND post_id IS NULL AND owner_id = ?2").bind(mediaId || null, session.user_id)
   ]);
-  await createNotification(env, { recipientId: recipient.user_id, actorId: session.user_id, eventType: "message", targetType: "conversation", targetId: conversationId, conversationId, payload: { text: text.slice(0, 120), hasImage: Boolean(mediaId) } });
+  await createNotification(env, { recipientId: recipient.user_id, actorId: session.user_id, eventType: "message", targetType: "message", targetId: id, conversationId, payload: { text: text.slice(0, 120), hasImage: Boolean(mediaId) } });
   const row = await env.DB.prepare("SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.body, m.created_at, m.deleted_at, m.media_id, pm.media_type, pm.mime_type, pm.byte_size AS media_size, json_extract(pm.metadata_json, '$.name') AS media_name FROM messages m LEFT JOIN post_media pm ON pm.id = m.media_id WHERE m.id = ?1 LIMIT 1").bind(id).first();
   return { response: messagePayload(row), error: null };
 }
