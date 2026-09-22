@@ -54,10 +54,24 @@ async function prepareMediaAsset(asset) {
   }
 }
 
+async function cleanupUploadedMedia(assets = []) {
+  const uploaded = assets.filter((asset) => isUploadReadyMediaAsset(asset) && asset.source === "upload" && asset.mediaId);
+  await Promise.allSettled(uploaded.map((asset) => apiClient.delete(`/api/media/${encodeURIComponent(asset.mediaId)}`)));
+}
+
 async function preparePublishPayload(payload) {
-  const media = await Promise.all((payload.media || []).map(prepareMediaAsset));
-  const audio = payload.audio ? await prepareMediaAsset(payload.audio) : null;
-  return { ...payload, media, audio };
+  const preparedMedia = [];
+  let preparedAudio = null;
+  try {
+    for (const asset of payload.media || []) {
+      preparedMedia.push(await prepareMediaAsset(asset));
+    }
+    if (payload.audio) preparedAudio = await prepareMediaAsset(payload.audio);
+    return { ...payload, media: preparedMedia, audio: preparedAudio };
+  } catch (error) {
+    await cleanupUploadedMedia([...preparedMedia, preparedAudio]);
+    throw error;
+  }
 }
 
 function assertApiMediaReady(payload) {
@@ -88,7 +102,12 @@ export function createApiPostAdapter({ endpoint = "/api/posts" } = {}) {
     async publish(draft) {
       const payload = await preparePublishPayload(createPostRequest(draft));
       assertApiMediaReady(payload);
-      return normalizeCreatedPostResponse(await apiClient.post(endpoint, payload));
+      try {
+        return normalizeCreatedPostResponse(await apiClient.post(endpoint, payload));
+      } catch (error) {
+        await cleanupUploadedMedia([...payload.media, payload.audio]);
+        throw error;
+      }
     },
   };
 }
