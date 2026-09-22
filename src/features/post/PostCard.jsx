@@ -92,6 +92,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
         </div>
       </div>
       {text && <button className="post-content-hit" onClick={() => onOpen?.("/post/" + post.id)}><p className="post__text">{text}</p></button>}
+      {post.quotedPost && <button className="quoted-post-card" onClick={() => onOpen?.("/post/" + post.quotedPost.id)}><strong>{post.quotedPost.author?.displayName || post.quotedPost.author?.username || "User"}</strong><span>@{post.quotedPost.author?.username || "user"}</span><p>{post.quotedPost.text || ""}</p></button>}
       {backgroundStyle && <div className="post-background-card" style={backgroundStyle} aria-label="Post background" />}
       {mediaSources.length > 0 && <div className="post-media-grid">{mediaSources.map((source, index) => <button className="post-media" key={source + index} onClick={() => onOpen?.("/post/" + post.id + "/media")}><img src={source} alt={imageItems[index]?.alt || "Post media"} loading="lazy" /></button>)}</div>}
       {audioSource?.url && <div className="audio-card post-audio-card"><div className="audio-art"><Music2 size={20}/></div><div className="audio-card__body"><strong>{audioSource.title || audioSource.name || "Music"}</strong><span>{audioSource.artist || "Original audio"}</span><audio controls preload="metadata" src={audioSource.url} /></div></div>}
