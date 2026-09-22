@@ -13,7 +13,7 @@ function Field({ label, ...props }) {
 }
 
 function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
-  const [mode, setMode] = useState(initialMode);
+  const [mode, setMode] = useState(() => initialMode === "reset" && new URLSearchParams(window.location.search).get("token") ? "reset-confirm" : initialMode);
   const [form, setForm] = useState({ username: "", displayName: "", email: "", password: "" });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -31,7 +31,7 @@ function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
     } finally { setBusy(false); }
   };
 
-  const reset = async (event) => {
+  const confirmReset = async (event) => {\n    event.preventDefault(); setBusy(true); setError(""); setMessage("");\n    try { const token = new URLSearchParams(window.location.search).get("token"); const result = await authService.resetPassword({ token, password: form.password }); setMessage(result?.message || "Password updated. You can now sign in."); setForm({ ...form, password: "" }); setMode("signin"); } catch (cause) { setError(cause?.message || "We could not update your password."); } finally { setBusy(false); }\n  };\n\n  const reset = async (event) => {
     event.preventDefault(); setBusy(true); setError(""); setMessage("");
     try {
       const result = await authService.requestPasswordReset({ email: form.email });
@@ -42,8 +42,8 @@ function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
 
   return <div className="landing-auth-layer"><button className="landing-auth-backdrop" onClick={onClose} aria-label="Close"/><section className="landing-auth" role="dialog" aria-modal="true">
     <button className="landing-auth-close" onClick={onClose} aria-label="Close"><X/></button>
-    <div className="landing-auth-brand"><span>S</span><div><b>{mode === "signup" ? "Join S" : mode === "reset" ? "Reset access" : "Welcome back"}</b><small>{mode === "signup" ? "Build your corner of the community." : mode === "reset" ? "A secure link will arrive by email." : "Your people, your interests, your space."}</small></div></div>
-    {mode === "reset" ? <form onSubmit={reset}><Field label="Email" type="email" autoComplete="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} required/><p className="auth-helper">We never reveal whether an email has an account.</p><button className="landing-primary" disabled={busy}>{busy ? "Sending…" : "Send reset link"} <Mail size={16}/></button></form> : <form onSubmit={submit}>
+    <div className="landing-auth-brand"><span>S</span><div><b>{mode === "signup" ? "Join S" : mode.startsWith("reset") ? "Reset access" : "Welcome back"}</b><small>{mode === "signup" ? "Build your corner of the community." : mode.startsWith("reset") ? "A secure link will arrive by email." : "Your people, your interests, your space."}</small></div></div>
+    {mode === "reset-confirm" ? <form onSubmit={confirmReset}><Field label="New password" type="password" autoComplete="new-password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} required minLength={10}/><p className="auth-helper">Use 10–128 characters. This secure link expires after 30 minutes.</p><button className="landing-primary" disabled={busy}>{busy ? "Updating…" : "Set new password"} <LockKeyhole size={16}/></button></form> : mode === "reset" ? <form onSubmit={reset}><Field label="Email" type="email" autoComplete="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} required/><p className="auth-helper">We never reveal whether an email has an account.</p><button className="landing-primary" disabled={busy}>{busy ? "Sending…" : "Send reset link"} <Mail size={16}/></button></form> : <form onSubmit={submit}>
       {mode === "signup" && <><Field label="Display name" value={form.displayName} onChange={e=>setForm({...form,displayName:e.target.value})} required/><Field label="Username" value={form.username} onChange={e=>setForm({...form,username:e.target.value})} required minLength={3}/></>}
       <Field label={mode === "signin" ? "Email or username" : "Email"} type={mode === "signin" ? "text" : "email"} autoComplete={mode === "signin" ? "username" : "email"} value={mode === "signin" ? (form.email || form.username) : form.email} onChange={e=>setForm({...form,email:e.target.value,username:mode === "signin" ? e.target.value : form.username})} required/>
       <Field label="Password" type="password" autoComplete={mode === "signup" ? "new-password" : "current-password"} value={form.password} onChange={e=>setForm({...form,password:e.target.value})} required minLength={10}/>
@@ -52,7 +52,7 @@ function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
     </form>}
     {error && <div className="auth-error" role="alert">{error}</div>}
     {message && <div className="auth-success">{message}</div>}
-    <div className="auth-switch">{mode === "reset" ? <button onClick={()=>setMode("signin")}>Back to sign in</button> : <button onClick={()=>setMode(mode === "signup" ? "signin" : "signup")}>{mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}</button>}</div>
+    <div className="auth-switch">{mode.startsWith("reset") ? <button onClick={()=>setMode("signin")}>Back to sign in</button> : <button onClick={()=>setMode(mode === "signup" ? "signin" : "signup")}>{mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}</button>}</div>
   </section></div>;
 }
 
