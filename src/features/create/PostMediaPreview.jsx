@@ -1,7 +1,7 @@
 import React from "react";
 import { Music2, X } from "lucide-react";
 
-export default function PostMediaPreview({ media = [], audio = null, background = null, onRemoveImage }) {
+export default function PostMediaPreview({ media = [], audio = null, background = null, onRemoveImage, onRemoveAudio }) {
   return (
     <>
       {media.length > 0 && (
@@ -21,6 +21,7 @@ export default function PostMediaPreview({ media = [], audio = null, background 
           <Music2 size={16} aria-hidden="true" />
           <span>{audio.name || "Selected audio"}</span>
           <audio controls src={audio.url} />
+          {onRemoveAudio && <button type="button" onClick={onRemoveAudio} aria-label="Remove music"><X size={14} aria-hidden="true" /></button>}
         </div>
       )}
       {background && (
