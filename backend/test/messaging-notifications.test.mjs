@@ -34,6 +34,7 @@ const db = {
             if (query.startsWith("SELECT 1 FROM conversation_members")) return state.members.find((m) => m.conversation_id === values[0] && m.user_id === values[1]) || null;
             if (query.startsWith("SELECT user_id FROM conversation_members")) return state.members.find((m) => m.conversation_id === values[0] && m.user_id !== values[1]) || null;
             if (query.startsWith("SELECT id, conversation_id, sender_id, message_type")) return state.messages.find((m) => m.id === values[0]) || null;
+            if (query.startsWith("SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.body, m.created_at, m.deleted_at, m.media_id")) { const message = state.messages.find((m) => m.id === values[0]); const media = message?.media_id ? state.media.find((m) => m.id === message.media_id) : null; return message ? { ...message, media_type: media?.media_type || null, mime_type: media?.mime_type || null, media_size: media?.byte_size || 0, media_name: "photo.png" } : null; }
             if (query.startsWith("SELECT id, media_type, mime_type, byte_size, metadata_json FROM post_media")) return state.media.find((m) => m.id === values[0] && m.post_id === null && m.owner_id === values[1]) || null;
             if (query.startsWith("SELECT COUNT(*)")) return { count: 0 };
             return null;
