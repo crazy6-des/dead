@@ -50,3 +50,17 @@ export async function getMedia(request, env, mediaId) {
   headers.set("etag", object.httpEtag);
   return { response:new Response(object.body,{status:200,headers}), error:null };
 }
+
+export async function deleteMedia(request, env, mediaId) {
+  const session = await resolveSession(request, env);
+  if (!session?.user_id) return fail("UNAUTHORIZED",401,"Authentication is required.");
+  if (!env?.DB || !env?.MEDIA_BUCKET) return fail("SERVICE_UNAVAILABLE",503,"Media service is not configured.");
+  const row = await env.DB.prepare("SELECT id, object_key, source FROM post_media WHERE id = ?1 LIMIT 1").bind(mediaId).first();
+  if (!row) return fail("NOT_FOUND",404,"Media not found.");
+  if (row.source !== "upload") return fail("MEDIA_NOT_FOUND",400,"Only uploaded media can be deleted here.");
+  const owner = await env.DB.prepare("SELECT 1 FROM post_media m JOIN posts p ON p.id = m.post_id WHERE m.id = ?1 AND p.author_id = ?2 LIMIT 1").bind(mediaId, session.user_id).first();
+  if (owner) return fail("MEDIA_IN_USE",409,"Media is attached to a published post.");
+  await env.MEDIA_BUCKET.delete(row.object_key);
+  await env.DB.prepare("DELETE FROM post_media WHERE id = ?1 AND post_id IS NULL").bind(mediaId).run();
+  return { response:{ ok:true, mediaId }, error:null };
+}
