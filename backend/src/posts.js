@@ -66,6 +66,7 @@ function serializePost(row) {
     media,
     audio,
     background: row.background_json ? JSON.parse(row.background_json) : null,
+    quotedPostId: row.quoted_post_id || null,
     audience: row.visibility,
     replyPolicy: row.reply_policy || "everyone",
     createdAt: row.created_at,
@@ -104,9 +105,15 @@ export async function createPost(request, env) {
   const media = Array.isArray(body.media) ? body.media : [];
   const audio = body.audio && typeof body.audio === "object" ? body.audio : null;
   const background = body.background && typeof body.background === "object" ? body.background : null;
+  const quotedPostId = body.quotedPostId ? String(body.quotedPostId).trim() : null;
   if (body.poll !== null && body.poll !== undefined) return { response: null, error: error("UNSUPPORTED_POST_CONTENT", 400, "Poll persistence is not connected yet.") };
   if (!ALLOWED_KINDS.has(kind) || media.length > MAX_MEDIA) return { response: null, error: error("VALIDATION_ERROR", 400, "Unsupported post content or too many media items.") };
-  if (!text && media.length === 0 && !audio && !background) {
+  if (quotedPostId) {
+    const quoted = await db.prepare("SELECT id, author_id, visibility, deleted_at FROM posts WHERE id = ?1 LIMIT 1").bind(quotedPostId).first();
+    if (!quoted || quoted.deleted_at) return { response: null, error: error("QUOTED_POST_NOT_FOUND", 404, "The quoted post was not found.") };
+    if (quoted.author_id !== session.user_id && quoted.visibility !== "public") return { response: null, error: error("QUOTED_POST_UNAVAILABLE", 403, "This post cannot be quoted.") };
+  }
+  if (!text && media.length === 0 && !audio && !background && !quotedPostId) {
     return { response: null, error: error("VALIDATION_ERROR", 400, "Post must contain text, image, music, or background content.") };
   }
   if (text.length > MAX_POST_TEXT) {
@@ -143,8 +150,8 @@ export async function createPost(request, env) {
   }
 
   await db.prepare(
-    "INSERT INTO posts (id, author_id, body, visibility, reply_policy, post_kind, background_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)"
-  ).bind(id, session.user_id, text, audience, replyPolicy, kind, background ? JSON.stringify(background) : null).run();
+    "INSERT INTO posts (id, author_id, body, visibility, reply_policy, post_kind, background_json, quoted_post_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"
+  ).bind(id, session.user_id, text, audience, replyPolicy, kind, background ? JSON.stringify(background) : null, quotedPostId).run();
 
   for (let position = 0; position < media.length; position += 1) {
     await db.prepare("UPDATE post_media SET post_id = ?1, position = ?2 WHERE id = ?3 AND post_id IS NULL").bind(id, position, media[position].mediaId).run();
@@ -158,7 +165,7 @@ export async function createPost(request, env) {
   }
 
   const row = await db.prepare(
-    `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.created_at, p.updated_at, u.username, u.display_name,
+    `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.quoted_post_id, p.created_at, p.updated_at, u.username, u.display_name,
       (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id = p.id ORDER BY m.position) AS media,
       0 AS like_count, 0 AS repost_count, 0 AS reply_count, 0 AS bookmark_count
      FROM posts p JOIN users u ON u.id = p.author_id WHERE p.id = ?1 AND p.deleted_at IS NULL LIMIT 1`
@@ -215,7 +222,7 @@ export async function listFeed(request, env) {
   values.push(limit + 1);
   const rows = await env.DB.prepare(
     `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.created_at, p.updated_at,
-      u.username, u.display_name, p.post_kind, p.background_json,
+      u.username, u.display_name, p.post_kind, p.background_json, p.quoted_post_id,
       (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id = p.id ORDER BY m.position) AS media,
       (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id = p.id AND r.reaction_type = 'like') AS like_count,
       (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id = p.id AND r.reaction_type = 'repost') AS repost_count,
