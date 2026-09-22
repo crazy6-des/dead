@@ -109,6 +109,14 @@ jobs:
           npx --yes wrangler d1 execute sss --remote --command "SELECT object_key FROM post_media WHERE post_id IN (SELECT id FROM posts WHERE author_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}')) AND source = 'upload';" --json > /tmp/e2e-media.json
           jq -r '.. | objects | .object_key? // empty' /tmp/e2e-media.json | while IFS= read -r key; do
             [ -n "$key" ] || continue
-            npx --yes wrangler r2 object delete sss --key "$key"
+            npx --yes wrangler r2 object delete "sss/$key" --remote
           done
+          curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/r2/buckets/sss/objects?prefix=users/&per_page=1000&include=customMetadata" \
+            | jq -r '.result[] | select(.key | endswith("-e2e.png")) | .key' \
+            | while IFS= read -r key; do
+                [ -n "$key" ] || continue
+                npx --yes wrangler r2 object delete "sss/$key" --remote
+              done
           npx --yes wrangler d1 execute sss --remote --command "DELETE FROM posts WHERE author_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}'); DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}'); DELETE FROM relationships WHERE source_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}') OR target_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}') OR source_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}') OR target_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}'); DELETE FROM users WHERE username = '${TEST_USERNAME}';"
