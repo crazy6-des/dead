@@ -79,7 +79,7 @@ jobs:
           TEST_PASSWORD: S-live-E2E-${{ github.run_id }}-secure
         run: |
           set +e
-          npx --yes wrangler tail sphere-api --format json --status error --sampling-rate 1 > /tmp/worker-tail.log 2>&1 &
+          npx --yes wrangler tail sphere-api --format json --status error --sampling-rate 1.0 > /tmp/worker-tail.log 2>&1 &
           TAIL_PID=$!
           sleep 4
           node scripts/live-e2e.mjs
