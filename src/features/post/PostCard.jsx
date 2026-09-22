@@ -31,7 +31,7 @@ function getBackgroundStyle(background) {
   const type = String(background.type || "").toLowerCase();
   if (!value) return null;
   if (type === "image" || type === "url") {
-    const safeValue = String(value).replace(/"/g, "\\"");
+    const safeValue = String(value).replace(/"/g, "\\\"");
     return { backgroundImage: `url("${safeValue}")`, backgroundSize: "cover", backgroundPosition: "center" };
   }
   if (type === "gradient" || type === "color") return { background: value };
