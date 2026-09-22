@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Check, Link2, MapPin, MoreHorizontal, X } from "lucide-react";
 import PostCard from "../post/PostCard.jsx";
 import { profileService } from "../../services/profileService.js";
