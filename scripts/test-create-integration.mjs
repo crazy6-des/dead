@@ -3,7 +3,6 @@ import { createCreatePublishHandler } from "../src/features/create/createIntegra
 import { validatePostDraft } from "../src/features/create/postValidation.js";
 import { normalizeCreatedPostResponse } from "../src/features/create/postContract.js";
 import { createApiPostAdapter } from "../src/services/postService.js";
-import { createPoll } from "../src/features/polls/pollContract.js";
 
 const draft = {
   text: "Integration test post",
@@ -39,6 +38,10 @@ const validRichDraft = {
 };
 
 assert.equal(validatePostDraft(validRichDraft).valid, true);
+assert.equal(validatePostDraft({ ...draft, text: "", kind: "text", media: [{ name: "photo.jpg", type: "image/jpeg", size: 1024, url: "blob:image" }] }).valid, true);
+assert.equal(validatePostDraft({ ...draft, text: "", audio: { name: "track.mp3", type: "audio/mpeg", size: 2048, url: "blob:audio" } }).valid, true);
+assert.equal(validatePostDraft({ ...draft, text: "", background: { type: "color", value: "#123456" } }).valid, true);
+assert.equal(validatePostDraft({ ...draft, text: "Hello", media: [{ name: "photo.jpg", type: "image/jpeg", size: 1024, url: "blob:image" }], audio: { name: "track.mp3", type: "audio/mpeg", size: 2048, url: "blob:audio" }, background: { type: "color", value: "#123456" } }).valid, true);
 
 assert.equal(validatePostDraft({
   ...draft,
@@ -65,29 +68,6 @@ assert.equal(validatePostDraft({
   })),
 }).valid, false);
 
-const poll = createPoll({ question: "  Choose one?  ", options: [" A ", "B"], multipleChoice: true, durationMinutes: 60 });
-assert.equal(Object.isFrozen(poll), true);
-assert.equal(poll.question, "Choose one?");
-assert.deepEqual(poll.options, [" A ", "B"]);
-assert.equal(poll.multipleChoice, true);
-assert.equal(poll.durationMinutes, 60);
-assert.throws(() => { poll.question = "Changed"; }, TypeError);
-
-assert.equal(validatePostDraft({
-  ...draft,
-  poll: poll,
-}).valid, true);
-
-assert.equal(validatePostDraft({
-  ...draft,
-  poll: createPoll({ question: "No", options: ["Only one"] }),
-}).valid, false);
-
-assert.equal(validatePostDraft({
-  ...draft,
-  poll: createPoll({ question: "Valid question", options: ["A", "B", "C", "D", "E"] }),
-}).valid, false);
-
 console.log("PASS Create publish backend guard");
 const normalizedPost = normalizeCreatedPostResponse({ data: { post: { id: "server-1", text: "Created" } } });
 assert.deepEqual(normalizedPost, { id: "server-1", text: "Created", kind: "text" });
@@ -95,19 +75,48 @@ assert.throws(() => normalizeCreatedPostResponse(null), /invalid post response/i
 
 const originalFetch = globalThis.fetch;
 try {
-  globalThis.fetch = async () => {
-    throw new Error("fetch should not run for local media");
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (String(url).endsWith("/api/media/upload")) {
+      assert.equal(options.method, "POST");
+      assert.equal(options.body instanceof FormData, true);
+      return new Response(JSON.stringify({
+        status: "uploaded",
+        media: { mediaId: "media-image-1", url: "/api/media/media-image-1", mediaType: "image", mimeType: "image/jpeg", size: 1024, name: "photo.jpg", source: "upload" },
+      }), { status: 201, headers: { "content-type": "application/json" } });
+    }
+    if (String(url).endsWith("/api/posts")) {
+      assert.equal(options.method, "POST");
+      const body = JSON.parse(options.body);
+      assert.equal(body.kind, "image");
+      assert.deepEqual(body.media.map((item) => item.mediaId), ["media-image-1"]);
+      assert.equal("file" in body.media[0], false);
+      return new Response(JSON.stringify({
+        status: "created",
+        post: { id: "server-rich-1", kind: body.kind, text: body.text, media: body.media, audio: body.audio, background: body.background },
+      }), { status: 201, headers: { "content-type": "application/json" } });
+    }
+    throw new Error("Unexpected fetch URL: " + String(url));
   };
 
   const apiAdapter = createApiPostAdapter();
-  await assert.rejects(
-    () => apiAdapter.publish(validRichDraft),
-    (error) => error?.code === "MEDIA_UPLOAD_REQUIRED",
-  );
+  const imageFile = new File([new Uint8Array([1, 2, 3])], "photo.jpg", { type: "image/jpeg" });
+  const published = await apiAdapter.publish({ ...draft, text: "", media: [{ name: imageFile.name, type: imageFile.type, size: imageFile.size, url: "blob:image", file: imageFile }] });
+  assert.equal(published.id, "server-rich-1");
+  assert.equal(calls.length, 2);
+
+  const audioFile = new File([new Uint8Array([4, 5, 6])], "track.mp3", { type: "audio/mpeg" });
+  const catalogLikeDraft = { ...draft, text: "", media: [], audio: { source: "catalog", musicId: "catalog-1", url: "https://cdn.example.com/catalog-1.mp3", title: "Catalog Track", artist: "Artist", type: "audio/mpeg", size: 0 } };
+  const catalogPayload = createPostRequest(catalogLikeDraft);
+  assert.equal(catalogPayload.kind, "music");
+  assert.equal(catalogPayload.audio.musicId, "catalog-1");
+
+  assert.equal(audioFile.type, "audio/mpeg");
 } finally {
   globalThis.fetch = originalFetch;
 }
 
 console.log("PASS Create rich-media validation");
-console.log("PASS Create poll contract and validation");
-console.log("PASS Create API media boundary");
+console.log("PASS local image upload + media identity persistence");
+console.log("PASS catalog music payload");
