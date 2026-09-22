@@ -129,12 +129,18 @@ if (!backgroundPostId || backgroundCreated.post?.background?.value !== "#123456"
   throw new Error("Background-only post persistence contract failed.");
 }
 
+const mixedImageForm = new FormData();
+mixedImageForm.append("file", new Blob([imageBytes], { type: "image/png" }), "mixed-e2e.png");
+const mixedUploadedMedia = await request("/api/media/upload", { method: "POST", body: mixedImageForm });
+const mixedMediaId = mixedUploadedMedia.media?.mediaId;
+if (!mixedMediaId) throw new Error("Mixed post media upload persistence contract failed.");
+
 const mixedCreated = await request("/api/posts", {
   method: "POST",
   body: JSON.stringify({
     text: "S rich mixed post E2E",
     kind: "image",
-    media: [{ mediaId }],
+    media: [{ mediaId: mixedMediaId }],
     audio: {
       source: "catalog",
       musicId: "e2e-mixed-track",
@@ -151,7 +157,7 @@ const mixedCreated = await request("/api/posts", {
   }),
 });
 const mixedPostId = mixedCreated.post?.id;
-if (!mixedPostId || mixedCreated.post?.media?.[0]?.id !== mediaId || mixedCreated.post?.audio?.musicId !== "e2e-mixed-track") {
+if (!mixedPostId || mixedCreated.post?.media?.[0]?.id !== mixedMediaId || mixedCreated.post?.audio?.musicId !== "e2e-mixed-track") {
   throw new Error("Mixed rich post persistence contract failed.");
 }
 
