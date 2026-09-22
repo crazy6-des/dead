@@ -2,7 +2,7 @@ import { resolveSession } from "./auth.js";
 
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 30;
-const EVENT_TYPES = new Set(["follow", "like", "repost", "reply", "message"]);
+const EVENT_TYPES = new Set(["follow", "like", "repost", "reply", "message", "share"]);
 
 function failure(code, status, message) { return { response: null, error: { code, status, message } }; }
 function encodeCursor(createdAt, id) { return globalThis.btoa(JSON.stringify({ createdAt, id })).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"); }
@@ -10,7 +10,7 @@ function decodeCursor(value) { if (!value) return null; try { const normalized =
 function limitValue(value) { const n = Number(value); return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_LIMIT) : DEFAULT_LIMIT; }
 async function requireSession(request, env) { const session = await resolveSession(request, env); if (!session?.user_id) return { session: null, failure: failure("UNAUTHORIZED", 401, "Authentication is required.") }; if (!env?.DB) return { session: null, failure: failure("SERVICE_UNAVAILABLE", 503, "Notification service is not configured.") }; return { session, failure: null }; }
 function typeForUi(eventType) { return eventType === "message" ? "system" : eventType; }
-function notificationPayload(row) { let payload = {}; try { payload = JSON.parse(row.payload || "{}"); } catch { payload = {}; } const text = payload.text ? String(payload.text) : row.event_type === "follow" ? "followed you" : row.event_type === "like" ? "liked your post" : row.event_type === "repost" ? "reposted your post" : row.event_type === "reply" ? "replied to your post" : "sent you a message"; return { id: row.id, type: typeForUi(row.event_type), actor: row.actor_display_name || row.actor_username || "S", text, time: row.created_at, verified: false, read: Boolean(row.read_at), target: row.target_id || null }; }
+function notificationPayload(row) { let payload = {}; try { payload = JSON.parse(row.payload || "{}"); } catch { payload = {}; } const text = payload.text ? String(payload.text) : row.event_type === "follow" ? "followed you" : row.event_type === "like" ? "liked your post" : row.event_type === "repost" ? "reposted your post" : row.event_type === "reply" ? "replied to your post" : row.event_type === "share" ? "shared a post with their followers" : "sent you a message"; return { id: row.id, type: typeForUi(row.event_type), actor: row.actor_display_name || row.actor_username || "S", text, time: row.created_at, verified: false, read: Boolean(row.read_at), target: row.target_id || null }; }
 
 export async function createNotification(env, { recipientId, actorId = null, eventType, targetType = null, targetId = null, conversationId = null, payload = {} }) {
   if (!env?.DB || !recipientId || !EVENT_TYPES.has(eventType) || recipientId === actorId) return false;
