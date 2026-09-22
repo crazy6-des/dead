@@ -49,7 +49,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
         setReplyLoading(false);
       });
     return () => { active = false; };
-  }, [mode, post.id]);
+  }, [mode, post.id, post.r]);
 
   const submitReply = async () => {
     const text = reply.trim();
@@ -119,7 +119,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
     </>}
   </section>{shared && <div className="inline-notice"><Link2 size={16}/>Post link copied/shared.</div>}</div>;
 }
-function ShareDetail({ post, onBack, onShareFollowers }) { const [copied, setCopied] = useState(false); const [sharing, setSharing] = useState(false); const [sharedFollowers, setSharedFollowers] = useState(false); const copy = async () => { try { await navigator.clipboard?.writeText(window.location.origin + "/post/" + post.id); setCopied(true); } catch { setCopied(false); } }; const shareFollowers = async () => { if (sharing || sharedFollowers) return; setSharing(true); try { await onShareFollowers?.(post.id); setSharedFollowers(true); } catch {} finally { setSharing(false); } }; return <div className="detail-page"><BackButton onBack={onBack}/><div className="share-sheet"><div className="heading"><small>SHARE</small><h2>Share this post</h2></div><div className="share-preview"><b>{post.a || "User"}</b><p>{post.x}</p></div><div className="share-options"><button onClick={copy}><Copy/>Copy link</button><button onClick={() => window.open("mailto:?subject=Post on S&body=" + encodeURIComponent(window.location.origin + "/post/" + post.id), "_self")}><Send/>Send by email</button><button onClick={shareFollowers} disabled={sharing || sharedFollowers}><Users/>{sharing ? "Sharing…" : sharedFollowers ? "Shared with followers" : "Share with followers"}</button></div>{copied && <p className="inline-notice">Link copied.</p>}</div></div>; }
+function ShareDetail({ post, onBack, onShareFollowers }) { const [copied, setCopied] = useState(false); const [sharing, setSharing] = useState(false); const [sharedFollowers, setSharedFollowers] = useState(false); const copy = async () => { try { await navigator.clipboard?.writeText(window.location.origin + "/post/" + post.id); setCopied(true); } catch { setCopied(false); } }; const shareFollowers = async () => { if (sharing || sharedFollowers) return; setSharing(true); try { await onShareFollowers?.(post.id); setSharedFollowers(true); } catch (error) { setSharedFollowers(false); } finally { setSharing(false); } }; return <div className="detail-page"><BackButton onBack={onBack}/><div className="share-sheet"><div className="heading"><small>SHARE</small><h2>Share this post</h2></div><div className="share-preview"><b>{post.a || "User"}</b><p>{post.x}</p></div><div className="share-options"><button onClick={copy}><Copy/>Copy link</button><button onClick={() => window.open("mailto:?subject=Post on S&body=" + encodeURIComponent(window.location.origin + "/post/" + post.id), "_self")}><Send/>Send by email</button><button onClick={shareFollowers} disabled={sharing || sharedFollowers}><Users/>{sharing ? "Sharing…" : sharedFollowers ? "Shared with followers" : "Share with followers"}</button></div>{copied && <p className="inline-notice">Link copied.</p>}</div></div>; }
 
 function UserDetail({ username, onBack, onOpen, onLike, onSave, onRepost, onFollowUser, followingUsers = new Set() }) {
   const user = String(username || "user").replace(/^@/, "").toLowerCase();
