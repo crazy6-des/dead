@@ -34,3 +34,20 @@ assert.deepEqual(
 assert.ok(SECONDARY_NAVIGATION.every(hasIconComponent));
 
 console.log("Navigation contract checks passed.");
+
+
+import { normalizeRoute } from "../src/app/routes.js";
+
+assert.equal(normalizeRoute("/post/abc"), "/post/abc");
+assert.equal(normalizeRoute("/post/abc/replies"), "/post/abc/replies");
+assert.equal(normalizeRoute("/post/abc/quote"), "/post/abc/quote");
+assert.equal(normalizeRoute("/post/abc/media"), "/post/abc/media");
+assert.equal(normalizeRoute("/share/abc"), "/share/abc");
+assert.equal(normalizeRoute("/user/maya"), "/user/maya");
+assert.equal(normalizeRoute("/topic/Music%20Talk"), "/topic/Music%20Talk");
+assert.equal(normalizeRoute("/followers/maya"), "/followers/maya");
+assert.equal(normalizeRoute("/following/maya"), "/following/maya");
+assert.equal(normalizeRoute("/settings/profile"), "/settings/profile");
+assert.equal(normalizeRoute("/unknown-destination"), APP_ROUTES.HOME);
+
+console.log("Entity route contract checks passed.");
