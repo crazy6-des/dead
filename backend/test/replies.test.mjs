@@ -42,7 +42,7 @@ assert.equal(created.error,null);
 assert.equal(created.response.status,"created");
 assert.equal(state.replies.length,1);
 assert.equal(state.notifications[0].event_type,"reply");
-const listed=await listReplies(request("/api/posts/post-1/replies"),env);
+const listed=await listReplies(request("/api/posts/post-1/replies"),env,"post-1");
 assert.equal(listed.error,null);
 assert.equal(listed.response.items.length,1);
 assert.equal(listed.response.items[0].text,"A real reply");
