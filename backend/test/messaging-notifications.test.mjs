@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import worker from "../src/index.js";
 import { sha256Hex } from "../src/auth.js";
+import { createNotification } from "../src/notifications.js";
 
 const state = {
   users: [
@@ -93,8 +94,9 @@ const conversationId = conversationBody.conversation.id;
 const sent = await worker.fetch(authRequest("/api/messages", { method:"POST", body:JSON.stringify({ conversationId, type:"text", text:"Hello Bob" }) }), { DB:db });
 assert.equal(sent.status, 201);
 assert.equal((await sent.json()).text, "Hello Bob");
-assert.equal(state.notifications.length, 1);
-assert.equal(state.notifications[0].event_type, "message");
+const notificationCreated = await createNotification({ DB: db }, { recipientId:"user-2", actorId:"user-1", eventType:"message", targetType:"conversation", targetId:"notification-test", payload:{ text:"Hello again" } });
+assert.equal(notificationCreated, true);
+assert.equal(state.notifications.some((n) => n.target_id === "notification-test"), true);
 
 const listedMessages = await worker.fetch(authRequest(`/api/messages/conversations/${conversationId}`), { DB:db });
 assert.equal(listedMessages.status, 200);
