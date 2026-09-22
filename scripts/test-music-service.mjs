@@ -37,6 +37,8 @@ assert.equal(searchResults[0].artist, "Artist One");
 assert.equal(searchResults[0].durationMs, 12500);
 assert.equal(searchResults[0].artworkUrl, "https://cdn.example.test/cover.jpg");
 assert.equal(searchResults[0].source, "catalog");
+assert.equal(searchResults[0].provider, "Free To Use");
+assert.equal(searchResults[0].licenseUrl, "https://api.freetouse.com/license");
 assert.equal(searchResults[0].url, "https://cdn.example.test/track.mp3");
 
 const browseFetch = async (url) => ({
