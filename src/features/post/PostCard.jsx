@@ -58,7 +58,19 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const audioSource = getAudioSource(post, mediaItems);
   const background = post.background || post.bg || null;
   const backgroundStyle = getBackgroundStyle(background);
-  const downloadMedia = () => {\n    const source = mediaSources[0] || audioSource?.url;\n    if (!source) return;\n    const link = document.createElement("a");\n    link.href = source;\n    link.download = `s-post-${post.id}`;\n    link.rel = "noopener";\n    document.body.appendChild(link);\n    link.click();\n    link.remove();\n    setMenu(false);\n  };\n  const runModeration = async (action, reason = null) => {
+  const downloadMedia = () => {
+    const source = mediaSources[0] || audioSource?.url;
+    if (!source) return;
+    const link = document.createElement("a");
+    link.href = source;
+    link.download = `s-post-${post.id}`;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setMenu(false);
+  };
+  const runModeration = async (action, reason = null) => {
     setModerationBusy(true);
     try {
       await moderationService.act({ targetType: action === MODERATION_ACTIONS.REPORT ? "post" : "user", targetId: action === MODERATION_ACTIONS.REPORT ? post.id : username, action, reason });
