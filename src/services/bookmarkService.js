@@ -9,25 +9,19 @@ export function createApiBookmarkAdapter(client = apiClient) {
     remove(postId) { return client.delete("/api/bookmarks/" + encodeURIComponent(String(postId))); },
   };
 }
-export function createDevBookmarkAdapter() {
-  const folders = [{ id: "all", name: "All saved", description: "Everything you bookmarked." }];
-  const saved = new Map();
+
+export function createUnavailableBookmarkAdapter() {
+  const unavailable = () => Promise.reject(new Error("Bookmark folders require the Cloudflare backend."));
   return {
-    listFolders() { return Promise.resolve({ items: folders }); },
-    createFolder(input) {
-      const folder = createBookmarkFolder({ ...input, id: "folder-" + Date.now() });
-      folders.push(folder);
-      return Promise.resolve(folder);
-    },
-    save(input) {
-      const payload = createBookmarkRequest(input);
-      saved.set(payload.postId, payload);
-      return Promise.resolve({ ok: true, ...payload });
-    },
-    remove(postId) { saved.delete(String(postId)); return Promise.resolve({ ok: true }); },
+    listFolders: unavailable,
+    createFolder: unavailable,
+    save: unavailable,
+    remove: unavailable,
   };
 }
+
 export function createBookmarkAdapter({ client = apiClient } = {}) {
-  return hasApiBaseUrl() ? createApiBookmarkAdapter(client) : createDevBookmarkAdapter();
+  return hasApiBaseUrl() ? createApiBookmarkAdapter(client) : createUnavailableBookmarkAdapter();
 }
+
 export const bookmarkService = createBookmarkAdapter();
