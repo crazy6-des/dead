@@ -78,7 +78,7 @@ export async function createPost(request, env) {
     return { response: null, error: error("INVALID_JSON", 400, "Request body must be valid JSON.") };
   }
 
-  if (!body || typeof body !== "object") {
+  if (!body || typeof body !== "object") return { response: null, error: error("INVALID_JSON", 400, "Request body must be a JSON object.") };
   const text = String(body.text || "").trim();
   const kind = String(body.kind || "text");
   const media = Array.isArray(body.media) ? body.media : [];
