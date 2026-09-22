@@ -7,6 +7,7 @@
  */
 import { apiClient, hasApiBaseUrl } from "./apiClient.js";
 import { FEED_MODES, createFeedRequest as createContractFeedRequest, createFeedPage } from "../features/feed/feedContract.js";
+import { toFeedPostFromCreatedPost } from "../features/feed/feedPostAdapter.js";
 
 export function createFeedRequest({ mode = FEED_MODES.FOR_YOU, cursor = null } = {}) {
   return createContractFeedRequest({ mode, cursor });
@@ -24,7 +25,7 @@ function normalizeApiResponse(payload) {
       ? source.posts
       : [];
   return createFeedResponse(
-    items,
+    items.map((post) => toFeedPostFromCreatedPost(post)),
     source.nextCursor ?? source.next_cursor ?? null,
   );
 }
