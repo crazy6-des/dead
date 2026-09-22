@@ -76,7 +76,7 @@ export default function App() {
   };
   useEffect(() => {
     let active = true;
-    const feed = createFeedAdapter({ seedPosts: seed });
+    const feed = createFeedAdapter({ seedPosts: [] });
     feed.list({ mode: feedMode }).then((page) => {
       if (active && Array.isArray(page?.items)) {
         setPosts(page.items);
