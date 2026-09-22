@@ -126,7 +126,8 @@ function UserDetail({ username, onBack, onOpen, onLike, onSave, onRepost, onFoll
   const [error, setError] = useState("");
   const [tab, setTab] = useState("posts");
   const [activity, setActivity] = useState([]);
-  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityLoadedKey, setActivityLoadedKey] = useState("");
+  const [activityErrorKey, setActivityErrorKey] = useState("");
   const [activityError, setActivityError] = useState("");
   useEffect(() => {
     let active = true;
@@ -141,13 +142,15 @@ function UserDetail({ username, onBack, onOpen, onLike, onSave, onRepost, onFoll
     });
     return () => { active = false; };
   }, [user]);
-  useEffect(() => { let active = true; profileService.listPosts(user, tab).then((result) => { if (active) setActivity(Array.isArray(result?.items) ? result.items.map((item) => toFeedPostFromCreatedPost(item)) : []); }).catch((cause) => { if (active) setActivityError(cause?.message || "Profile activity could not be loaded."); }).finally(() => { if (active) setActivityLoading(false); }); return () => { active = false; }; }, [user, tab]);
+  useEffect(() => { let active = true; const key = `${user}:${tab}`; setActivityError(""); profileService.listPosts(user, tab).then((result) => { if (!active) return; setActivity(Array.isArray(result?.items) ? result.items.map((item) => toFeedPostFromCreatedPost(item)) : []); setActivityLoadedKey(key); setActivityErrorKey(""); }).catch((cause) => { if (!active) return; setActivityError(cause?.message || "Profile activity could not be loaded."); setActivityErrorKey(key); }).finally(() => { if (!active) return; }); return () => { active = false; }; }, [user, tab]);
+  const activityKey = `${user}:${tab}`;
+  const activityLoading = activityLoadedKey !== activityKey && activityErrorKey !== activityKey;
   const displayName = profile?.displayName || profile?.username || user;
   const initial = displayName.charAt(0).toUpperCase() || "U";
   return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero"><div className="profile-cover"></div><div className="entity-avatar-wrap"><div className="avatar entity-avatar">{profile?.avatarUrl ? <img src={profile.avatarUrl} alt="" /> : initial}</div></div><div className="entity-hero__content">
     {loading ? <><h2>Loading profile…</h2><span>@{user}</span></> : error ? <><h2>Profile unavailable</h2><span>@{user}</span><p>{error}</p></> : <><h2>{displayName}</h2><span>@{profile.username}</span><p>{profile.bio || "No bio yet."}</p>{profile.website && <a href={/^https?:\/\//i.test(profile.website) ? profile.website : "https://" + profile.website} target="_blank" rel="noreferrer">{profile.website}</a>}</>}
     <div className="entity-stats"><button onClick={() => onOpen?.("/followers/" + user)}><b>{profile?.counts?.followers ?? "—"}</b><small>Followers</small></button><button onClick={() => onOpen?.("/following/" + user)}><b>{profile?.counts?.following ?? "—"}</b><small>Following</small></button></div><button className={following ? "outline" : "primary"} onClick={() => onFollowUser?.(user)}>{following ? "Following" : "Follow"}</button>
-  </div></div><div className="entity-tabs">{["posts", "replies", "media", "likes"].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { if (item === tab) return; setActivityLoading(true); setActivityError(""); setTab(item); }}>{item.charAt(0).toUpperCase() + item.slice(1)}</button>)}</div>
+  </div></div><div className="entity-tabs">{["posts", "replies", "media", "likes"].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { if (item === tab) return; setActivityError(""); setTab(item); }}>{item.charAt(0).toUpperCase() + item.slice(1)}</button>)}</div>
   {activityLoading ? <div className="empty" role="status"><h3>Loading activity…</h3></div> : activityError ? <div className="empty" role="alert"><h3>Could not load activity</h3><p>{activityError}</p></div> : activity.length > 0 ? activity.map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onFollow={(postId) => { const item = activity.find((entry) => entry.id === postId); onFollowUser?.(String(item?.author?.username || "").replace(/^@/, "")); }} onOpen={onOpen}/>) : <div className="empty"><h3>No {tab} yet</h3><p>This profile has no public {tab} activity to show.</p></div>}
   </div>;
 }
