@@ -33,5 +33,13 @@ if (appSource.includes("function Create({publish,close})")) {
   throw new Error("Verification failed: obsolete legacy Create component is still present in App.jsx.");
 }
 
+const composerSource = fs.readFileSync(new URL("../src/features/create/CreateComposer.jsx", import.meta.url), "utf8");
+for (const marker of ["type="submit"", "onSubmit={handleSubmit}", "Nothing posts until you press Publish"]) {
+  if (!composerSource.includes(marker)) throw new Error("Verification failed: Create must require explicit Publish.");
+}
+for (const marker of ["text, image, music, background", "Add image", "Choose local music", "Choose background"]) {
+  if (!composerSource.includes(marker)) throw new Error("Verification failed: Create is missing independent content controls.");
+}
+console.log("PASS Create requires explicit Publish and supports independent content controls.");
 console.log("PASS App.jsx uses the canonical CreateRoute surface.");
 console.log("Create boundary verification completed.");
