@@ -69,6 +69,9 @@ jobs:
           grep -q "conversations" /tmp/schema.txt
           grep -q "messages" /tmp/schema.txt
           grep -q "notifications" /tmp/schema.txt
+          npx --yes wrangler d1 execute sss --remote --command "PRAGMA table_info(post_media);" > /tmp/post-media-schema.txt
+          grep -q "post_id" /tmp/post-media-schema.txt
+          grep -q "owner_id" /tmp/post-media-schema.txt
 
       - name: Verify live health
         env:
