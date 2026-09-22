@@ -5,13 +5,25 @@ const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 30;
 const MAX_TEXT = 5000;
 const MESSAGE_TYPES = new Set(["text", "image", "audio", "file"]);
+const IMAGE_MEDIA_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 function failure(code, status, message) { return { response: null, error: { code, status, message } }; }
 function encodeCursor(createdAt, id) { return globalThis.btoa(JSON.stringify({ createdAt, id })).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"); }
 function decodeCursor(value) { if (!value) return null; try { const normalized = String(value).replace(/-/g, "+").replace(/_/g, "/"); return JSON.parse(globalThis.atob(normalized + "=".repeat((4 - normalized.length % 4) % 4))); } catch { return null; } }
 function limitValue(value) { const n = Number(value); return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_LIMIT) : DEFAULT_LIMIT; }
 async function requireSession(request, env) { const session = await resolveSession(request, env); if (!session?.user_id) return { session: null, failure: failure("UNAUTHORIZED", 401, "Authentication is required.") }; if (!env?.DB) return { session: null, failure: failure("SERVICE_UNAVAILABLE", 503, "Messaging service is not configured.") }; return { session, failure: null }; }
-function messagePayload(row) { return { id: row.id, conversationId: row.conversation_id, senderId: row.sender_id, type: row.message_type, text: row.body || "", createdAt: row.created_at, status: row.deleted_at ? "deleted" : "sent" }; }
+function messagePayload(row) {
+  return {
+    id: row.id,
+    conversationId: row.conversation_id,
+    senderId: row.sender_id,
+    type: row.message_type,
+    text: row.body || "",
+    media: row.media_id ? { mediaId: row.media_id, url: "/api/media/" + row.media_id, mediaType: row.media_type || "image", mimeType: row.mime_type || null, size: Number(row.media_size || 0), name: row.media_name || null } : null,
+    createdAt: row.created_at,
+    status: row.deleted_at ? "deleted" : "sent",
+  };
+}
 
 export async function listConversations(request, env) {
   const { session, failure: authFailure } = await requireSession(request, env); if (authFailure) return authFailure;
@@ -62,7 +74,12 @@ export async function listMessages(request, env, conversationId) {
   const values = [conversationId]; let where = "m.conversation_id = ?1 AND m.deleted_at IS NULL";
   if (cursor?.createdAt && cursor?.id) { values.push(cursor.createdAt, cursor.id); where += ` AND (m.created_at < ?${values.length - 1} OR (m.created_at = ?${values.length - 1} AND m.id < ?${values.length}))`; }
   values.push(limit + 1);
-  const rows = await env.DB.prepare(`SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.body, m.created_at, m.deleted_at FROM messages m WHERE ${where} ORDER BY m.created_at DESC, m.id DESC LIMIT ?${values.length}`).bind(...values).all();
+  const rows = await env.DB.prepare(`SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.body, m.created_at, m.deleted_at,
+    m.media_id, pm.media_type, pm.mime_type, pm.byte_size AS media_size,
+    json_extract(pm.metadata_json, '$.name') AS media_name
+    FROM messages m
+    LEFT JOIN post_media pm ON pm.id = m.media_id
+    WHERE ${where} ORDER BY m.created_at DESC, m.id DESC LIMIT ?${values.length}`).bind(...values).all();
   const items = rows.results.slice(0, limit).map(messagePayload).reverse(); const oldest = items[0];
   return { response: { items, nextCursor: rows.results.length > limit && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null }, error: null };
 }
@@ -70,21 +87,30 @@ export async function listMessages(request, env, conversationId) {
 export async function sendMessage(request, env) {
   const { session, failure: authFailure } = await requireSession(request, env); if (authFailure) return authFailure;
   let body; try { body = await request.json(); } catch { return failure("INVALID_JSON", 400, "Request body must be valid JSON."); }
-  const conversationId = String(body?.conversationId || ""); const type = String(body?.type || "text"); const text = String(body?.text || "").trim();
+  const conversationId = String(body?.conversationId || ""); const type = String(body?.type || "text"); const text = String(body?.text || "").trim(); const mediaId = String(body?.mediaId || "").trim();
   if (!conversationId || !MESSAGE_TYPES.has(type)) return failure("VALIDATION_ERROR", 400, "A valid conversation and message type are required.");
   if (type === "text" && (!text || text.length > MAX_TEXT)) return failure("VALIDATION_ERROR", 400, "Text messages must contain 1-5000 characters.");
   if (type !== "text" && text.length > MAX_TEXT) return failure("VALIDATION_ERROR", 400, "Message text is too long.");
+  if (type === "image" && !mediaId) return failure("VALIDATION_ERROR", 400, "An image message requires an uploaded image.");
+  if (type !== "image" && mediaId) return failure("VALIDATION_ERROR", 400, "Media attachments are currently supported for image messages only.");
   const member = await env.DB.prepare("SELECT 1 FROM conversation_members WHERE conversation_id = ?1 AND user_id = ?2 LIMIT 1").bind(conversationId, session.user_id).first();
   if (!member) return failure("NOT_FOUND", 404, "Conversation not found.");
   const recipient = await env.DB.prepare("SELECT user_id FROM conversation_members WHERE conversation_id = ?1 AND user_id <> ?2 LIMIT 1").bind(conversationId, session.user_id).first();
   if (!recipient) return failure("INVALID_CONVERSATION", 400, "Conversation must have another member.");
+  let media = null;
+  if (type === "image") {
+    media = await env.DB.prepare("SELECT id, media_type, mime_type, byte_size, metadata_json FROM post_media WHERE id = ?1 AND post_id IS NULL AND owner_id = ?2 LIMIT 1").bind(mediaId, session.user_id).first();
+    if (!media) return failure("MEDIA_NOT_FOUND", 404, "The selected image is unavailable.");
+    if (media.media_type !== "image" || !IMAGE_MEDIA_TYPES.has(media.mime_type)) return failure("UNSUPPORTED_MEDIA_TYPE", 415, "The selected media is not a supported image.");
+  }
   const id = crypto.randomUUID();
   await env.DB.batch([
-    env.DB.prepare("INSERT INTO messages (id, conversation_id, sender_id, message_type, body) VALUES (?1, ?2, ?3, ?4, ?5)").bind(id, conversationId, session.user_id, type, text),
-    env.DB.prepare("UPDATE conversations SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?1").bind(conversationId)
+    env.DB.prepare("INSERT INTO messages (id, conversation_id, sender_id, message_type, body, media_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)").bind(id, conversationId, session.user_id, type, text, mediaId || null),
+    env.DB.prepare("UPDATE conversations SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?1").bind(conversationId),
+    env.DB.prepare("UPDATE post_media SET metadata_json = json_set(COALESCE(metadata_json, '{}'), '$.messageId', ?1) WHERE id = ?1 AND post_id IS NULL AND owner_id = ?2").bind(mediaId || null, session.user_id)
   ]);
-  await createNotification(env, { recipientId: recipient.user_id, actorId: session.user_id, eventType: "message", targetType: "conversation", targetId: conversationId, conversationId, payload: { text: text.slice(0, 120) } });
-  const row = await env.DB.prepare("SELECT id, conversation_id, sender_id, message_type, body, created_at, deleted_at FROM messages WHERE id = ?1 LIMIT 1").bind(id).first();
+  await createNotification(env, { recipientId: recipient.user_id, actorId: session.user_id, eventType: "message", targetType: "conversation", targetId: conversationId, conversationId, payload: { text: text.slice(0, 120), hasImage: Boolean(mediaId) } });
+  const row = await env.DB.prepare("SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.body, m.created_at, m.deleted_at, m.media_id, pm.media_type, pm.mime_type, pm.byte_size AS media_size, json_extract(pm.metadata_json, '$.name') AS media_name FROM messages m LEFT JOIN post_media pm ON pm.id = m.media_id WHERE m.id = ?1 LIMIT 1").bind(id).first();
   return { response: messagePayload(row), error: null };
 }
 
