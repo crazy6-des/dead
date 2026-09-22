@@ -25,6 +25,19 @@ function getAudioSource(post, mediaItems) {
   return mediaItems.find(isAudioMedia) || null;
 }
 
+function getBackgroundStyle(background) {
+  if (!background || typeof background !== "object") return null;
+  const value = background.value || background.url || background.src || "";
+  const type = String(background.type || "").toLowerCase();
+  if (!value) return null;
+  if (type === "image" || type === "url") {
+    const safeValue = String(value).replace(/"/g, "\\"");
+    return { backgroundImage: `url("${safeValue}")`, backgroundSize: "cover", backgroundPosition: "center" };
+  }
+  if (type === "gradient" || type === "color") return { background: value };
+  return null;
+}
+
 export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onOpen }) {
   const [moderation, setModeration] = useState(null);
   const [moderationBusy, setModerationBusy] = useState(false);
@@ -44,6 +57,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const mediaSources = imageItems.map(getMediaSource).filter(Boolean);
   const audioSource = getAudioSource(post, mediaItems);
   const background = post.background || post.bg || null;
+  const backgroundStyle = getBackgroundStyle(background);
   const runModeration = async (action, reason = null) => {
     setModerationBusy(true);
     try {
@@ -66,7 +80,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
         </div>
       </div>
       {text && <button className="post-content-hit" onClick={() => onOpen?.("/post/" + post.id)}><p className="post__text">{text}</p></button>}
-      {background?.type === "color" && <div className="post-background-card" style={{ background: background.value }} aria-label="Post background" />}
+      {backgroundStyle && <div className="post-background-card" style={backgroundStyle} aria-label="Post background" />}
       {mediaSources.length > 0 && <div className="post-media-grid">{mediaSources.map((source, index) => <button className="post-media" key={source + index} onClick={() => onOpen?.("/post/" + post.id + "/media")}><img src={source} alt={imageItems[index]?.alt || "Post media"} loading="lazy" /></button>)}</div>}
       {audioSource?.url && <div className="audio-card post-audio-card"><div className="audio-art"><Music2 size={20}/></div><div className="audio-card__body"><strong>{audioSource.title || audioSource.name || "Music"}</strong><span>{audioSource.artist || "Original audio"}</span><audio controls preload="metadata" src={audioSource.url} /></div></div>}
       {post.poll && <div className="poll-card"><div className="poll-card__question"><BarChart3 size={17}/><strong>{post.poll.question}</strong></div>{(localPoll?.options || post.poll.options || []).map((option, index) => { const selected = pollVotes[post.poll.id || post.id] === index; const total = Number(localPoll?.totalVotes ?? post.poll.totalVotes ?? 0); const votes = Number(option.votes || 0); const percent = total > 0 ? Math.round((votes / total) * 100) : 0; return <button className={"poll-option " + (selected ? "is-selected" : "")} key={index} onClick={async () => { if (pollBusy) return; const pollId = post.poll.id || post.id; setPollBusy(true); setPollError(""); try { await pollService.vote(pollId, index); setLocalPoll((current) => { const base = current || post.poll; const options = (base.options || []).map((item, optionIndex) => optionIndex === index ? { ...item, votes: Number(item.votes || 0) + 1 } : item); return { ...base, options, totalVotes: Number(base.totalVotes || 0) + 1 }; }); setPollVotes((current) => ({ ...current, [pollId]: index })); } catch (err) { setPollError(err?.message || "Could not record your vote."); } finally { setPollBusy(false); } }}><span>{option.text || option}</span><span>{percent}%</span></button>; })}<small>{pollError || `${localPoll?.totalVotes ?? post.poll.totalVotes ?? 0} votes`}</small></div>}

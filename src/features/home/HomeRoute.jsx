@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import PostCard from "../post/PostCard.jsx";
 import { PRODUCT_IDENTITY } from "../../app/productIdentity.js";
@@ -7,12 +7,7 @@ const TABS = ["For You", "Following", "Latest"];
 
 export default function HomeRoute({ posts, onLike, onSave, onFollow, onRepost, onCreate, onOpen, onModeChange, loading = false }) {
   const [tab, setTab] = useState("For You");
-  const visible = useMemo(() => {
-    const source = Array.isArray(posts) ? posts : [];
-    if (tab === "Following") return source.filter((post) => post.following);
-    if (tab === "Latest") return [...source].reverse();
-    return source;
-  }, [posts, tab]);
+  const visible = Array.isArray(posts) ? posts : [];
 
   return <>
     <div className="feed-tabs" role="tablist" aria-label="Timeline">
