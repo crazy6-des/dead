@@ -38,6 +38,11 @@ export const profileService = Object.freeze({
   getByUsername(username, options = {}) {
     return apiClient.get(`/api/profile/${encodeURIComponent(normalizeUsername(username))}`, options);
   },
+  listPosts(username, tab = "posts", options = {}) {
+    const normalized = normalizeUsername(username);
+    const params = new URLSearchParams({ tab: String(tab || "posts").toLowerCase() });
+    return apiClient.get(`/api/profile/${encodeURIComponent(normalized)}/posts?${params.toString()}`, options);
+  },
   updateMe(input, options = {}) {
     return apiClient.patch("/api/profile/me", normalizeProfilePatch(input), options);
   },
