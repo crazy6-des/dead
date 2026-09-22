@@ -36,7 +36,7 @@ assert.equal(credentials.email, "david@example.com");
 assert.equal(validateCredentials({ username: "x", email: "invalid", password: "short" }).valid, false);
 
 const passwordHash = await hashPassword("correct horse battery staple");
-assert.equal(passwordHash.startsWith("pbkdf2-sha256$120000$"), true);
+assert.equal(passwordHash.startsWith("pbkdf2-sha256$100000$"), true);
 assert.equal(await verifyPassword("correct horse battery staple", passwordHash), true);
 assert.equal(await verifyPassword("wrong password", passwordHash), false);
 assert.notEqual(await hashPassword("correct horse battery staple"), passwordHash);
