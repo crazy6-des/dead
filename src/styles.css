@@ -155,3 +155,38 @@ button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 
 
 .setting-choice-group{display:flex;gap:8px;flex-wrap:wrap}.setting-choice-group button{display:inline-flex;align-items:center;gap:6px}.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}
+
+
+.post-audio-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: inherit;
+  text-align: left;
+}
+.post-audio-card:hover { background: var(--surface-2, var(--surface)); }
+.post-audio-card.is-playing { border-color: var(--brand); }
+.post-audio-card .audio-art {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--surface-2, var(--surface));
+}
+.post-audio-card .audio-art img { width: 100%; height: 100%; object-fit: cover; }
+.post-audio-card .audio-card__body { display: grid; gap: 2px; min-width: 0; }
+.post-audio-card .audio-card__body strong,
+.post-audio-card .audio-card__body span,
+.post-audio-card .audio-card__body small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.post-audio-card .audio-card__body span,
+.post-audio-card .audio-card__body small { color: var(--muted); font-size: 12px; }
+.post-audio-card audio { display: none; }
