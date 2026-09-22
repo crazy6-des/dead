@@ -6,5 +6,6 @@ import "./ui/designSystem.css";
 import "./ui/alignment.css";
 import "./ui/mobileNavigation.css";
 import "./ui/visualPolish.css";
+import "./features/landing/landing.css";
 
 createRoot(document.getElementById("root")).render(<App />);
