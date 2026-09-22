@@ -1,0 +1,10 @@
+{
+  "name": "S — Where you are truly seen",
+  "short_name": "S",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070709",
+  "theme_color": "#0b0b0d",
+  "description": "S — where you are truly seen. Where you connect.",
+  "icons": []
+}
