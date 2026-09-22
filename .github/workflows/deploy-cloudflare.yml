@@ -30,6 +30,18 @@ jobs:
         working-directory: backend
         run: npm test
 
+      - name: Verify Cloudflare resources are aligned
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CLOUDFLARE_ACCOUNT_ID }}/workers/scripts" \
+            | jq -e '.result | map(.id) | index("muddy-tooth-e4be") != null'
+          npx --yes wrangler d1 list --json | jq -e 'map(select(.name == "sss")) | length == 1'
+          npx --yes wrangler r2 bucket list --json | jq -e 'map(select(.name == "sss")) | length == 1'
       - name: Deploy Worker
         working-directory: backend
         env:
