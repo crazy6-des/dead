@@ -127,3 +127,7 @@ export const apiClient = Object.freeze({
 export function hasApiBaseUrl() {
   return Boolean(API_BASE_URL);
 }
+
+export function resolveApiUrl(path) {
+  return buildUrl(String(path || ""));
+}
