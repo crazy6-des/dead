@@ -84,6 +84,7 @@ export async function createPost(request, env) {
   const media = Array.isArray(body.media) ? body.media : [];
   const audio = body.audio && typeof body.audio === "object" ? body.audio : null;
   const background = body.background && typeof body.background === "object" ? body.background : null;
+  if (body.poll !== null && body.poll !== undefined) return { response: null, error: error("UNSUPPORTED_POST_CONTENT", 400, "Poll persistence is not connected yet.") };
   if (!ALLOWED_KINDS.has(kind) || media.length > MAX_MEDIA) return { response: null, error: error("VALIDATION_ERROR", 400, "Unsupported post content or too many media items.") };
   if (media.some((item) => !item || typeof item.mediaId !== "string")) return { response: null, error: error("MEDIA_NOT_FOUND", 400, "Every uploaded media item must reference a media id.") };
   if (!text || text.length > MAX_POST_TEXT) {
