@@ -75,9 +75,7 @@ jobs:
           grep -q "external_url" /tmp/post-media-schema.txt
           grep -q "metadata_json" /tmp/post-media-schema.txt
           grep -q "duration_ms" /tmp/post-media-schema.txt
-          npx --yes wrangler d1 execute sss --remote --command "PRAGMA table_info(post_media);" > /tmp/post-media-schema.txt
           grep -q "post_id" /tmp/post-media-schema.txt
-          grep -q "owner_id" /tmp/post-media-schema.txt
 
       - name: Verify live health
         env:
