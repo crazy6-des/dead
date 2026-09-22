@@ -52,6 +52,8 @@ export function serializePost(row) {
       artist: metadata.artist || null,
       album: metadata.album || null,
       artworkUrl: metadata.artworkUrl || null,
+      provider: metadata.provider || null,
+      licenseUrl: metadata.licenseUrl || null,
       durationMs: Number(audioMedia.durationMs || 0),
     };
   }
@@ -161,7 +163,7 @@ export async function createPost(request, env) {
 
   if (audio?.source === "catalog") {
     await db.prepare("INSERT INTO post_media (id, post_id, object_key, media_type, mime_type, byte_size, position, source, external_url, metadata_json, duration_ms) VALUES (?1, ?2, ?3, 'audio', ?4, 0, ?5, 'catalog', ?6, ?7, ?8)")
-      .bind(globalThis.crypto.randomUUID(), id, `catalog:${audio.musicId}`, audio.type || "audio/mpeg", media.length, audio.url, JSON.stringify({ musicId: audio.musicId, title: audio.title || audio.name || "", artist: audio.artist || "", album: audio.album || "", artworkUrl: audio.artworkUrl || "" }), Number(audio.durationMs || 0)).run();
+      .bind(globalThis.crypto.randomUUID(), id, `catalog:${audio.musicId}`, audio.type || "audio/mpeg", media.length, audio.url, JSON.stringify({ musicId: audio.musicId, title: audio.title || audio.name || "", artist: audio.artist || "", album: audio.album || "", artworkUrl: audio.artworkUrl || "", provider: audio.provider || "", licenseUrl: audio.licenseUrl || "" }), Number(audio.durationMs || 0)).run();
   } else if (audio?.mediaId) {
     await db.prepare("UPDATE post_media SET post_id = ?1, position = ?2 WHERE id = ?3 AND post_id IS NULL").bind(id, media.length, audio.mediaId).run();
   }
