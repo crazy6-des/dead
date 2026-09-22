@@ -14,6 +14,23 @@ export function createPostRequest(draft) {
   return createPublishPayload(result.payload);
 }
 
+async function prepareMediaAsset(asset) {
+  if (isUploadReadyMediaAsset(asset) || isCatalogMusicAsset(asset)) return asset;
+  if (!isLocalMediaAsset(asset) || !asset.file) return asset;
+  const form = new FormData();
+  form.append("file", asset.file, asset.file.name);
+  const result = await apiClient.post("/api/media/upload", form);
+  const media = result?.media;
+  if (!media?.mediaId || !media?.url) throw new Error("Media upload returned an invalid response.");
+  return { ...asset, mediaId: media.mediaId, url: media.url, uploadStatus: "uploaded", source: "local" };
+}
+
+async function preparePublishPayload(payload) {
+  const media = await Promise.all((payload.media || []).map(prepareMediaAsset));
+  const audio = payload.audio ? await prepareMediaAsset(payload.audio) : null;
+  return { ...payload, media, audio };
+}
+
 function assertApiMediaReady(payload) {
   const imageAssets = Array.isArray(payload.media) ? payload.media : [];
   const audioAsset = payload.audio;
@@ -40,7 +57,7 @@ function assertApiMediaReady(payload) {
 export function createApiPostAdapter({ endpoint = "/api/posts" } = {}) {
   return {
     async publish(draft) {
-      const payload = createPostRequest(draft);
+      const payload = await preparePublishPayload(createPostRequest(draft));
       assertApiMediaReady(payload);
       return normalizeCreatedPostResponse(await apiClient.post(endpoint, payload));
     },
