@@ -13,4 +13,5 @@ binding = "MEDIA_BUCKET"
 bucket_name = "sss"
 
 [vars]
+DEBUG_AUTH_ERRORS = "true"
 FRONTEND_ORIGIN = "https://sphereis.netlify.app"
