@@ -1,10 +1,11 @@
 import { resolveSession } from "./auth.js";
 import { serializePost } from "./posts.js";
+import { getUserSettings } from "./settings.js";
 
 const USERNAME_PATTERN = /^[a-z0-9_]{3,30}$/;
 const MAX = { displayName: 60, bio: 160, website: 200, location: 100 };
 
-function profilePayload(user) {
+function profilePayload(user, settings = null) {
   return {
     id: user.id,
     username: user.username,
@@ -14,7 +15,8 @@ function profilePayload(user) {
     avatarUrl: user.avatar_url || null,
     coverUrl: user.cover_url || null,
     location: user.location || "",
-    counts: { followers: Number(user.follower_count || 0), following: Number(user.following_count || 0), posts: Number(user.post_count || 0) },
+    counts: { followers: settings?.show_follower_count === false ? null : Number(user.follower_count || 0), following: Number(user.following_count || 0), posts: Number(user.post_count || 0) },
+    privacy: { privateAccount: Boolean(settings?.private_account), showFollowerCount: settings?.show_follower_count !== false, allowMessages: settings?.allow_messages !== false },
   };
 }
 
@@ -30,7 +32,8 @@ export async function getProfile(request, env, username) {
   if (!USERNAME_PATTERN.test(normalized)) return { error: { code: "VALIDATION_ERROR", status: 400, message: "A valid username is required." } };
   const user = await env.DB.prepare(`${PROFILE_SELECT} WHERE u.username = ?1 AND u.deleted_at IS NULL LIMIT 1`).bind(normalized).first();
   if (!user) return { error: { code: "NOT_FOUND", status: 404, message: "Profile not found." } };
-  return { response: { profile: profilePayload(user) } };
+  const settings = await getUserSettings(env, user.id);
+  return { response: { profile: profilePayload(user, settings) } };
 }
 
 export async function listProfilePosts(request, env, username) {
@@ -41,13 +44,15 @@ export async function listProfilePosts(request, env, username) {
   if (!target) return { error: { code: "NOT_FOUND", status: 404, message: "Profile not found." } };
   const session = await resolveSession(request, env);
   const ownProfile = session?.user_id === target.id;
+  const targetSettings = await getUserSettings(env, target.id);
+  const isFollower = session?.user_id ? Boolean(await env.DB.prepare("SELECT 1 FROM relationships WHERE source_user_id = ?1 AND target_user_id = ?2 AND relationship_type = 'follow' LIMIT 1").bind(session.user_id, target.id).first()) : false;
   const url = new URL(request.url);
   const tab = String(url.searchParams.get("tab") || "posts").toLowerCase();
   if (!["posts", "replies", "media", "likes"].includes(tab)) return { error: { code: "VALIDATION_ERROR", status: 400, message: "Unsupported profile tab." } };
 
   const values = [target.id];
   let where = "p.deleted_at IS NULL AND p.author_id = ?1";
-  if (!ownProfile) where += " AND p.visibility = 'public'";
+  if (!ownProfile) where += targetSettings?.private_account && !isFollower ? " AND 1 = 0" : " AND p.visibility IN ('public', 'followers')";
   if (tab === "replies") where += " AND p.reply_to_id IS NOT NULL";
   if (tab === "media") where += " AND EXISTS (SELECT 1 FROM post_media pm WHERE pm.post_id = p.id)";
   if (tab === "likes") {
