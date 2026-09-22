@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { socialGraphService } from "../../services/socialGraphService.js";
 import { replyService } from "../../services/replyService.js";
+import { profileService } from "../../services/profileService.js";
 import PostCard from "../post/PostCard.jsx";
 import { ArrowLeft, Check, Copy, Heart, Link2, MessageCircle, Repeat2, Send, Users } from "lucide-react";
 
@@ -99,7 +100,32 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
 }
 function ShareDetail({ post, onBack }) { const [copied, setCopied] = useState(false); const copy = async () => { try { await navigator.clipboard?.writeText(window.location.origin + "/post/" + post.id); setCopied(true); } catch { setCopied(false); } }; return <div className="detail-page"><BackButton onBack={onBack}/><div className="share-sheet"><div className="heading"><small>SHARE</small><h2>Share this post</h2></div><div className="share-preview"><b>{post.a || "User"}</b><p>{post.x}</p></div><div className="share-options"><button onClick={copy}><Copy/>Copy link</button><button onClick={() => window.open("mailto:?subject=Post on S&body=" + encodeURIComponent(window.location.origin + "/post/" + post.id), "_self")}><Send/>Send by email</button><button disabled><Users/>Share with followers</button></div>{copied && <p className="inline-notice">Link copied.</p>}</div></div>; }
 
-function UserDetail({ username, onBack, onOpen, onFollowUser, followingUsers = new Set() }) { const user = String(username || "user").replace(/^@/, ""); const following = followingUsers.has(user.toLowerCase()); return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero"><div className="profile-cover"></div><div className="entity-avatar-wrap"><div className="avatar entity-avatar">{user[0]?.toUpperCase() || "U"}</div></div><div className="entity-hero__content"><h2>User profile</h2><span>@{user}</span><p>Profile information will appear when the user service is connected.</p><div className="entity-stats"><button onClick={() => onOpen?.("/followers/" + user)}><b>—</b><small>Followers</small></button><button onClick={() => onOpen?.("/following/" + user)}><b>—</b><small>Following</small></button></div><button className={following ? "outline" : "primary"} onClick={() => onFollowUser?.(user)}>{following ? "Following" : "Follow"}</button></div></div><div className="entity-tabs"><button className="active">Posts</button><button disabled>Replies</button><button disabled>Media</button><button disabled>Likes</button></div></div>; }
+function UserDetail({ username, onBack, onOpen, onFollowUser, followingUsers = new Set() }) {
+  const user = String(username || "user").replace(/^@/, "").toLowerCase();
+  const following = followingUsers.has(user);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    profileService.getByUsername(user).then((result) => {
+      if (!active) return;
+      setProfile(result?.profile || result || null);
+      setLoading(false);
+    }).catch((cause) => {
+      if (!active) return;
+      setError(cause?.message || "Profile could not be loaded.");
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, [user]);
+  const displayName = profile?.displayName || profile?.username || user;
+  const initial = displayName.charAt(0).toUpperCase() || "U";
+  return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero"><div className="profile-cover"></div><div className="entity-avatar-wrap"><div className="avatar entity-avatar">{profile?.avatarUrl ? <img src={profile.avatarUrl} alt="" /> : initial}</div></div><div className="entity-hero__content">
+    {loading ? <><h2>Loading profile…</h2><span>@{user}</span></> : error ? <><h2>Profile unavailable</h2><span>@{user}</span><p>{error}</p></> : <><h2>{displayName}</h2><span>@{profile.username}</span><p>{profile.bio || "No bio yet."}</p>{profile.website && <a href={/^https?:\/\//i.test(profile.website) ? profile.website : "https://" + profile.website} target="_blank" rel="noreferrer">{profile.website}</a>}</>}
+    <div className="entity-stats"><button onClick={() => onOpen?.("/followers/" + user)}><b>{profile?.counts?.followers ?? "—"}</b><small>Followers</small></button><button onClick={() => onOpen?.("/following/" + user)}><b>{profile?.counts?.following ?? "—"}</b><small>Following</small></button></div><button className={following ? "outline" : "primary"} onClick={() => onFollowUser?.(user)}>{following ? "Following" : "Follow"}</button>
+  </div></div><div className="entity-tabs"><button className="active">Posts</button><button disabled>Replies</button><button disabled>Media</button><button disabled>Likes</button></div></div>;
+}
 
 function NetworkRoute({ type, username, onBack, followingUsers = new Set(), onFollowUser }) { const [items, setItems] = useState([]); const [loading, setLoading] = useState(true); useEffect(() => { let active = true; const request = type === "followers" ? socialGraphService.listFollowers(username) : socialGraphService.listFollowing(username); request.then((page) => { if (!active) return; setItems(Array.isArray(page?.items) ? page.items : []); setLoading(false); }).catch(() => active && setLoading(false)); return () => { active = false; }; }, [type, username]); if (loading) return <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Loading network…</h3></div></div>; return <div className="detail-page"><BackButton onBack={onBack}/><div className="heading"><small>PROFILE NETWORK</small><h2>{type === "followers" ? "Followers" : "Following"}</h2><p>@{username}</p></div>{items.length === 0 ? <div className="empty"><h3>No network data yet</h3><p>Follow relationships will appear here when the social graph service returns them.</p></div> : items.map((person) => { const target = person.username; const following = followingUsers.has(target); return <div className="network-row" key={target}><div className="avatar avatar--small">{String(person.name || target)[0]}</div><div><b>{person.name || target}</b><span>@{target}</span></div><button className={following ? "is-following" : "outline"} onClick={() => onFollowUser?.(target)}>{following ? "Following" : "Follow"}</button></div>; })}</div>; }
 
