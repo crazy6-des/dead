@@ -18,6 +18,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   const [musicResults, setMusicResults] = useState([]);
   const [isSearchingMusic, setIsSearchingMusic] = useState(false);
   const [musicError, setMusicError] = useState("");
+  const [isBrowsingMusic, setIsBrowsingMusic] = useState(false);
   const musicAdapter = useRef(null);
   const musicSearchController = useRef(null);
   const fileUrls = useRef(new Set());
@@ -67,6 +68,24 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
     }
   }
 
+  async function handleMusicBrowse() {
+    if (!hasMusicCatalog()) return;
+    musicSearchController.current?.abort();
+    const controller = new AbortController();
+    musicSearchController.current = controller;
+    setIsBrowsingMusic(true);
+    setMusicError("");
+    setMusicQuery("");
+    try {
+      const results = await musicAdapter.current.browse({ limit: 12, signal: controller.signal });
+      setMusicResults(results);
+    } catch (browseError) {
+      if (browseError?.name !== "AbortError") setMusicError(browseError?.message || "Unable to browse the music catalog.");
+    } finally {
+      if (!controller.signal.aborted) setIsBrowsingMusic(false);
+    }
+  }
+
   function selectCatalogMusic(track) {
     const asset = createCatalogMusicAsset({ ...track, musicId: track.musicId, url: track.url });
     updateDraft({ audio: asset });
@@ -109,7 +128,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
       <label className="s-create-composer__picker" title="Choose local music"><Music2 size={16} aria-hidden="true" /><span>Music</span><input type="file" accept="audio/*" onChange={handleMusicChange} /></label>
       {hasMusicCatalog() && <div className="s-create-composer__music-search">
         <input value={musicQuery} onChange={(event) => setMusicQuery(event.target.value)} placeholder="Search music" aria-label="Search music catalog" />
-        <button type="button" onClick={handleMusicSearch} disabled={isSearchingMusic || !musicQuery.trim()}>{isSearchingMusic ? "Searching…" : "Find"}</button>
+        <button type="button" onClick={handleMusicSearch} disabled={isSearchingMusic || isBrowsingMusic || !musicQuery.trim()}>{isSearchingMusic ? "Searching…" : "Find"}</button><button type="button" onClick={handleMusicBrowse} disabled={isSearchingMusic || isBrowsingMusic}>{isBrowsingMusic ? "Loading…" : "Browse"}</button>
       </div>}
       <label className="s-create-composer__picker s-create-composer__color-picker" title="Choose background"><Palette size={16} aria-hidden="true" /><span>Background</span><input type="color" value={draft.background?.value || "#151922"} onChange={handleBackgroundChange} aria-label="Post background color" /></label>
     </div>
