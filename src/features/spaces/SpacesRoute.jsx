@@ -35,7 +35,7 @@ export default function SpacesRoute() {
 
   const create = async () => {
     if (!title.trim()) return;
-    try { await spaceService.create({ title, host: "David", startAt: "Later today" }); } catch (err) { setError(err?.message || "Could not create the Space."); return; }
+    try { await spaceService.create({ title, host: undefined, startAt: undefined }); } catch (err) { setError(err?.message || "Could not create the Space."); return; }
     setTitle("");
     setCreating(false);
     load();
