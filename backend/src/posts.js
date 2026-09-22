@@ -37,7 +37,7 @@ function normalizeLimit(value) {
   return Math.min(Math.max(parsed, 1), MAX_LIMIT);
 }
 
-function serializePost(row) {
+export function serializePost(row) {
   const media = row.media ? JSON.parse(row.media) : [];
   const audioMedia = media.find((item) => item?.mediaType === "audio") || null;
   let audio = null;
