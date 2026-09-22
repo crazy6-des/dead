@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Heart, MoreHorizontal, Paperclip, Send } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Heart, ImagePlus, MoreHorizontal, Paperclip, Send, X } from "lucide-react";
 import { APP_ROUTES } from "../../app/routes.js";
 import PostCard from "../post/PostCard.jsx";
 import { NOTIFICATION_FILTERS } from "../notifications/notificationContract.js";
 import { createNotificationAdapter } from "../../services/notificationService.js";
 import { createMessageAdapter } from "../../services/messageService.js";
+import { MESSAGE_IMAGE_LIMITS } from "../messages/messageContract.js";
 
 const NOTIFICATION_SEED = [
   { id: "n1", actor: "Maya Okafor", username: "maya", type: "like", text: "liked your post", time: "2m", target: "/post/1" },
@@ -38,19 +39,29 @@ export function NotificationsRoute({ onOpen }) {
       if (active) { setError(err?.message || "Could not load notifications."); setLoading(false); }
     });
     return () => { active = false; };
-  }, [tab]);
+  }, [tab, notifications]);
 
   const unreadCount = items.filter((item) => !item.read).length;
 
   const openNotification = async (item) => {
-    try { await notifications.markRead(item.id); } catch (err) { setError(err?.message || "Could not mark notification as read."); }
-    setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read: true } : entry));
-    onOpen?.(item.target || (item.type === "follow" ? "/user/" + String(item.username || "").replace("@", "") : APP_ROUTES.PROFILE));
+    try {
+      await notifications.markRead(item.id);
+      setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read: true } : entry));
+    } catch (err) {
+      setError(err?.message || "Could not mark notification as read.");
+      return;
+    }
+    onOpen?.(item.target || (item.type === "follow" && item.username ? "/user/" + String(item.username).replace(/^@/, "") : APP_ROUTES.PROFILE));
   };
 
   const markAllRead = async () => {
-    try { await notifications.markAllRead(); } catch (err) { setError(err?.message || "Could not mark notifications as read."); }
-    setItems((current) => current.map((item) => ({ ...item, read: true })));
+    try {
+      await notifications.markAllRead();
+      setItems((current) => current.map((item) => ({ ...item, read: true })));
+      setError("");
+    } catch (err) {
+      setError(err?.message || "Could not mark notifications as read.");
+    }
   };
 
   return <div className="page">
@@ -74,18 +85,29 @@ export function MessagesRoute() {
   const [conversations, setConversations] = useState(() => Object.keys(MESSAGE_SEED).map((name) => ({ id: name.toLowerCase().replace(/\s+/g, "-"), name })));
   const [selected, setSelected] = useState("maya-okafor");
   const [draft, setDraft] = useState("");
+  const [selectedImage, setSelectedImage] = useState(null);
   const [messages, setMessages] = useState(MESSAGE_SEED);
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const imageInputRef = useRef(null);
+
+  useEffect(() => () => {
+    if (selectedImage?.url?.startsWith("blob:")) URL.revokeObjectURL(selectedImage.url);
+  }, [selectedImage]);
 
   useEffect(() => {
     let active = true;
-    Promise.all([messagesApi.listConversations(), messagesApi.listMessages(selected)]).then(([conversationPage, messagePage]) => {
+    setLoading(true);
+    Promise.all([messagesApi.listConversations(), messagesApi.listMessages(selected), messagesApi.markConversationRead(selected)]).then(([conversationPage, messagePage]) => {
       if (!active) return;
       setConversations(conversationPage.items || conversationPage || []);
       const selectedName = Object.keys(MESSAGE_SEED).find((name) => name.toLowerCase().replace(/\s+/g, "-") === selected);
       setMessages((current) => ({ ...current, [selectedName || selected]: messagePage.items || [] }));
       setLoading(false);
-    }).catch(() => { if (active) setLoading(false); });
+    }).catch((err) => {
+      if (active) { setError(err?.message || "Could not load this conversation."); setLoading(false); }
+    });
     return () => { active = false; };
   }, [selected, messagesApi]);
 
@@ -95,28 +117,87 @@ export function MessagesRoute() {
   const currentMessages = messages[selectedName] || [];
   const renderMessage = (message) => ({ ...message, direction: message.direction || (message.senderId === currentUserId ? "out" : "in") });
 
+  const clearSelectedImage = () => {
+    setSelectedImage((current) => {
+      if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
+      return null;
+    });
+    if (imageInputRef.current) imageInputRef.current.value = "";
+  };
+
+  const handleImageSelect = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!MESSAGE_IMAGE_LIMITS.TYPES.includes(file.type)) {
+      setError("Choose a JPG, PNG, WebP, or GIF image.");
+      return;
+    }
+    if (file.size <= 0 || file.size > MESSAGE_IMAGE_LIMITS.MAX_SIZE) {
+      setError("Message images must be 10 MB or smaller.");
+      return;
+    }
+    setError("");
+    setSelectedImage((current) => {
+      if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
+      return { file, url: URL.createObjectURL(file), name: file.name, type: file.type, size: file.size };
+    });
+  };
+
   const sendMessage = async () => {
     const text = draft.trim();
-    if (!text) return;
-    const optimistic = { id: "local-" + Date.now(), direction: "out", senderId: "me", text, status: "sending" };
+    const image = selectedImage;
+    if ((!text && !image) || sending) return;
+    const optimistic = {
+      id: "local-" + Date.now(),
+      conversationId: selected,
+      direction: "out",
+      senderId: currentUserId,
+      type: image ? "image" : "text",
+      text,
+      media: image ? { url: image.url, mediaType: "image", name: image.name, mimeType: image.type, size: image.size } : null,
+      status: "sending",
+    };
+    setSending(true);
+    setError("");
     setMessages((current) => ({ ...current, [selectedName]: [...(current[selectedName] || []), optimistic] }));
-    setDraft("");
+    let uploadedMediaId = null;
     try {
-      const sent = await messagesApi.send({ conversationId: selected, text });
+      let media = null;
+      if (image) {
+        media = await messagesApi.uploadImage(image.file);
+        uploadedMediaId = media?.mediaId || null;
+        if (!uploadedMediaId) throw new Error("Image upload did not return a media id.");
+      }
+      const sent = await messagesApi.send({ conversationId: selected, type: image ? "image" : "text", text, mediaId: uploadedMediaId });
       setMessages((current) => ({ ...current, [selectedName]: [...(current[selectedName] || []).filter((item) => item.id !== optimistic.id), { ...sent, direction: "out", status: "sent" }] }));
-    } catch {
+      setDraft("");
+      clearSelectedImage();
+      setError("");
+    } catch (err) {
+      if (uploadedMediaId) {
+        try { await messagesApi.deleteMedia(uploadedMediaId); } catch {}
+      }
       setMessages((current) => ({ ...current, [selectedName]: (current[selectedName] || []).map((item) => item.id === optimistic.id ? { ...item, status: "failed" } : item) }));
+      setError(err?.message || "Could not send this message.");
+    } finally {
+      setSending(false);
     }
   };
 
-  const selectConversation = (id) => { setSelected(id); setDraft(""); };
+  const selectConversation = (id) => {
+    clearSelectedImage();
+    setSelected(id);
+    setDraft("");
+    setError("");
+  };
 
   return <div className="messages">
     <aside>{conversations.map((conversation) => {
       const latest = messages[conversation.name]?.at(-1);
       return <button key={conversation.id} className={"conversation " + (selected === conversation.id ? "active" : "")} onClick={() => selectConversation(conversation.id)}>
         <span className="avatar avatar--small">{conversation.name[0]}</span>
-        <span><b>{conversation.name}</b><small>{latest?.text || "Start a conversation"}</small></span>
+        <span><b>{conversation.name}</b><small>{latest?.text || (latest?.media ? "Image" : "Start a conversation")}</small></span>
         <small>{selected === conversation.id ? "now" : "1m"}</small>
       </button>;
     })}</aside>
@@ -124,16 +205,28 @@ export function MessagesRoute() {
       <header><span className="avatar avatar--small">{selectedName[0]}</span><span><b>{selectedName}</b><small>Active recently</small></span><MoreHorizontal/></header>
       <div className="chat-body">
         <small>Today</small>
-        {loading ? <div className="empty"><p>Loading conversation…</p></div> : currentMessages.map((rawMessage) => {
+        {loading ? <div className="empty"><p>Loading conversation…</p></div> :
+         currentMessages.map((rawMessage) => {
           const message = renderMessage(rawMessage);
-          return <div className={"bubble " + (message.direction === "out" ? "out" : "in")} key={message.id}>{message.text}{message.status === "failed" && <small> · Failed</small>}{message.status === "sending" && <small> · Sending</small>}</div>;
+          return <div className={"bubble " + (message.direction === "out" ? "out" : "in")} key={message.id}>
+            {message.media?.url && <img className="message-image" src={message.media.url} alt={message.media.name || "Shared image"} />}
+            {message.text && <div>{message.text}</div>}
+            {message.status === "failed" && <small> · Failed</small>}
+            {message.status === "sending" && <small> · Sending</small>}
+          </div>;
         })}
       </div>
+      {error && <div className="chat-error" role="alert">{error}</div>}
       <footer>
-        <Paperclip/>
-        <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={"Message " + selectedName + "..."} aria-label={"Message " + selectedName}/>
-        <button onClick={sendMessage} disabled={!draft.trim()} aria-label="Send message"><Send/></button>
+        <label className="chat-attach" title="Add image">
+          <ImagePlus size={18}/>
+          <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageSelect} />
+        </label>
+        <Paperclip size={18} aria-hidden="true"/>
+        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={"Message " + selectedName + "..."} aria-label={"Message " + selectedName}/>
+        <button onClick={sendMessage} disabled={sending || (!draft.trim() && !selectedImage)} aria-label="Send message">{sending ? "…" : <Send/>}</button>
       </footer>
+      {selectedImage && <div className="chat-image-preview"><img src={selectedImage.url} alt="Selected image preview"/><div><b>{selectedImage.name}</b><small>Ready to send · nothing is sent until you press Send</small></div><button onClick={clearSelectedImage} aria-label="Remove selected image"><X size={16}/></button></div>}
     </section>
   </div>;
 }
