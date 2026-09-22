@@ -1,0 +1,16 @@
+name = "sphere-api"
+main = "src/index.js"
+compatibility_date = "2026-09-20"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sss"
+database_id = "57064739-5e86-4d4f-b9d7-d223a5b38642"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "sss"
+
+[vars]
+FRONTEND_ORIGIN = "https://sphereis.netlify.app"
