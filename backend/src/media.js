@@ -60,6 +60,8 @@ export async function deleteMedia(request, env, mediaId) {
   if (row.source !== "upload") return fail("MEDIA_NOT_FOUND",400,"Only uploaded media can be deleted here.");
   if (row.owner_id && row.owner_id !== session.user_id) return fail("FORBIDDEN",403,"You do not own this media.");
   if (row.post_id) return fail("MEDIA_IN_USE",409,"Media is attached to a published post.");
+  const messageUse = await env.DB.prepare("SELECT id FROM messages WHERE media_id = ?1 AND deleted_at IS NULL LIMIT 1").bind(mediaId).first();
+  if (messageUse) return fail("MEDIA_IN_USE",409,"Media is attached to a message.");
   await env.MEDIA_BUCKET.delete(row.object_key);
   await env.DB.prepare("DELETE FROM post_media WHERE id = ?1 AND post_id IS NULL AND (owner_id = ?2 OR owner_id IS NULL)").bind(mediaId, session.user_id).run();
   return { response:{ ok:true, mediaId }, error:null };
