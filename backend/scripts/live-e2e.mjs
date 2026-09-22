@@ -170,7 +170,7 @@ for (const [label, id] of [["music-only", musicPostId], ["background-only", back
 }
 const mixedFeedPost = feed.items?.find((item) => item.id === mixedPostId);
 if (mixedFeedPost?.music?.musicId !== "e2e-mixed-track" || mixedFeedPost?.bg?.value !== "#654321") {
-  throw new Error("Mixed post server-backed fields feed contract failed.");
+  throw new Error("Mixed post server-backed fields feed contract failed: music=" + String(mixedFeedPost?.music?.musicId) + " bg=" + String(mixedFeedPost?.bg?.value));
 }
 
 const liked = await request("/api/social/posts/" + encodeURIComponent(postId) + "/like", {
