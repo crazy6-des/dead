@@ -107,7 +107,7 @@ try {
   assert.equal(calls.length, 2);
 
   const audioFile = new File([new Uint8Array([4, 5, 6])], "track.mp3", { type: "audio/mpeg" });
-  const catalogLikeDraft = { ...draft, text: "", media: [], audio: { source: "catalog", musicId: "catalog-1", url: "https://cdn.example.com/catalog-1.mp3", title: "Catalog Track", artist: "Artist", type: "audio/mpeg", size: 0 } };
+  const catalogLikeDraft = { ...draft, text: "", media: [], audio: { source: "catalog", musicId: "catalog-1", url: "https://cdn.example.com/catalog-1.mp3", name: "Catalog Track", title: "Catalog Track", artist: "Artist", type: "audio/mpeg", size: 0 } };
   const catalogPayload = createPostRequest(catalogLikeDraft);
   assert.equal(catalogPayload.kind, "music");
   assert.equal(catalogPayload.audio.musicId, "catalog-1");
