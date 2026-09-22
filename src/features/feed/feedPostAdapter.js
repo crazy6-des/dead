@@ -23,7 +23,7 @@ export function toFeedPostFromCreatedPost(
   { authorName = "David", authorHandle = "@david" } = {},
 ) {
   const media = normalizeMedia(post.media);
-  const audio = post.audio ? sanitizeMediaAsset(post.audio) : null;
+  const audio = post.audio ? sanitizeMediaAsset(post.audio) : normalizeMedia(media).find((item) => item?.mediaType === "audio") || null;
   const author = post.author && typeof post.author === "object" ? post.author : {};
   const resolvedAuthorName = post.a ?? post.authorName ?? author.displayName ?? authorName;
   const resolvedAuthorHandle = post.h ?? post.authorHandle ?? (author.username ? `@${author.username}` : authorHandle);
