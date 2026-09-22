@@ -9,8 +9,30 @@ function encodeCursor(createdAt, id) { return globalThis.btoa(JSON.stringify({ c
 function decodeCursor(value) { if (!value) return null; try { const normalized = String(value).replace(/-/g, "+").replace(/_/g, "/"); return JSON.parse(globalThis.atob(normalized + "=".repeat((4 - normalized.length % 4) % 4))); } catch { return null; } }
 function limitValue(value) { const n = Number(value); return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_LIMIT) : DEFAULT_LIMIT; }
 async function requireSession(request, env) { const session = await resolveSession(request, env); if (!session?.user_id) return { session: null, failure: failure("UNAUTHORIZED", 401, "Authentication is required.") }; if (!env?.DB) return { session: null, failure: failure("SERVICE_UNAVAILABLE", 503, "Notification service is not configured.") }; return { session, failure: null }; }
-function typeForUi(eventType) { return eventType === "message" ? "system" : eventType; }
-function notificationPayload(row) { let payload = {}; try { payload = JSON.parse(row.payload || "{}"); } catch { payload = {}; } const text = payload.text ? String(payload.text) : row.event_type === "follow" ? "followed you" : row.event_type === "like" ? "liked your post" : row.event_type === "repost" ? "reposted your post" : row.event_type === "reply" ? "replied to your post" : row.event_type === "share" ? "shared a post with their followers" : "sent you a message"; return { id: row.id, type: typeForUi(row.event_type), actor: row.actor_display_name || row.actor_username || "S", text, time: row.created_at, verified: false, read: Boolean(row.read_at), target: row.target_id || null }; }
+
+function notificationPayload(row) {
+  let payload = {};
+  try { payload = JSON.parse(row.payload || "{}"); } catch { payload = {}; }
+  const text = payload.text ? String(payload.text) : row.event_type === "follow" ? "followed you" : row.event_type === "like" ? "liked your post" : row.event_type === "repost" ? "reposted your post" : row.event_type === "reply" ? "replied to your post" : row.event_type === "share" ? "shared a post with their followers" : "sent you a message";
+  let target = null;
+  if (row.event_type === "follow") target = row.actor_username ? "/user/" + encodeURIComponent(row.actor_username) : null;
+  else if (row.event_type === "message") target = row.conversation_id ? "/messages?conversation=" + encodeURIComponent(row.conversation_id) : null;
+  else if (row.target_id) target = "/post/" + encodeURIComponent(row.target_id) + (row.event_type === "reply" ? "/replies" : "");
+  return {
+    id: row.id,
+    type: row.event_type === "message" ? "system" : row.event_type,
+    actor: row.actor_display_name || row.actor_username || "S",
+    username: row.actor_username || null,
+    text,
+    time: row.created_at,
+    verified: Boolean(row.actor_verified),
+    read: Boolean(row.read_at),
+    target,
+    targetType: row.target_type || null,
+    targetId: row.target_id || null,
+    conversationId: row.conversation_id || null,
+  };
+}
 
 export async function createNotification(env, { recipientId, actorId = null, eventType, targetType = null, targetId = null, conversationId = null, payload = {} }) {
   if (!env?.DB || !recipientId || !EVENT_TYPES.has(eventType) || recipientId === actorId) return false;
@@ -27,7 +49,7 @@ export async function listNotifications(request, env) {
   else if (filter !== "All" && filter !== "Verified") return failure("VALIDATION_ERROR", 400, "Unsupported notification filter.");
   if (cursor?.createdAt && cursor?.id) { values.push(cursor.createdAt, cursor.id); where += ` AND (n.created_at < ?${values.length - 1} OR (n.created_at = ?${values.length - 1} AND n.id < ?${values.length}))`; }
   values.push(limit + 1);
-  const rows = await env.DB.prepare(`SELECT n.id, n.event_type, n.payload, n.target_id, n.read_at, n.created_at, u.username AS actor_username, u.display_name AS actor_display_name FROM notifications n LEFT JOIN users u ON u.id = n.actor_id WHERE ${where} ORDER BY n.created_at DESC, n.id DESC LIMIT ?${values.length}`).bind(...values).all();
+  const rows = await env.DB.prepare(`SELECT n.id, n.event_type, n.payload, n.target_type, n.target_id, n.conversation_id, n.read_at, n.created_at, u.username AS actor_username, u.display_name AS actor_display_name, 0 AS actor_verified FROM notifications n LEFT JOIN users u ON u.id = n.actor_id WHERE ${where} ORDER BY n.created_at DESC, n.id DESC LIMIT ?${values.length}`).bind(...values).all();
   const items = rows.results.slice(0, limit).map(notificationPayload); const last = items.at(-1);
   return { response: { items, nextCursor: rows.results.length > limit && last ? encodeCursor(last.time, last.id) : null, hasMore: rows.results.length > limit }, error: null };
 }
