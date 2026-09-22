@@ -58,7 +58,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const audioSource = getAudioSource(post, mediaItems);
   const background = post.background || post.bg || null;
   const backgroundStyle = getBackgroundStyle(background);
-  const runModeration = async (action, reason = null) => {
+  const downloadMedia = () => {\n    const source = mediaSources[0] || audioSource?.url;\n    if (!source) return;\n    const link = document.createElement("a");\n    link.href = source;\n    link.download = `s-post-${post.id}`;\n    link.rel = "noopener";\n    document.body.appendChild(link);\n    link.click();\n    link.remove();\n    setMenu(false);\n  };\n  const runModeration = async (action, reason = null) => {
     setModerationBusy(true);
     try {
       await moderationService.act({ targetType: action === MODERATION_ACTIONS.REPORT ? "post" : "user", targetId: action === MODERATION_ACTIONS.REPORT ? post.id : username, action, reason });
@@ -76,7 +76,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
         <span>@{username}</span><span>·</span>
         <button className="post-time" onClick={() => onOpen?.("/post/" + post.id)}>{post.createdAt || post.t || "now"}</button>
         <div className="post-menu"><button className="icon-btn" onClick={() => setMenu((v) => !v)} aria-label="More"><MoreHorizontal size={18}/></button>
-          {menu && <div className="popover"><button onClick={() => navigator.clipboard?.writeText(window.location.origin + "/post/" + post.id)}><Copy size={16}/>Copy link</button><button onClick={() => runModeration(MODERATION_ACTIONS.MUTE)} disabled={moderationBusy}><Shield size={16}/>Mute author</button><button onClick={() => runModeration(MODERATION_ACTIONS.BLOCK)} disabled={moderationBusy}><X size={16}/>Block author</button><button className="danger" onClick={() => setModeration("report")}><Flag size={16}/>Report post</button></div>}
+          {menu && <div className="popover"><button onClick={() => navigator.clipboard?.writeText(window.location.origin + "/post/" + post.id)}><Copy size={16}/>Copy link</button><button onClick={() => onRepost?.(post.id)}><Repeat2 size={16}/>Repost</button><button onClick={() => onSave?.(post.id)}><Bookmark size={16}/> {post.saved ? "Remove from favourites" : "Add to favourites"}</button><button onClick={() => onOpen?.("/share/" + post.id)}><Send size={16}/>Share</button>{(mediaSources.length > 0 || audioSource?.url) && <button onClick={downloadMedia}><Send size={16}/>Download media</button>}<button onClick={() => runModeration(MODERATION_ACTIONS.MUTE)} disabled={moderationBusy}><Shield size={16}/>Mute author</button><button onClick={() => runModeration(MODERATION_ACTIONS.BLOCK)} disabled={moderationBusy}><X size={16}/>Block author</button><button className="danger" onClick={() => setModeration("report")}><Flag size={16}/>Report post</button></div>}
         </div>
       </div>
       {text && <button className="post-content-hit" onClick={() => onOpen?.("/post/" + post.id)}><p className="post__text">{text}</p></button>}
