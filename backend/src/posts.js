@@ -93,7 +93,7 @@ export async function createPost(request, env) {
     return { response: null, error: error("VALIDATION_ERROR", 400, "Post text must contain 5000 characters or fewer.") };
   }
   if (media.some((item) => !item || typeof item.mediaId !== "string")) return { response: null, error: error("MEDIA_NOT_FOUND", 400, "Every uploaded media item must reference a media id.") };
-  if (audio && !((audio.source === "catalog" && typeof audio.musicId === "string" && /^https?:\/\/i.test(String(audio.url || ""))) || typeof audio.mediaId === "string")) {
+  if (audio && !((audio.source === "catalog" && typeof audio.musicId === "string" && /^https?:\/\//i.test(String(audio.url || ""))) || typeof audio.mediaId === "string")) {
     return { response: null, error: error("AUDIO_NOT_FOUND", 400, "Music must reference uploaded media or a catalog track.") };
   }
 
