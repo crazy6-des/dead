@@ -17,7 +17,7 @@ function readCookie(response) {
 async function request(path, options = {}) {
   const headers = new Headers(options.headers || {});
   headers.set("Origin", origin);
-  if (options.body !== undefined) headers.set("Content-Type", "application/json");
+  if (options.body !== undefined && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
   if (cookie) headers.set("Cookie", cookie);
 
   const response = await fetch(baseUrl + path, { ...options, headers });
@@ -38,6 +38,19 @@ if (!signup.authenticated || signup.user?.username !== username) throw new Error
 const session = await request("/api/auth/session");
 if (!session.authenticated || session.user?.username !== username) throw new Error("Session persistence contract failed.");
 
+const imageBytes = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+const mediaForm = new FormData();
+mediaForm.append("file", new Blob([imageBytes], { type: "image/png" }), "e2e.png");
+const uploadedMedia = await request("/api/media/upload", { method: "POST", body: mediaForm });
+const mediaId = uploadedMedia.media?.mediaId;
+if (!mediaId) throw new Error("R2 media upload persistence contract failed.");
+const mediaCheck = await fetch(baseUrl + "/api/media/" + encodeURIComponent(mediaId), {
+  headers: { Origin: origin, ...(cookie ? { Cookie: cookie } : {}) },
+});
+if (!mediaCheck.ok || mediaCheck.headers.get("content-type") !== "image/png") {
+  throw new Error("R2 media delivery contract failed.");
+}
+
 const created = await request("/api/posts", {
   method: "POST",
   body: JSON.stringify({
@@ -54,8 +67,28 @@ const created = await request("/api/posts", {
 const postId = created.post?.id;
 if (!postId) throw new Error("Post creation persistence contract failed.");
 
+const richCreated = await request("/api/posts", {
+  method: "POST",
+  body: JSON.stringify({
+    text: "",
+    kind: "image",
+    media: [{ mediaId }],
+    audio: null,
+    background: null,
+    poll: null,
+    audience: "public",
+    replyPolicy: "everyone",
+  }),
+});
+const richPostId = richCreated.post?.id;
+if (!richPostId || richCreated.post?.media?.[0]?.id !== mediaId) {
+  throw new Error("Image-only post media persistence contract failed.");
+}
+
 const feed = await request("/api/feed?mode=Latest&limit=20");
 if (!feed.items?.some((item) => item.id === postId)) throw new Error("Feed persistence contract failed.");
+const richFeedPost = feed.items?.find((item) => item.id === richPostId);
+if (!richFeedPost?.media?.some((item) => item.id === mediaId && String(item.url || "").includes("/api/media/"))) throw new Error("Server-backed media feed rendering contract failed.");
 
 const liked = await request("/api/social/posts/" + encodeURIComponent(postId) + "/like", {
   method: "POST",
@@ -92,5 +125,5 @@ console.log(JSON.stringify({
   ok: true,
   username,
   postId,
-  checks: ["sign-up", "session", "post", "feed", "like", "bookmark", "profile-read", "profile-update", "sign-out", "sign-in"],
+  checks: ["sign-up", "session", "media-upload", "media-delivery", "image-only-post", "post", "feed", "server-media-feed", "like", "bookmark", "profile-read", "profile-update", "sign-out", "sign-in"],
 }));
