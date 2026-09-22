@@ -27,6 +27,10 @@ const invalidMethod = await worker.fetch(new Request("https://example.test/api/a
 assert.equal(invalidMethod.status, 405);
 assert.equal((await invalidMethod.json()).error.code, "METHOD_NOT_ALLOWED");
 
+const mediaUploadRoute = await worker.fetch(new Request("https://example.test/api/media/upload", { method: "POST" }), {});
+assert.equal(mediaUploadRoute.status, 401);
+assert.equal((await mediaUploadRoute.json()).error.code, "UNAUTHORIZED");
+
 assert.equal(await sha256Hex("session-token-test"), "84fd062df4bff6a9dbc029aeadf02fef3cf19b112818a1dee8b782673bcb5484");
 
 const credentials = validateCredentials({ username: "  David_01 ", email: " DAVID@example.com ", password: "correct horse battery staple" });
