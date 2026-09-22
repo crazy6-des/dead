@@ -86,9 +86,15 @@ export async function createPost(request, env) {
   const background = body.background && typeof body.background === "object" ? body.background : null;
   if (body.poll !== null && body.poll !== undefined) return { response: null, error: error("UNSUPPORTED_POST_CONTENT", 400, "Poll persistence is not connected yet.") };
   if (!ALLOWED_KINDS.has(kind) || media.length > MAX_MEDIA) return { response: null, error: error("VALIDATION_ERROR", 400, "Unsupported post content or too many media items.") };
+  if (!text && media.length === 0 && !audio && !background) {
+    return { response: null, error: error("VALIDATION_ERROR", 400, "Post must contain text, image, music, or background content.") };
+  }
+  if (text.length > MAX_POST_TEXT) {
+    return { response: null, error: error("VALIDATION_ERROR", 400, "Post text must contain 5000 characters or fewer.") };
+  }
   if (media.some((item) => !item || typeof item.mediaId !== "string")) return { response: null, error: error("MEDIA_NOT_FOUND", 400, "Every uploaded media item must reference a media id.") };
-  if (!text || text.length > MAX_POST_TEXT) {
-    return { response: null, error: error("VALIDATION_ERROR", 400, "Post text must contain 1-5000 characters.") };
+  if (audio && !((audio.source === "catalog" && typeof audio.musicId === "string" && /^https?:\/\/i.test(String(audio.url || ""))) || typeof audio.mediaId === "string")) {
+    return { response: null, error: error("AUDIO_NOT_FOUND", 400, "Music must reference uploaded media or a catalog track.") };
   }
 
   const audience = String(body.audience || "public");
@@ -98,21 +104,32 @@ export async function createPost(request, env) {
   }
 
   const id = globalThis.crypto.randomUUID();
+  const storedMedia = [];
+  for (const item of media) {
+    const stored = await env.DB.prepare("SELECT id, source, owner_id FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(item.mediaId).first();
+    if (!stored) return { response: null, error: error("MEDIA_NOT_FOUND", 400, "Referenced media was not found or is already attached.") };
+    if (stored.source !== "upload" || (stored.owner_id && stored.owner_id !== session.user_id)) {
+      return { response: null, error: error("FORBIDDEN", 403, "You can only attach media that you own.") };
+    }
+    storedMedia.push(stored);
+  }
+
   await env.DB.prepare(
     "INSERT INTO posts (id, author_id, body, visibility, reply_policy, post_kind, background_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)"
   ).bind(id, session.user_id, text, audience, replyPolicy, kind, background ? JSON.stringify(background) : null).run();
 
   for (let position = 0; position < media.length; position += 1) {
-    const item = media[position];
-    const stored = await env.DB.prepare("SELECT id, source FROM post_media WHERE id = ?1 LIMIT 1").bind(item.mediaId).first();
-    if (!stored) return { response: null, error: error("MEDIA_NOT_FOUND", 400, "Referenced media was not found.") };
-    await env.DB.prepare("UPDATE post_media SET post_id = ?1, position = ?2 WHERE id = ?3 AND post_id IS NULL").bind(id, position, item.mediaId).run();
+    await env.DB.prepare("UPDATE post_media SET post_id = ?1, position = ?2 WHERE id = ?3 AND post_id IS NULL").bind(id, position, media[position].mediaId).run();
   }
 
   if (audio?.source === "catalog") {
     await env.DB.prepare("INSERT INTO post_media (id, post_id, object_key, media_type, mime_type, byte_size, position, source, external_url, metadata_json, duration_ms) VALUES (?1, ?2, ?3, 'audio', ?4, 0, ?5, 'catalog', ?6, ?7, ?8)")
       .bind(globalThis.crypto.randomUUID(), id, `catalog:${audio.musicId}`, audio.type || "audio/mpeg", media.length, audio.url, JSON.stringify({ musicId: audio.musicId, title: audio.title || audio.name || "", artist: audio.artist || "", album: audio.album || "" }), Number(audio.durationMs || 0)).run();
   } else if (audio?.mediaId) {
+    const audioMedia = await env.DB.prepare("SELECT id, source, owner_id FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(audio.mediaId).first();
+    if (!audioMedia || audioMedia.source !== "upload" || (audioMedia.owner_id && audioMedia.owner_id !== session.user_id)) {
+      return { response: null, error: error("AUDIO_NOT_FOUND", 400, "Uploaded music was not found or is not owned by this user.") };
+    }
     await env.DB.prepare("UPDATE post_media SET post_id = ?1, position = ?2 WHERE id = ?3 AND post_id IS NULL").bind(id, media.length, audio.mediaId).run();
   }
 
