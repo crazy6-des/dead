@@ -14,7 +14,7 @@ import { setPostAction, setRelationship } from "./social.js";
 import { createConversation, listConversations, listMessages, markConversationRead, sendMessage } from "./messages.js";
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from "./notifications.js";
 import { getMyProfile, getProfile, updateMyProfile } from "./profile.js";
-import { getMedia, uploadMedia } from "./media.js";
+import { deleteMedia, getMedia, uploadMedia } from "./media.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const MAX_BODY_BYTES = 16 * 1024;
@@ -39,6 +39,7 @@ export default { async fetch(request, env) {
   if (mediaMatch) {
     const mediaId = decodeURIComponent(mediaMatch[1]);
     if (request.method === "GET") { const result = await getMedia(request, env, mediaId); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return result.response; }
+    if (request.method === "DELETE") { if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await deleteMedia(request, env, mediaId); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
     return methodNotAllowed(request, env);
   }
   if (url.pathname === "/api/media/upload") {
