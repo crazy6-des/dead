@@ -26,8 +26,9 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
 
   useEffect(() => {
     musicAdapter.current = createMusicAdapter();
+    const urls = fileUrls.current;
     return () => {
-      fileUrls.current.forEach((url) => URL.revokeObjectURL(url));
+      urls.forEach((url) => URL.revokeObjectURL(url));
       musicSearchController.current?.abort();
     };
   }, []);
