@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Check, UserRound, Shield, Palette } from "lucide-react";
-import { PRODUCT_IDENTITY } from "../../app/productIdentity.js";
 import AuthPanel from "../auth/AuthPanel.jsx";
 import { hasApiBaseUrl } from "../../services/apiClient.js";
 import { settingsService } from "../../services/settingsService.js";
