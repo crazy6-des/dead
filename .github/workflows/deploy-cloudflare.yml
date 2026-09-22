@@ -2,8 +2,6 @@ name: Deploy Cloudflare Worker
 
 on:
   workflow_dispatch:
-  push:
-    branches: ["main"]
 
 permissions:
   contents: read
@@ -62,14 +60,14 @@ jobs:
 
       - name: Verify live health
         env:
-          HEALTH_URL: https://sphere-api.binancecompany274.workers.dev/api/health
+          HEALTH_URL: https://muddy-tooth-e4be.binancecompany274.workers.dev/api/health
         run: |
           curl --fail-with-body --silent --show-error ${HEALTH_URL} | tee /tmp/health.json
           jq -e '.ok == true and .service == "sss-api"' /tmp/health.json
 
       - name: Run live persistence E2E
         env:
-          LIVE_API_BASE_URL: https://sphere-api.binancecompany274.workers.dev
+          LIVE_API_BASE_URL: https://muddy-tooth-e4be.binancecompany274.workers.dev
           TEST_ORIGIN: https://sphereis.netlify.app
           TEST_USERNAME: e2e_${{ github.run_id }}
           TEST_EMAIL: e2e_${{ github.run_id }}@example.invalid
