@@ -85,8 +85,6 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
   useEffect(() => {
     if (!hasApiBaseUrl() || !profile.username) return undefined;
     let active = true;
-    setActivityLoading(true);
-    setActivityError("");
     profileService.listPosts(profile.username, tab.toLowerCase()).then((result) => {
       if (!active) return;
       setActivityPosts(Array.isArray(result?.items) ? result.items : []);
@@ -186,7 +184,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
       </div>
 
       <div className="tabs4">
-        {tabs.map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}
+        {tabs.map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { if (item === tab) return; setActivityLoading(true); setActivityError(""); setTab(item); }}>{item}</button>)}
       </div>
 
       {activityLoading ? <div className="empty" role="status"><p>Loading activity…</p></div> : activityError ? <div className="empty"><h3>Could not load activity</h3><p>{activityError}</p></div> : visiblePosts.length > 0
