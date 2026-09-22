@@ -26,10 +26,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, mode = "po
   const [shared, setShared] = useState(false);
 
   useEffect(() => {
-    if (mode === "quote" || mode === "media") {
-      setReplyLoading(false);
-      return undefined;
-    }
+    if (mode === "quote" || mode === "media") return undefined;
     let active = true;
     setReplyLoading(true);
     setReplyError("");
