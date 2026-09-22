@@ -11,7 +11,7 @@ function ActionBar({ post, onLike, onSave, onReply, onRepost, onShare }) {
     <button onClick={onReply}><MessageCircle size={17}/>{post.r ?? 0} Reply</button>
     <button className={post.reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)}><Repeat2 size={17}/>{post.p ?? 0} Repost</button>
     <button className={post.liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)}><Heart size={17} fill={post.liked ? "currentColor" : "none"}/>{post.l ?? 0} Like</button>
-    <button onClick={() => onSave?.(post.id)}><span aria-hidden="true">🔖</span>Save</button>
+    <button className={post.saved ? "is-active" : ""} onClick={() => onSave?.(post.id)}><span aria-hidden="true">🔖</span>{post.saved ? "Saved" : "Save"}</button>
     <button onClick={onShare}><Send size={17}/>Share</button>
   </div>;
 }
@@ -74,13 +74,20 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
   return <div className="detail-page"><BackButton onBack={onBack}/><article className="detail-post"><div className="avatar">{(post.a || "S")[0]}</div><div>
     <div className="post__meta"><strong>{post.a || "User"}</strong>{post.verified && <span className="verified"><Check size={10}/></span>}<span className="muted">@{String(post.h || "user").replace("@", "")}</span><span className="muted">· {post.t || "now"}</span><button className={following ? "is-following" : "outline"} onClick={() => onFollowUser?.(username)}>{following ? "Following" : "Follow"}</button></div>
     <p className="detail-post__text">{post.x}</p>
-    {post.media && <button className="post-media detail-media" onClick={() => onOpen?.("/post/" + post.id + "/media")}><span>Visual expression</span><small>Open media viewer</small></button>}
+    {Array.isArray(post.media) && post.media.length > 0 && <button className="post-media detail-media" onClick={() => onOpen?.("/post/" + post.id + "/media")}><img src={typeof post.media[0] === "string" ? post.media[0] : post.media[0]?.url} alt="Post media" loading="lazy" /><small>Open media viewer</small></button>}
     {music && <div className="audio-card"><strong>{music.title || music.name || "Audio attachment"}</strong><span>{music.artist || music.type || "Audio"}{music.durationMs ? " · " + Math.round(music.durationMs / 1000) + "s" : ""}</span></div>}
     <ActionBar post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onReply={() => document.getElementById("reply-box")?.focus()} onShare={share}/>
   </div></article>
   {mode === "quote" && <section className="composer-panel"><div className="heading"><small>QUOTE POST</small><h3>Add your perspective</h3></div><textarea value={quote} onChange={(e) => setQuote(e.target.value)} placeholder="Say something about this post…" maxLength={5000}/><div className="composer-panel__footer"><span>{quote.length}/5000</span><button className="primary" disabled={!quote.trim()} onClick={() => submitLocalDraft(quote, "quote")}>Quote</button></div></section>}
   <section className="thread"><div className="thread-head"><h3>{mode === "media" ? "Media" : "Replies"}</h3><span>{mode === "media" ? "Media from this post" : replies.length + " repl" + (replies.length === 1 ? "y" : "ies")}</span></div>
-    {mode === "media" && <div className="media-viewer"><div className="post-media"><span>Visual expression</span><small>Full media viewer surface</small></div><p className="muted">Media controls and delivery will connect to the media service later.</p></div>}
+    {mode === "media" && <div className="media-viewer">
+      {Array.isArray(post.media) && post.media.filter((item) => String(item?.mediaType || "").toLowerCase() !== "audio").map((item, index) => {
+        const src = typeof item === "string" ? item : item?.url;
+        return src ? <img key={src + index} src={src} alt={item?.alt || "Post media"} loading="lazy" /> : null;
+      })}
+      {music?.url && <audio controls preload="metadata" src={music.url} />}
+      {(!post.media?.length && !music?.url) && <div className="empty"><h3>No media available</h3><p>The post does not contain a deliverable media attachment.</p></div>}
+    </div>}
     {mode !== "media" && <><div className="reply-composer"><div className="avatar avatar--small">D</div><div className="reply-composer__body"><textarea id="reply-box" value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Reply to this post…" maxLength={5000} disabled={replySubmitting}/><div><span>{reply.length}/5000</span><button className="primary" disabled={!reply.trim() || replySubmitting} onClick={submitReply}>{replySubmitting ? "Replying…" : "Reply"}</button></div></div></div>
       {replyError && <div className="inline-notice" role="alert">{replyError}</div>}
       {replyLoading ? <div className="empty" role="status"><h3>Loading replies…</h3></div> : replies.length === 0 ? <div className="empty"><h3>No replies yet</h3><p>Be the first to reply.</p></div> : <div className="reply-list">{replies.map((item) => <article className="reply-row" key={item.id}><div className="avatar avatar--small">{String(item.author?.displayName || item.author?.username || "U")[0]}</div><div><div className="post__meta"><strong>{item.author?.displayName || item.author?.username || "User"}</strong><span className="muted">@{item.author?.username || "user"}</span></div><p>{item.text}</p></div></article>)}</div>}
