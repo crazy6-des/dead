@@ -169,8 +169,8 @@ for (const [label, id] of [["music-only", musicPostId], ["background-only", back
   if (!feed.items?.some((item) => item.id === id)) throw new Error(label + " post feed persistence contract failed.");
 }
 const mixedFeedPost = feed.items?.find((item) => item.id === mixedPostId);
-if (mixedFeedPost?.music?.musicId !== "e2e-mixed-track" || mixedFeedPost?.bg?.value !== "#654321") {
-  throw new Error("Mixed post server-backed fields feed contract failed: music=" + String(mixedFeedPost?.music?.musicId) + " bg=" + String(mixedFeedPost?.bg?.value));
+if (mixedFeedPost?.audio?.musicId !== "e2e-mixed-track" || mixedFeedPost?.background?.value !== "#654321") {
+  throw new Error("Mixed post server-backed fields feed contract failed: music=" + String(mixedFeedPost?.audio?.musicId) + " bg=" + String(mixedFeedPost?.background?.value));
 }
 
 const liked = await request("/api/social/posts/" + encodeURIComponent(postId) + "/like", {
