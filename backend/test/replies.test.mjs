@@ -37,7 +37,7 @@ const db = {
 };
 const env={DB:db};
 const request=(path,init={})=>new Request("https://example.test"+path,{...init,headers:{Cookie:"s_session=session-1","content-type":"application/json",...(init.headers||{})}});
-const created=await createReply(request("/api/posts/post-1/replies",{method:"POST",body:JSON.stringify({text:"A real reply"})}),env);
+const created=await createReply(request("/api/posts/post-1/replies",{method:"POST",body:JSON.stringify({text:"A real reply"})}),env,"post-1");
 assert.equal(created.error,null);
 assert.equal(created.response.status,"created");
 assert.equal(state.replies.length,1);
@@ -46,5 +46,5 @@ const listed=await listReplies(request("/api/posts/post-1/replies"),env);
 assert.equal(listed.error,null);
 assert.equal(listed.response.items.length,1);
 assert.equal(listed.response.items[0].text,"A real reply");
-assert.equal((await createReply(request("/api/posts/post-1/replies",{method:"POST",body:JSON.stringify({text:""})}),env)).error.code,"VALIDATION_ERROR");
+assert.equal((await createReply(request("/api/posts/post-1/replies",{method:"POST",body:JSON.stringify({text:""})}),env,"post-1")).error.code,"VALIDATION_ERROR");
 console.log("Post replies API contracts: PASS");
