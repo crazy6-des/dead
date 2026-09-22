@@ -87,7 +87,7 @@ const shared = await worker.fetch(request("/api/social/posts/post-1/share"), { D
 assert.equal(shared.status, 200);
 const sharedBody = await shared.json();
 assert.deepEqual(sharedBody, { ok: true, postId: "post-1", recipientCount: 2 });
-assert.equal(state.notifications.length, 2);
+assert.equal(state.notifications.filter((values) => values[3] === "share").length, 2);
 assert.equal(state.notifications.every((values) => values[3] === "share"), true);
 
 console.log("Follower share contract: PASS");
