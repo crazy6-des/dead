@@ -5,7 +5,6 @@ import PostCard from "../post/PostCard.jsx";
 import { NOTIFICATION_FILTERS } from "../notifications/notificationContract.js";
 import { createNotificationAdapter } from "../../services/notificationService.js";
 import { createMessageAdapter } from "../../services/messageService.js";
-import { hasApiBaseUrl } from "../../services/apiClient.js";
 
 const NOTIFICATION_SEED = [
   { id: "n1", actor: "Maya Okafor", username: "maya", type: "like", text: "liked your post", time: "2m", target: "/post/1" },
