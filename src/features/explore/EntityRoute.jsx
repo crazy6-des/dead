@@ -3,6 +3,7 @@ import { socialGraphService } from "../../services/socialGraphService.js";
 import { replyService } from "../../services/replyService.js";
 import { profileService } from "../../services/profileService.js";
 import PostCard from "../post/PostCard.jsx";
+import { toFeedPostFromCreatedPost } from "../feed/feedPostAdapter.js";
 import { publishQuotePost } from "../../services/postService.js";
 import { ArrowLeft, Check, Copy, Heart, Link2, MessageCircle, Repeat2, Send, Users } from "lucide-react";
 
@@ -140,7 +141,7 @@ function UserDetail({ username, onBack, onOpen, onLike, onSave, onRepost, onFoll
     });
     return () => { active = false; };
   }, [user]);
-  useEffect(() => { let active = true; profileService.listPosts(user, tab).then((result) => { if (active) setActivity(Array.isArray(result?.items) ? result.items : []); }).catch((cause) => { if (active) setActivityError(cause?.message || "Profile activity could not be loaded."); }).finally(() => { if (active) setActivityLoading(false); }); return () => { active = false; }; }, [user, tab]);
+  useEffect(() => { let active = true; profileService.listPosts(user, tab).then((result) => { if (active) setActivity(Array.isArray(result?.items) ? result.items.map((item) => toFeedPostFromCreatedPost(item)) : []); }).catch((cause) => { if (active) setActivityError(cause?.message || "Profile activity could not be loaded."); }).finally(() => { if (active) setActivityLoading(false); }); return () => { active = false; }; }, [user, tab]);
   const displayName = profile?.displayName || profile?.username || user;
   const initial = displayName.charAt(0).toUpperCase() || "U";
   return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero"><div className="profile-cover"></div><div className="entity-avatar-wrap"><div className="avatar entity-avatar">{profile?.avatarUrl ? <img src={profile.avatarUrl} alt="" /> : initial}</div></div><div className="entity-hero__content">
