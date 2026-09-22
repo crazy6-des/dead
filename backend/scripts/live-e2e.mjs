@@ -85,10 +85,87 @@ if (!richPostId || richCreated.post?.media?.[0]?.id !== mediaId) {
   throw new Error("Image-only post media persistence contract failed.");
 }
 
+const musicCreated = await request("/api/posts", {
+  method: "POST",
+  body: JSON.stringify({
+    text: "",
+    kind: "music",
+    media: [],
+    audio: {
+      source: "catalog",
+      musicId: "e2e-catalog-track",
+      url: "https://cdn.example.invalid/e2e-catalog-track.mp3",
+      title: "E2E Catalog Track",
+      artist: "S E2E",
+      type: "audio/mpeg",
+      durationMs: 1000,
+    },
+    background: null,
+    poll: null,
+    audience: "public",
+    replyPolicy: "everyone",
+  }),
+});
+const musicPostId = musicCreated.post?.id;
+if (!musicPostId || musicCreated.post?.audio?.musicId !== "e2e-catalog-track") {
+  throw new Error("Music-only catalog post persistence contract failed.");
+}
+
+const backgroundCreated = await request("/api/posts", {
+  method: "POST",
+  body: JSON.stringify({
+    text: "",
+    kind: "background",
+    media: [],
+    audio: null,
+    background: { type: "color", value: "#123456" },
+    poll: null,
+    audience: "public",
+    replyPolicy: "everyone",
+  }),
+});
+const backgroundPostId = backgroundCreated.post?.id;
+if (!backgroundPostId || backgroundCreated.post?.background?.value !== "#123456") {
+  throw new Error("Background-only post persistence contract failed.");
+}
+
+const mixedCreated = await request("/api/posts", {
+  method: "POST",
+  body: JSON.stringify({
+    text: "S rich mixed post E2E",
+    kind: "image",
+    media: [{ mediaId }],
+    audio: {
+      source: "catalog",
+      musicId: "e2e-mixed-track",
+      url: "https://cdn.example.invalid/e2e-mixed-track.mp3",
+      title: "E2E Mixed Track",
+      artist: "S E2E",
+      type: "audio/mpeg",
+      durationMs: 2000,
+    },
+    background: { type: "color", value: "#654321" },
+    poll: null,
+    audience: "public",
+    replyPolicy: "everyone",
+  }),
+});
+const mixedPostId = mixedCreated.post?.id;
+if (!mixedPostId || mixedCreated.post?.media?.[0]?.id !== mediaId || mixedCreated.post?.audio?.musicId !== "e2e-mixed-track") {
+  throw new Error("Mixed rich post persistence contract failed.");
+}
+
 const feed = await request("/api/feed?mode=Latest&limit=20");
 if (!feed.items?.some((item) => item.id === postId)) throw new Error("Feed persistence contract failed.");
 const richFeedPost = feed.items?.find((item) => item.id === richPostId);
 if (!richFeedPost?.media?.some((item) => item.id === mediaId && String(item.url || "").includes("/api/media/"))) throw new Error("Server-backed media feed rendering contract failed.");
+for (const [label, id] of [["music-only", musicPostId], ["background-only", backgroundPostId], ["mixed", mixedPostId]]) {
+  if (!feed.items?.some((item) => item.id === id)) throw new Error(label + " post feed persistence contract failed.");
+}
+const mixedFeedPost = feed.items?.find((item) => item.id === mixedPostId);
+if (mixedFeedPost?.music?.musicId !== "e2e-mixed-track" || mixedFeedPost?.bg?.value !== "#654321") {
+  throw new Error("Mixed post server-backed fields feed contract failed.");
+}
 
 const liked = await request("/api/social/posts/" + encodeURIComponent(postId) + "/like", {
   method: "POST",
@@ -125,5 +202,5 @@ console.log(JSON.stringify({
   ok: true,
   username,
   postId,
-  checks: ["sign-up", "session", "media-upload", "media-delivery", "image-only-post", "post", "feed", "server-media-feed", "like", "bookmark", "profile-read", "profile-update", "sign-out", "sign-in"],
+  checks: ["sign-up", "session", "media-upload", "media-delivery", "text-only-post", "image-only-post", "music-only-post", "background-only-post", "mixed-post", "feed", "server-media-feed", "like", "bookmark", "profile-read", "profile-update", "sign-out", "sign-in"],
 }));
