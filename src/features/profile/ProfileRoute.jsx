@@ -157,6 +157,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
   const websiteHref = (() => { const value = String(profile.website || "").trim(); if (!value) return ""; try { const parsed = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`); return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : ""; } catch { return ""; } })();
   const followerCount = profile.counts?.followers == null ? null : Number(profile.counts.followers);
   const followingCount = Number(profile.counts?.following ?? 0);
+  const joinedLabel = profile.createdAt ? new Date(profile.createdAt).toLocaleDateString(undefined, { month: "long", year: "numeric" }) : "";
 
   return (
     <div className="profile">
@@ -179,7 +180,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
         <div className="links">
           {profile.location && <span><MapPin />{profile.location}</span>}
           {profile.website && (websiteHref ? <a href={websiteHref} target="_blank" rel="noreferrer"><Link2 />{profile.website}</a> : <span><Link2 />{profile.website}</span>)}
-          <span>Joined September 2026</span>
+          {joinedLabel && <span>Joined {joinedLabel}</span>}
         </div>
         <div className="stats">
           <button onClick={() => onOpen?.(`/following/${profile.username}`)}><b>{followingCount}</b> Following</button>
