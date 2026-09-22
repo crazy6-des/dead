@@ -6,6 +6,8 @@ const state = {
   posts: [{ id: "post-1", author_id: "user-2", deleted_at: null }],
   reactions: new Set(),
   bookmarks: new Set(),
+  followers: ["user-3", "user-4"],
+  notifications: [],
 };
 
 const db = {
@@ -20,6 +22,7 @@ const db = {
                 : null;
             }
             if (query.startsWith("SELECT id, author_id, deleted_at")) return state.posts.find((post) => post.id === values[0]) || null;
+            if (query.startsWith("SELECT id, author_id, deleted_at, visibility")) return state.posts.find((post) => post.id === values[0]) || null;
             if (query.includes("relationship_type = 'block'")) return null;
             if (query.startsWith("SELECT COUNT(*)")) {
               const count = query.includes("FROM bookmarks")
@@ -29,11 +32,13 @@ const db = {
             }
             return null;
           },
+          async all() { if (query.includes("source_user_id AS recipient_id")) return { results: state.followers.map((recipient_id) => ({ recipient_id })) }; return { results: [] }; },
           async run() {
             if (query.startsWith("INSERT OR IGNORE INTO bookmarks")) state.bookmarks.add(`${values[0]}:${values[1]}`);
             if (query.startsWith("DELETE FROM bookmarks")) state.bookmarks.delete(`${values[0]}:${values[1]}`);
             if (query.startsWith("INSERT OR IGNORE INTO post_reactions")) state.reactions.add(`${values[0]}:${values[1]}:${values[2]}`);
             if (query.startsWith("DELETE FROM post_reactions")) state.reactions.delete(`${values[0]}:${values[1]}:${values[2]}`);
+            if (query.startsWith("INSERT OR IGNORE INTO notifications")) state.notifications.push(values);
             return { success: true };
           },
         };
@@ -76,3 +81,13 @@ const unbookmarked = await worker.fetch(request("/api/social/posts/post-1/bookma
 assert.equal((await unbookmarked.json()).bookmarks, 0);
 
 console.log("Social post action contracts: PASS");
+
+
+const shared = await worker.fetch(request("/api/social/posts/post-1/share"), { DB: db });
+assert.equal(shared.status, 200);
+const sharedBody = await shared.json();
+assert.deepEqual(sharedBody, { ok: true, postId: "post-1", recipientCount: 2 });
+assert.equal(state.notifications.length, 2);
+assert.equal(state.notifications.every((values) => values[3] === "share"), true);
+
+console.log("Follower share contract: PASS");
