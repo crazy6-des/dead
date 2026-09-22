@@ -14,15 +14,44 @@ export function createPostRequest(draft) {
   return createPublishPayload(result.payload);
 }
 
+function toPersistentMediaAsset(asset, media) {
+  return {
+    mediaId: media.mediaId,
+    url: media.url,
+    name: asset?.name || media.name || "",
+    type: asset?.type || media.type || "",
+    size: Number.isFinite(asset?.size) ? asset.size : Number(media.size || 0),
+    source: "upload",
+  };
+}
+
 async function prepareMediaAsset(asset) {
-  if (isUploadReadyMediaAsset(asset) || isCatalogMusicAsset(asset)) return asset;
+  if (isCatalogMusicAsset(asset)) return asset;
+  if (isUploadReadyMediaAsset(asset)) {
+    return {
+      mediaId: asset.mediaId,
+      url: asset.url,
+      name: asset.name || "",
+      type: asset.type || "",
+      size: Number(asset.size || 0),
+      source: "upload",
+    };
+  }
   if (!isLocalMediaAsset(asset) || !asset.file) return asset;
+
   const form = new FormData();
   form.append("file", asset.file, asset.file.name);
-  const result = await apiClient.post("/api/media/upload", form);
-  const media = result?.media;
-  if (!media?.mediaId || !media?.url) throw new Error("Media upload returned an invalid response.");
-  return { ...asset, mediaId: media.mediaId, url: media.url, uploadStatus: "uploaded", source: "local" };
+  try {
+    const result = await apiClient.post("/api/media/upload", form);
+    const media = result?.media;
+    if (!media?.mediaId || !media?.url) throw new Error("Media upload returned an invalid response.");
+    return toPersistentMediaAsset(asset, media);
+  } catch (error) {
+    if (error?.code === "NETWORK_ERROR" || error?.code === "REQUEST_TIMEOUT") {
+      error.message = "Media upload failed. Check your connection and try again.";
+    }
+    throw error;
+  }
 }
 
 async function preparePublishPayload(payload) {
@@ -36,7 +65,7 @@ function assertApiMediaReady(payload) {
   const audioAsset = payload.audio;
 
   if (imageAssets.some(isLocalMediaAsset) || isLocalMediaAsset(audioAsset)) {
-    const error = new Error("Media upload is not connected yet. Please publish text-only posts until the media upload service is enabled.");
+    const error = new Error("Media upload did not finish. Please try Publish again.");
     error.code = "MEDIA_UPLOAD_REQUIRED";
     throw error;
   }
@@ -84,12 +113,7 @@ export function createPostAdapter(options = {}) {
   if (!hasApiBaseUrl()) {
     const error = new Error("Publishing is unavailable until the Cloudflare backend is connected.");
     error.code = "BACKEND_NOT_CONNECTED";
-    return {
-      async publish() {
-        throw error;
-      },
-    };
+    return { async publish() { throw error; } };
   }
-
   return createApiPostAdapter(options);
 }
