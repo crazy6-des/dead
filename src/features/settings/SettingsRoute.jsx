@@ -45,7 +45,7 @@ export default function SettingsRoute({ onSettingsUpdate, onOpen }) {
     setSettings(next);
     onSettingsUpdate?.(next);
     if (!hasApiBaseUrl()) {
-      try { window.localStorage.setItem("s.settings", JSON.stringify(next)); } catch {}
+      try { window.localStorage.setItem("s.settings", JSON.stringify(next)); } catch (storageError) { void storageError; }
       return;
     }
     setSaving(Object.keys(patch)[0] || "settings");
