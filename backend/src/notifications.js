@@ -58,7 +58,8 @@ export async function markNotificationRead(request, env) {
   const { session, failure: authFailure } = await requireSession(request, env); if (authFailure) return authFailure;
   let body; try { body = await request.json(); } catch { return failure("INVALID_JSON", 400, "Request body must be valid JSON."); }
   const id = String(body?.id || ""); if (!id) return failure("VALIDATION_ERROR", 400, "A notification id is required.");
-  await env.DB.prepare("UPDATE notifications SET read_at = COALESCE(read_at, strftime('%Y-%m-%dT%H:%M:%fZ','now')) WHERE id = ?1 AND recipient_id = ?2").bind(id, session.user_id).run();
+  const result = await env.DB.prepare("UPDATE notifications SET read_at = COALESCE(read_at, strftime('%Y-%m-%dT%H:%M:%fZ','now')) WHERE id = ?1 AND recipient_id = ?2").bind(id, session.user_id).run();
+  if (!result?.meta?.changes && !result?.changes) return failure("NOT_FOUND", 404, "Notification not found.");
   return { response: { ok: true, id }, error: null };
 }
 
