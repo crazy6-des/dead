@@ -3,6 +3,7 @@ import { socialGraphService } from "../../services/socialGraphService.js";
 import { replyService } from "../../services/replyService.js";
 import { profileService } from "../../services/profileService.js";
 import PostCard from "../post/PostCard.jsx";
+import { publishQuotePost } from "../../services/postService.js";
 import { ArrowLeft, Check, Copy, Heart, Link2, MessageCircle, Repeat2, Send, Users } from "lucide-react";
 
 function BackButton({ onBack }) { return <button className="back-link" onClick={onBack}><ArrowLeft size={17}/>Back</button>; }
@@ -20,7 +21,7 @@ function ActionBar({ post, onLike, onSave, onReply, onRepost, onShare }) {
   </div>;
 }
 
-function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUser, followingUsers = new Set(), mode = "post" }) {
+function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUser, onQuote, followingUsers = new Set(), mode = "post" }) {
   const [reply, setReply] = useState("");
   const [quote, setQuote] = useState("");
   const [replies, setReplies] = useState([]);
@@ -28,6 +29,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
   const [replySubmitting, setReplySubmitting] = useState(false);
   const [replyError, setReplyError] = useState("");
   const [shared, setShared] = useState(false);
+  const [quoteSubmitting, setQuoteSubmitting] = useState(false);
 
   useEffect(() => {
     if (mode === "quote" || mode === "media") return undefined;
@@ -63,7 +65,22 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
     }
   };
 
-  const submitLocalDraft = (value, kind) => { if (!value.trim()) return; setShared(false); setReply(""); setQuote(""); void kind; };
+  const submitQuote = async () => {
+    const text = quote.trim();
+    if (!text || quoteSubmitting) return;
+    setQuoteSubmitting(true);
+    setReplyError("");
+    try {
+      const created = await publishQuotePost({ postId: post.id, text });
+      if (!created?.id) throw new Error("The quote was not returned by the server.");
+      setQuote("");
+      onQuote?.(created);
+    } catch (error) {
+      setReplyError(error?.message || "Your quote could not be posted.");
+    } finally {
+      setQuoteSubmitting(false);
+    }
+  };
 
   const share = async () => {
     const url = window.location.origin + "/post/" + post.id;
@@ -82,7 +99,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
     {music && <div className="audio-card"><strong>{music.title || music.name || "Audio attachment"}</strong><span>{music.artist || music.type || "Audio"}{music.durationMs ? " · " + Math.round(music.durationMs / 1000) + "s" : ""}</span></div>}
     <ActionBar post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onReply={() => document.getElementById("reply-box")?.focus()} onShare={share}/>
   </div></article>
-  {mode === "quote" && <section className="composer-panel"><div className="heading"><small>QUOTE POST</small><h3>Add your perspective</h3></div><textarea value={quote} onChange={(e) => setQuote(e.target.value)} placeholder="Say something about this post…" maxLength={5000}/><div className="composer-panel__footer"><span>{quote.length}/5000</span><button className="primary" disabled={!quote.trim()} onClick={() => submitLocalDraft(quote, "quote")}>Quote</button></div></section>}
+  {mode === "quote" && <section className="composer-panel"><div className="heading"><small>QUOTE POST</small><h3>Add your perspective</h3></div><textarea value={quote} onChange={(e) => setQuote(e.target.value)} placeholder="Say something about this post…" maxLength={5000}/><div className="composer-panel__footer"><span>{quote.length}/5000</span><button className="primary" disabled={!quote.trim() || quoteSubmitting} onClick={submitQuote}>{quoteSubmitting ? "Quoting…" : "Quote"}</button></div></section>}
   <section className="thread"><div className="thread-head"><h3>{mode === "media" ? "Media" : "Replies"}</h3><span>{mode === "media" ? "Media from this post" : replies.length + " repl" + (replies.length === 1 ? "y" : "ies")}</span></div>
     {mode === "media" && <div className="media-viewer">
       {Array.isArray(post.media) && post.media.filter((item) => String(item?.mediaType || "").toLowerCase() !== "audio").map((item, index) => {
@@ -129,4 +146,4 @@ function UserDetail({ username, onBack, onOpen, onFollowUser, followingUsers = n
 
 function NetworkRoute({ type, username, onBack, followingUsers = new Set(), onFollowUser }) { const [items, setItems] = useState([]); const [loading, setLoading] = useState(true); useEffect(() => { let active = true; const request = type === "followers" ? socialGraphService.listFollowers(username) : socialGraphService.listFollowing(username); request.then((page) => { if (!active) return; setItems(Array.isArray(page?.items) ? page.items : []); setLoading(false); }).catch(() => active && setLoading(false)); return () => { active = false; }; }, [type, username]); if (loading) return <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Loading network…</h3></div></div>; return <div className="detail-page"><BackButton onBack={onBack}/><div className="heading"><small>PROFILE NETWORK</small><h2>{type === "followers" ? "Followers" : "Following"}</h2><p>@{username}</p></div>{items.length === 0 ? <div className="empty"><h3>No network data yet</h3><p>Follow relationships will appear here when the social graph service returns them.</p></div> : items.map((person) => { const target = person.username; const following = followingUsers.has(target); return <div className="network-row" key={target}><div className="avatar avatar--small">{String(person.name || target)[0]}</div><div><b>{person.name || target}</b><span>@{target}</span></div><button className={following ? "is-following" : "outline"} onClick={() => onFollowUser?.(target)}>{following ? "Following" : "Follow"}</button></div>; })}</div>; }
 
-export default function EntityRoute({ path = "/", posts = [], onBack, onOpen, onLike, onSave, onRepost, onFollowUser, followingUsers = new Set() }) { const parts = String(path).split("/").filter(Boolean); const type = parts[0] || ""; const id = parts[1] || ""; if (type === "post") { const post = posts.find((item) => String(item.id) === String(id)); return post ? <PostDetail post={post} onBack={onBack} onLike={onLike} onSave={onSave} onRepost={onRepost} onOpen={onOpen} onFollowUser={onFollowUser} followingUsers={followingUsers} mode={parts[2] || "post"}/> : <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Post not found</h3><p>This post may have been removed or is not available.</p></div></div>; } if (type === "share") { const post = posts.find((item) => String(item.id) === String(id)); return post ? <ShareDetail post={post} onBack={onBack}/> : <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Post not found</h3></div></div>; } if (type === "user") return <UserDetail username={id} onBack={onBack} onOpen={onOpen} onFollowUser={onFollowUser} followingUsers={followingUsers}/>; if (type === "followers" || type === "following") return <NetworkRoute type={type} username={id || "david"} onBack={onBack} followingUsers={followingUsers} onFollowUser={onFollowUser}/>; if (type === "topic") { const topic = decodeRouteSegment(id); return <div className="detail-page"><BackButton onBack={onBack}/><div className="heading"><small>TOPIC</small><h2>#{topic}</h2><p>Conversation around this topic on S.</p></div>{posts.filter((post) => String(post.topic || "").toLowerCase() === topic.toLowerCase()).map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onFollow={(postId) => onFollowUser?.(String(posts.find((item) => item.id === postId)?.h || "").replace("@", ""))} onOpen={onOpen}/>)}</div>; } return <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Nothing to show</h3><p>That S destination is not available.</p></div></div>; }
+export default function EntityRoute({ path = "/", posts = [], onBack, onOpen, onLike, onSave, onRepost, onFollowUser, onQuote, followingUsers = new Set() }) { const parts = String(path).split("/").filter(Boolean); const type = parts[0] || ""; const id = parts[1] || ""; if (type === "post") { const post = posts.find((item) => String(item.id) === String(id)); return post ? <PostDetail post={post} onBack={onBack} onLike={onLike} onSave={onSave} onRepost={onRepost} onOpen={onOpen} onFollowUser={onFollowUser} onQuote={onQuote} followingUsers={followingUsers} mode={parts[2] || "post"}/> : <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Post not found</h3><p>This post may have been removed or is not available.</p></div></div>; } if (type === "share") { const post = posts.find((item) => String(item.id) === String(id)); return post ? <ShareDetail post={post} onBack={onBack}/> : <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Post not found</h3></div></div>; } if (type === "user") return <UserDetail username={id} onBack={onBack} onOpen={onOpen} onFollowUser={onFollowUser} followingUsers={followingUsers}/>; if (type === "followers" || type === "following") return <NetworkRoute type={type} username={id || "david"} onBack={onBack} followingUsers={followingUsers} onFollowUser={onFollowUser}/>; if (type === "topic") { const topic = decodeRouteSegment(id); return <div className="detail-page"><BackButton onBack={onBack}/><div className="heading"><small>TOPIC</small><h2>#{topic}</h2><p>Conversation around this topic on S.</p></div>{posts.filter((post) => String(post.topic || "").toLowerCase() === topic.toLowerCase()).map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onFollow={(postId) => onFollowUser?.(String(posts.find((item) => item.id === postId)?.h || "").replace("@", ""))} onOpen={onOpen}/>)}</div>; } return <div className="detail-page"><BackButton onBack={onBack}/><div className="empty"><h3>Nothing to show</h3><p>That S destination is not available.</p></div></div>; }
