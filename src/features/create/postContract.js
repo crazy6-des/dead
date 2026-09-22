@@ -39,10 +39,21 @@ export function createEmptyDraft() {
   };
 }
 
+export function inferPostKind(draft) {
+  const hasText = String(draft?.text || "").trim().length > 0;
+  const hasImages = Array.isArray(draft?.media) && draft.media.length > 0;
+  const hasAudio = Boolean(draft?.audio);
+  const hasBackground = Boolean(draft?.background);
+  if (hasImages) return POST_KINDS.IMAGE;
+  if (hasAudio) return POST_KINDS.MUSIC;
+  if (hasBackground && !hasText) return POST_KINDS.BACKGROUND;
+  return POST_KINDS.TEXT;
+}
+
 export function createPublishPayload(draft) {
   return {
     text: String(draft?.text || "").trim(),
-    kind: draft?.kind || POST_KINDS.TEXT,
+    kind: inferPostKind(draft),
     media: Array.isArray(draft?.media) ? draft.media : [],
     audio: draft?.audio || null,
     background: draft?.background || null,
@@ -57,9 +68,6 @@ export function normalizeCreatedPostResponse(response) {
   if (!post || typeof post !== "object" || Array.isArray(post)) {
     throw new Error("The post service returned an invalid post response.");
   }
-
-  // Preserve object identity for publish callbacks while supplying the UI
-  // discriminator when an API response omits it.
   if (!post.kind) post.kind = POST_KINDS.TEXT;
   return post;
 }
