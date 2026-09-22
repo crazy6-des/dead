@@ -22,6 +22,8 @@ export const socialService = Object.freeze({
       : apiClient.delete(path);
   },
 
+  sharePostWithFollowers(postId) { const normalizedPostId = String(postId || "").trim(); if (!normalizedPostId) throw new TypeError("A post ID is required."); return apiClient.post(`/api/social/posts/${encodeURIComponent(normalizedPostId)}/share`); },
+
   setRelationship(username, relationship, enabled) {
     assertRelationship(relationship);
     const normalizedUsername = String(username || "").replace(/^@/, "").trim();
