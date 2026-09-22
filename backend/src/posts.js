@@ -124,7 +124,8 @@ export async function createPost(request, env) {
   }
 
   const row = await env.DB.prepare(
-    "SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.created_at, p.updated_at, u.username, u.display_name, 0 AS like_count, 0 AS repost_count, 0 AS reply_count, 0 AS bookmark_count FROM posts p JOIN users u ON u.id = p.author_id WHERE p.id = ?1 AND p.deleted_at IS NULL LIMIT 1"
+    "SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.created_at, p.updated_at, u.username, u.display_name,
+      (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id = p.id ORDER BY m.position) AS media, 0 AS like_count, 0 AS repost_count, 0 AS reply_count, 0 AS bookmark_count FROM posts p JOIN users u ON u.id = p.author_id WHERE p.id = ?1 AND p.deleted_at IS NULL LIMIT 1"
   ).bind(id).first();
 
   return { response: { post: serializePost(row), status: "created" }, error: null };
