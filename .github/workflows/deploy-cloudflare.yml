@@ -103,4 +103,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TEST_USERNAME: e2e_${{ github.run_id }}
         run: |
-          npx --yes wrangler d1 execute sss --remote --command "DELETE FROM posts WHERE author_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}'); DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}'); DELETE FROM relationships WHERE source_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}') OR target_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}'); DELETE FROM users WHERE username = '${TEST_USERNAME}';"
+          set -euo pipefail
+          npx --yes wrangler d1 execute sss --remote --command "SELECT object_key FROM post_media WHERE post_id IN (SELECT id FROM posts WHERE author_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}')) AND source = 'upload';" --json > /tmp/e2e-media.json
+          jq -r '.. | objects | .object_key? // empty' /tmp/e2e-media.json | while IFS= read -r key; do
+            [ -n "$key" ] || continue
+            npx --yes wrangler r2 object delete sss --key "$key"
+          done
+          npx --yes wrangler d1 execute sss --remote --command "DELETE FROM posts WHERE author_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}'); DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}'); DELETE FROM relationships WHERE source_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}') OR target_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}') OR source_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}') OR target_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}'); DELETE FROM users WHERE username = '${TEST_USERNAME}';"
