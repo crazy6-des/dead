@@ -11,6 +11,7 @@ const state = {
   conversations: [],
   members: [],
   messages: [],
+  media: [{ id:"image-1", media_type:"image", mime_type:"image/png", byte_size:1234, metadata_json:JSON.stringify({name:"photo.png"}), post_id:null, owner_id:"user-1" }],
   notifications: [],
 };
 
@@ -33,6 +34,7 @@ const db = {
             if (query.startsWith("SELECT 1 FROM conversation_members")) return state.members.find((m) => m.conversation_id === values[0] && m.user_id === values[1]) || null;
             if (query.startsWith("SELECT user_id FROM conversation_members")) return state.members.find((m) => m.conversation_id === values[0] && m.user_id !== values[1]) || null;
             if (query.startsWith("SELECT id, conversation_id, sender_id, message_type")) return state.messages.find((m) => m.id === values[0]) || null;
+            if (query.startsWith("SELECT id, media_type, mime_type, byte_size, metadata_json FROM post_media")) return state.media.find((m) => m.id === values[0] && m.post_id === null && m.owner_id === values[1]) || null;
             if (query.startsWith("SELECT COUNT(*)")) return { count: 0 };
             return null;
           },
@@ -55,7 +57,8 @@ const db = {
           async run() {
             if (query.startsWith("INSERT INTO conversations")) state.conversations.push({ id:values[0], created_by:values[1], updated_at:"2026-09-22T12:00:00.000Z", deleted_at:null });
             else if (query.startsWith("INSERT INTO conversation_members")) state.members.push({ conversation_id:values[0], user_id:values[1] });
-            else if (query.startsWith("INSERT INTO messages")) state.messages.push({ id:values[0], conversation_id:values[1], sender_id:values[2], message_type:values[3], body:values[4], created_at:"2026-09-22T12:00:00.000Z", deleted_at:null });
+            else if (query.startsWith("INSERT INTO messages")) state.messages.push({ id:values[0], conversation_id:values[1], sender_id:values[2], message_type:values[3], body:values[4], media_id:values[5] || null, created_at:"2026-09-22T12:00:00.000Z", deleted_at:null });
+            else if (query.startsWith("UPDATE post_media SET metadata_json")) { const media=state.media.find((m)=>m.id===values[0]); if(media) media.metadata_json=JSON.stringify({name:"photo.png",messageId:values[0]}); }
             else if (query.startsWith("UPDATE conversations SET")) { const c=state.conversations.find((x)=>x.id===values[0]); if(c)c.updated_at="2026-09-22T12:01:00.000Z"; }
             else if (query.includes("INSERT OR IGNORE INTO notifications")) state.notifications.push({ id:values[0], recipient_id:values[1], actor_id:values[2], event_type:values[3], target_type:values[4], target_id:values[5], payload:values[6], conversation_id:values[7], read_at:null, created_at:"2026-09-22T12:01:00.000Z" });
             else if (query.startsWith("UPDATE notifications SET read_at")) state.notifications.filter((n)=>n.id===values[0] && n.recipient_id===values[1]).forEach((n)=>n.read_at="2026-09-22T12:02:00.000Z");
@@ -94,6 +97,11 @@ const conversationId = conversationBody.conversation.id;
 const sent = await worker.fetch(authRequest("/api/messages", { method:"POST", body:JSON.stringify({ conversationId, type:"text", text:"Hello Bob" }) }), { DB:db });
 assert.equal(sent.status, 201);
 assert.equal((await sent.json()).text, "Hello Bob");
+const imageSent = await worker.fetch(authRequest("/api/messages", { method:"POST", body:JSON.stringify({ conversationId, type:"image", text:"A photo", mediaId:"image-1" }) }), { DB:db });
+assert.equal(imageSent.status, 201);
+const imageBody = await imageSent.json();
+assert.equal(imageBody.type, "image");
+assert.equal(imageBody.media.mediaId, "image-1");
 const notificationCreated = await createNotification({ DB: db }, { recipientId:"user-1", actorId:"user-2", eventType:"message", targetType:"conversation", targetId:"notification-test", payload:{ text:"Hello again" } });
 assert.equal(notificationCreated, true);
 assert.equal(state.notifications.some((n) => n.target_id === "notification-test"), true);
@@ -108,6 +116,7 @@ const notificationPage = await notifications.json();
 assert.equal(notificationPage.items.length, 1);
 assert.equal(notificationPage.items[0].type, "system");
 assert.equal(notificationPage.items[0].read, false);
+assert.equal(notificationPage.items[0].target, "/messages?conversation=" + encodeURIComponent("notification-test"));
 
 const notificationId = notificationPage.items[0].id;
 const marked = await worker.fetch(authRequest("/api/notifications/read", { method:"POST", body:JSON.stringify({ id:notificationId }) }), { DB:db });
