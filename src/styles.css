@@ -190,3 +190,5 @@ button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .post-audio-card .audio-card__body span,
 .post-audio-card .audio-card__body small { color: var(--muted); font-size: 12px; }
 .post-audio-card audio { display: none; }
+
+.post-audio-license{margin:-6px 0 10px;padding-left:2px;color:var(--muted);font-size:10px;line-height:1.4}.post-audio-license a{color:var(--text);text-decoration:underline;text-underline-offset:2px}.post-audio-license a:hover{color:var(--brand)}
