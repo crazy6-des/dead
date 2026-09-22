@@ -59,3 +59,5 @@ for (const variant of variants) {
   if (variant.background) assert.deepEqual(mapped.bg, variant.background);
 }
 console.log("PASS feed presentation variants");
+
+// Verification trigger: server-backed presentation coverage.
