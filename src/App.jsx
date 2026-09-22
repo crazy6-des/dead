@@ -61,21 +61,50 @@ export default function App() {
   const [creating,setCreating] = useState(false);
   const [mobileMenuOpen,setMobileMenuOpen] = useState(false);
   const [toast,setToast] = useState("");
+  const [feedMode,setFeedMode] = useState("For You");
+  const [feedLoading,setFeedLoading] = useState(false);
   const [followingUsers,setFollowingUsers] = useState(() => new Set(demoOnly(["maya", "nia"], [])));
   const [searchOpen,setSearchOpen] = useState(false);
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
   useEffect(() => { if (!creating) return undefined; const onKeyDown = (event) => { if (event.key === "Escape") setCreating(false); }; const previousOverflow = document.body.style.overflow; document.body.style.overflow = "hidden"; window.addEventListener("keydown", onKeyDown); return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", onKeyDown); }; }, [creating]);
   useEffect(() => { if (!mobileMenuOpen) return undefined; const onKeyDown = (event) => { if (event.key === "Escape") setMobileMenuOpen(false); }; const previousOverflow = document.body.style.overflow; document.body.style.overflow = "hidden"; window.addEventListener("keydown", onKeyDown); return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", onKeyDown); }; }, [mobileMenuOpen]);
-  useEffect(() => { let active = true; const feed = createFeedAdapter({ seedPosts: seed }); feed.list().then((page) => { if (active && Array.isArray(page?.items)) setPosts(page.items); }).catch(() => {}); return () => { active = false; }; }, []);
+  const refreshFeed = async (mode = feedMode) => {
+    setFeedLoading(true);
+    try {
+      const feed = createFeedAdapter({ seedPosts: seed });
+      const page = await feed.list({ mode });
+      if (Array.isArray(page?.items)) setPosts(page.items);
+    } catch {
+      flash("Could not refresh the feed");
+    } finally {
+      setFeedLoading(false);
+    }
+  };
+  useEffect(() => {
+    let active = true;
+    const feed = createFeedAdapter({ seedPosts: seed });
+    feed.list({ mode: feedMode }).then((page) => {
+      if (active && Array.isArray(page?.items)) setPosts(page.items);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [feedMode]);
   const persistPostAction = async (id, action, enabled, rollback) => { if (!hasApiBaseUrl()) return; try { await socialService.setPostAction(id, action, enabled); } catch { rollback(); flash("Could not save that change"); } };
   const like = (id) => { const current = posts.find((post) => post.id === id); if (!current) return; const enabled = !Boolean(current.liked); setPosts((all) => toggleLike(all, id)); void persistPostAction(id, "like", enabled, () => setPosts((all) => toggleLike(all, id))); };
   const save = (id) => { const current = posts.find((post) => post.id === id); if (!current) return; const enabled = !Boolean(current.saved); setPosts((all) => toggleSaved(all, id)); void persistPostAction(id, "bookmark", enabled, () => setPosts((all) => toggleSaved(all, id))); };
   const repost = (id) => { const current = posts.find((post) => post.id === id); if (!current) return; const enabled = !Boolean(current.reposted); setPosts((all) => toggleRepost(all, id)); void persistPostAction(id, "repost", enabled, () => setPosts((all) => toggleRepost(all, id))); };
   const followUser = async (username) => { const target = normalizeUsername(username); const wasFollowing = followingUsers.has(target); const enabled = !wasFollowing; setPosts((all) => setFollowUser(all, target, enabled)); setFollowingUsers((current) => { const next = new Set(current); if (enabled) next.add(target); else next.delete(target); return next; }); try { await socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled }); } catch { setPosts((all) => setFollowUser(all, target, wasFollowing)); setFollowingUsers((current) => { const next = new Set(current); if (wasFollowing) next.add(target); else next.delete(target); return next; }); flash("Could not update follow status"); } };
   const followPost = (id) => { const post = posts.find((item) => item.id === id); if (post) followUser(String(post.h || "").replace("@", "").toLowerCase()); };
-  const publish = (value) => { if (!value?.kind || !value?.id) throw new TypeError("Publishing requires a server-created post response."); const next = toFeedPostFromCreatedPost(value); setPosts((all) => [next,...all]); setCreating(false); flash(PRODUCT_IDENTITY.postedMessage); go(APP_ROUTES.HOME); };
+  const publish = async (value) => {
+    if (!value?.kind || !value?.id) throw new TypeError("Publishing requires a server-created post response.");
+    setCreating(false);
+    go(APP_ROUTES.HOME);
+    flash(PRODUCT_IDENTITY.postedMessage);
+    const next = toFeedPostFromCreatedPost(value);
+    setPosts((all) => [next, ...all.filter((post) => post.id !== next.id)]);
+    await refreshFeed(feedMode);
+  };
   const open = (path) => go(path);
   const openSearch = () => setSearchOpen(true);
-  const render = () => { if (route === APP_ROUTES.HOME) return <HomeRoute posts={posts} onLike={like} onSave={save} onFollow={followPost} onRepost={repost} onCreate={() => setCreating(true)} onOpen={open} />; if (route === APP_ROUTES.DISCOVER) return <DiscoverRoute posts={posts} onLike={like} onSave={save} onRepost={repost} onOpen={open} followingUsers={followingUsers} onFollow={followUser}/>; if (route === APP_ROUTES.PROFILE) return <ProfileRoute posts={posts} onLike={like} onSave={save} onFollow={followPost} onRepost={repost} onFollowUser={followUser} followingUsers={followingUsers} onOpen={open}/>; if (route === APP_ROUTES.NOTIFICATIONS) return <NotificationsRoute onOpen={open}/>; if (route === APP_ROUTES.MESSAGES) return <MessagesRoute/>; if (route === APP_ROUTES.SPACES) return <SpacesRoute/>; if (route === APP_ROUTES.SAVED) return <SavedRoute posts={posts} onSave={save} onOpen={open}/>; if (route === APP_ROUTES.BOOKMARKS) return <BookmarkFoldersRoute posts={posts} onOpen={open}/>; if (route === APP_ROUTES.LISTS) return <ListsRoute/>; if (route === APP_ROUTES.SETTINGS || route.startsWith(`${APP_ROUTES.SETTINGS}/`)) return <SettingsRoute onOpen={open}/>; if (route === APP_ROUTES.EARN) return <EarnRoute onOpen={open}/>; if (route === APP_ROUTES.SEARCH || route.startsWith(`${APP_ROUTES.SEARCH}/`)) return <SearchOverlay posts={posts} onOpen={open} onClose={() => go(APP_ROUTES.HOME)}/>; return <EntityRoute path={route} posts={posts} onBack={() => go(APP_ROUTES.HOME)} onOpen={open} onSave={save} onLike={like} onRepost={repost} onFollowUser={followUser} followingUsers={followingUsers}/>; };
+  const render = () => { if (route === APP_ROUTES.HOME) return <HomeRoute posts={posts} onLike={like} onSave={save} onFollow={followPost} onRepost={repost} onCreate={() => setCreating(true)} onOpen={open} onModeChange={setFeedMode} loading={feedLoading} />; if (route === APP_ROUTES.DISCOVER) return <DiscoverRoute posts={posts} onLike={like} onSave={save} onRepost={repost} onOpen={open} followingUsers={followingUsers} onFollow={followUser}/>; if (route === APP_ROUTES.PROFILE) return <ProfileRoute posts={posts} onLike={like} onSave={save} onFollow={followPost} onRepost={repost} onFollowUser={followUser} followingUsers={followingUsers} onOpen={open}/>; if (route === APP_ROUTES.NOTIFICATIONS) return <NotificationsRoute onOpen={open}/>; if (route === APP_ROUTES.MESSAGES) return <MessagesRoute/>; if (route === APP_ROUTES.SPACES) return <SpacesRoute/>; if (route === APP_ROUTES.SAVED) return <SavedRoute posts={posts} onSave={save} onOpen={open}/>; if (route === APP_ROUTES.BOOKMARKS) return <BookmarkFoldersRoute posts={posts} onOpen={open}/>; if (route === APP_ROUTES.LISTS) return <ListsRoute/>; if (route === APP_ROUTES.SETTINGS || route.startsWith(`${APP_ROUTES.SETTINGS}/`)) return <SettingsRoute onOpen={open}/>; if (route === APP_ROUTES.EARN) return <EarnRoute onOpen={open}/>; if (route === APP_ROUTES.SEARCH || route.startsWith(`${APP_ROUTES.SEARCH}/`)) return <SearchOverlay posts={posts} onOpen={open} onClose={() => go(APP_ROUTES.HOME)}/>; return <EntityRoute path={route} posts={posts} onBack={() => go(APP_ROUTES.HOME)} onOpen={open} onSave={save} onLike={like} onRepost={repost} onFollowUser={followUser} followingUsers={followingUsers}/>; };
   return <div className={"app " + (dark ? "" : "light")} aria-busy={auth.isLoading}><Sidebar route={route} go={go} onCreate={() => setCreating(true)} user={auth.user}/><main className="main"><PageHeader route={route} go={go} onSearch={openSearch} onTheme={() => setDark((v) => !v)} onMenu={() => setMobileMenuOpen(true)} mobileMenuOpen={mobileMenuOpen}/>{render()}</main><RightRail go={go} followingUsers={followingUsers} onFollowUser={followUser} onSearch={openSearch}/><nav className="mobile-nav">{MOBILE_NAVIGATION.map(({ label, route: path, icon: ConfigIcon }) => { const Icon = label === "Create" ? Plus : ConfigIcon; return <button key={label} onClick={() => path ? go(path) : setCreating(true)} className={path && isRouteActive(route, path) ? "active" : ""}><Icon/><small>{label}</small></button>; })}</nav>{mobileMenuOpen && <MobileMenu route={route} go={go} onCreate={() => setCreating(true)} onClose={() => setMobileMenuOpen(false)}/>} {searchOpen && <SearchOverlay posts={posts} onOpen={(path) => { setSearchOpen(false); open(path); }} onClose={() => setSearchOpen(false)}/>} {creating && <div className="modal" role="dialog" aria-modal="true" aria-labelledby="create-dialog-title"><div className="create"><CreateRoute onPublish={publish} onCancel={() => setCreating(false)}/></div><button className="modal-close" onClick={() => setCreating(false)} aria-label="Close create dialog"><X/></button></div>}{toast && <div className="toast">{toast}</div>}</div>;
 }
