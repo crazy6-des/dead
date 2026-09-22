@@ -6,10 +6,15 @@
  * Keeping this translation here prevents App.jsx from knowing both contracts.
  */
 
+import { resolveApiUrl } from "../../services/apiClient.js";
+
 function sanitizeMediaAsset(asset) {
   if (!asset || typeof asset !== "object") return asset;
 
   const { file, ...safeAsset } = asset;
+  if (typeof safeAsset.url === "string") safeAsset.url = resolveApiUrl(safeAsset.url);
+  if (typeof safeAsset.src === "string") safeAsset.src = resolveApiUrl(safeAsset.src);
+  if (typeof safeAsset.previewUrl === "string") safeAsset.previewUrl = resolveApiUrl(safeAsset.previewUrl);
   return safeAsset;
 }
 
