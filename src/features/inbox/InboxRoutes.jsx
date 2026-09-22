@@ -5,6 +5,7 @@ import PostCard from "../post/PostCard.jsx";
 import { NOTIFICATION_FILTERS } from "../notifications/notificationContract.js";
 import { createNotificationAdapter } from "../../services/notificationService.js";
 import { createMessageAdapter } from "../../services/messageService.js";
+import { hasApiBaseUrl } from "../../services/apiClient.js";
 
 const NOTIFICATION_SEED = [
   { id: "n1", actor: "Maya Okafor", username: "maya", type: "like", text: "liked your post", time: "2m", target: "/post/1" },
@@ -90,8 +91,10 @@ export function MessagesRoute() {
   }, [selected, messagesApi]);
 
   const selectedConversation = conversations.find((item) => item.id === selected);
+  const currentUserId = "me";
   const selectedName = selectedConversation?.name || "Maya Okafor";
   const currentMessages = messages[selectedName] || [];
+  const renderMessage = (message) => ({ ...message, direction: message.direction || (message.senderId === currentUserId ? "out" : "in") });
 
   const sendMessage = async () => {
     const text = draft.trim();
@@ -122,7 +125,10 @@ export function MessagesRoute() {
       <header><span className="avatar avatar--small">{selectedName[0]}</span><span><b>{selectedName}</b><small>Active recently</small></span><MoreHorizontal/></header>
       <div className="chat-body">
         <small>Today</small>
-        {loading ? <div className="empty"><p>Loading conversation…</p></div> : currentMessages.map((message) => <div className={"bubble " + (message.direction === "out" ? "out" : "in")} key={message.id}>{message.text}{message.status === "failed" && <small> · Failed</small>}{message.status === "sending" && <small> · Sending</small>}</div>)}
+        {loading ? <div className="empty"><p>Loading conversation…</p></div> : currentMessages.map((rawMessage) => {
+          const message = renderMessage(rawMessage);
+          return <div className={"bubble " + (message.direction === "out" ? "out" : "in")} key={message.id}>{message.text}{message.status === "failed" && <small> · Failed</small>}{message.status === "sending" && <small> · Sending</small>}</div>;
+        })}
       </div>
       <footer>
         <Paperclip/>
