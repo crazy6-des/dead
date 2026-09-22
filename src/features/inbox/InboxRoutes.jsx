@@ -7,27 +7,10 @@ import { createNotificationAdapter } from "../../services/notificationService.js
 import { createMessageAdapter } from "../../services/messageService.js";
 import { MESSAGE_IMAGE_LIMITS } from "../messages/messageContract.js";
 
-const NOTIFICATION_SEED = [
-  { id: "n1", actor: "Maya Okafor", username: "maya", type: "like", text: "liked your post", time: "2m", target: "/post/1" },
-  { id: "n2", actor: "Daniel Cole", username: "daniel", type: "follow", text: "started following you", time: "18m", target: "/user/daniel" },
-  { id: "n3", actor: "Nia James", username: "nia", type: "reply", text: "replied to your post", time: "1h", target: "/post/1/replies" },
-  { id: "n4", actor: "S Team", username: "s", type: "mention", text: "mentioned you", time: "3h", verified: true, target: "/post/1/replies" }
-];
-
-const MESSAGE_SEED = {
-  "Maya Okafor": [
-    { id: "m1", direction: "in", senderId: "maya", text: "Are you building this tonight?" },
-    { id: "m2", direction: "out", senderId: "me", text: "Yep. Making S feel fast and genuinely social." },
-    { id: "m3", direction: "in", senderId: "maya", text: "I like the direction. The creation surface feels different." }
-  ],
-  "Daniel Cole": [{ id: "d1", direction: "in", senderId: "daniel", text: "Sent a photo" }],
-  "Nia James": [{ id: "n1", direction: "in", senderId: "nia", text: "What are you listening to while you work?" }]
-};
-
 export function NotificationsRoute({ onOpen }) {
-  const notifications = useMemo(() => createNotificationAdapter({ devSeed: NOTIFICATION_SEED }), []);
+  const notifications = useMemo(() => createNotificationAdapter(), []);
   const [tab, setTab] = useState(NOTIFICATION_FILTERS.ALL);
-  const [items, setItems] = useState(() => NOTIFICATION_SEED);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -81,6 +64,161 @@ export function NotificationsRoute({ onOpen }) {
 }
 
 export function MessagesRoute() {
+  const messagesApi = useMemo(() => createMessageAdapter(), []);
+  const [conversations, setConversations] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [draft, setDraft] = useState("");
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [messages, setMessages] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const imageInputRef = useRef(null);
+
+  useEffect(() => () => {
+    if (selectedImage?.url?.startsWith("blob:")) URL.revokeObjectURL(selectedImage.url);
+  }, [selectedImage]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    Promise.all([messagesApi.listConversations(), messagesApi.listMessages(selected), messagesApi.markConversationRead(selected)]).then(([conversationPage, messagePage]) => {
+      if (!active) return;
+      setConversations(conversationPage.items || conversationPage || []);
+      const selectedName = conversationPage.items?.find((item) => item.id === selected)?.name || selected;
+      setMessages((current) => ({ ...current, [selectedName || selected]: messagePage.items || [] }));
+      setLoading(false);
+    }).catch((err) => {
+      if (active) { setError(err?.message || "Could not load this conversation."); setLoading(false); }
+    });
+    return () => { active = false; };
+  }, [selected, messagesApi]);
+
+  const selectedConversation = conversations.find((item) => item.id === selected);
+  const currentUserId = "me";
+  const selectedName = selectedConversation?.name || "Select a conversation";
+  const currentMessages = messages[selectedName] || [];
+  const renderMessage = (message) => ({ ...message, direction: message.direction || (message.senderId === currentUserId ? "out" : "in") });
+
+  const clearSelectedImage = () => {
+    setSelectedImage((current) => {
+      if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
+      return null;
+    });
+    if (imageInputRef.current) imageInputRef.current.value = "";
+  };
+
+  const handleImageSelect = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!MESSAGE_IMAGE_LIMITS.TYPES.includes(file.type)) {
+      setError("Choose a JPG, PNG, WebP, or GIF image.");
+      return;
+    }
+    if (file.size <= 0 || file.size > MESSAGE_IMAGE_LIMITS.MAX_SIZE) {
+      setError("Message images must be 10 MB or smaller.");
+      return;
+    }
+    setError("");
+    setSelectedImage((current) => {
+      if (current?.url?.startsWith("blob:")) URL.revokeObjectURL(current.url);
+      return { file, url: URL.createObjectURL(file), name: file.name, type: file.type, size: file.size };
+    });
+  };
+
+  const sendMessage = async () => {
+    const text = draft.trim();
+    const image = selectedImage;
+    if ((!text && !image) || sending) return;
+    const optimistic = {
+      id: "local-" + Date.now(),
+      conversationId: selected,
+      direction: "out",
+      senderId: currentUserId,
+      type: image ? "image" : "text",
+      text,
+      media: image ? { url: image.url, mediaType: "image", name: image.name, mimeType: image.type, size: image.size } : null,
+      status: "sending",
+    };
+    setSending(true);
+    setError("");
+    setMessages((current) => ({ ...current, [selectedName]: [...(current[selectedName] || []), optimistic] }));
+    let uploadedMediaId = null;
+    try {
+      let media = null;
+      if (image) {
+        media = await messagesApi.uploadImage(image.file);
+        uploadedMediaId = media?.mediaId || null;
+        if (!uploadedMediaId) throw new Error("Image upload did not return a media id.");
+      }
+      const sent = await messagesApi.send({ conversationId: selected, type: image ? "image" : "text", text, mediaId: uploadedMediaId });
+      setMessages((current) => ({ ...current, [selectedName]: [...(current[selectedName] || []).filter((item) => item.id !== optimistic.id), { ...sent, direction: "out", status: "sent" }] }));
+      setDraft("");
+      clearSelectedImage();
+      setError("");
+    } catch (err) {
+      if (uploadedMediaId) {
+        try { await messagesApi.deleteMedia(uploadedMediaId); } catch (cleanupError) { setError((current) => current || cleanupError?.message || "Could not clean up the uploaded image."); }
+      }
+      setMessages((current) => ({ ...current, [selectedName]: (current[selectedName] || []).map((item) => item.id === optimistic.id ? { ...item, status: "failed" } : item) }));
+      setError(err?.message || "Could not send this message.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const selectConversation = (id) => {
+    clearSelectedImage();
+    setSelected(id);
+    setDraft("");
+    setError("");
+  };
+
+  return <div className="messages">
+    <aside>{conversations.map((conversation) => {
+      const latest = messages[conversation.name]?.at(-1);
+      return <button key={conversation.id} className={"conversation " + (selected === conversation.id ? "active" : "")} onClick={() => selectConversation(conversation.id)}>
+        <span className="avatar avatar--small">{conversation.name[0]}</span>
+        <span><b>{conversation.name}</b><small>{latest?.text || (latest?.media ? "Image" : "Start a conversation")}</small></span>
+        <small>{selected === conversation.id ? "now" : "1m"}</small>
+      </button>;
+    })}</aside>
+    <section className="chat">
+      <header><span className="avatar avatar--small">{selectedName[0]}</span><span><b>{selectedName}</b><small>Active recently</small></span><MoreHorizontal/></header>
+      <div className="chat-body">
+        <small>Today</small>
+        {loading ? <div className="empty"><p>Loading conversation…</p></div> :
+         currentMessages.map((rawMessage) => {
+          const message = renderMessage(rawMessage);
+          return <div className={"bubble " + (message.direction === "out" ? "out" : "in")} key={message.id}>
+            {message.media?.url && <img className="message-image" src={message.media.url} alt={message.media.name || "Shared image"} />}
+            {message.text && <div>{message.text}</div>}
+            {message.status === "failed" && <small> · Failed</small>}
+            {message.status === "sending" && <small> · Sending</small>}
+          </div>;
+        })}
+      </div>
+      {error && <div className="chat-error" role="alert">{error}</div>}
+      <footer>
+        <label className="chat-attach" title="Add image">
+          <ImagePlus size={18}/>
+          <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageSelect} />
+        </label>
+        <Paperclip size={18} aria-hidden="true"/>
+        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={"Message " + selectedName + "..."} aria-label={"Message " + selectedName}/>
+        <button onClick={sendMessage} disabled={sending || (!draft.trim() && !selectedImage)} aria-label="Send message">{sending ? "…" : <Send/>}</button>
+      </footer>
+      {selectedImage && <div className="chat-image-preview"><img src={selectedImage.url} alt="Selected image preview"/><div><b>{selectedImage.name}</b><small>Ready to send · nothing is sent until you press Send</small></div><button onClick={clearSelectedImage} aria-label="Remove selected image"><X size={16}/></button></div>}
+    </section>
+  </div>;
+}
+
+export function SavedRoute({ posts, onSave, onOpen }) {
+  const folder = new URLSearchParams(window.location.search).get("folder");
+  const saved = posts.filter((p) => p.saved);
+  return <div className="page"><div className="heading"><small>YOUR LIBRARY</small><h2>Saved{folder && folder !== "all" ? ` · ${decodeURIComponent(folder)}` : ""}</h2><p>Posts you chose to keep.</p></div>{saved.length ? saved.map((p) => <PostCard key={p.id} post={p} onSave={onSave} onOpen={onOpen}/>) : <div className="empty"><h3>Your saved posts will live here.</h3><p>Bookmark something from your feed and return to it anytime.</p></div>}</div>;
+}export function MessagesRoute() {
   const messagesApi = useMemo(() => createMessageAdapter({ devSeed: MESSAGE_SEED }), []);
   const [conversations, setConversations] = useState(() => Object.keys(MESSAGE_SEED).map((name) => ({ id: name.toLowerCase().replace(/\s+/g, "-"), name })));
   const [selected, setSelected] = useState("maya-okafor");
