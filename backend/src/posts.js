@@ -88,6 +88,10 @@ export async function createPost(request, env) {
   const session = await requireUser(request, env);
   if (!session) return { response: null, error: error("UNAUTHORIZED", 401, "Authentication is required.") };
   if (!env?.DB) return { response: null, error: error("SERVICE_UNAVAILABLE", 503, "Post service is not configured.") };
+  // Publishing must see staged media written by the immediately preceding upload request.
+  // Starting this write flow on the primary guarantees read-after-write consistency even
+  // when the D1 database has read replication enabled.
+  const db = typeof db.withSession === "function" ? db.withSession("first-primary") : db;
 
   let body;
   try { body = await request.json(); } catch {
@@ -122,7 +126,7 @@ export async function createPost(request, env) {
   const id = globalThis.crypto.randomUUID();
   const storedMedia = [];
   for (const item of media) {
-    const stored = await env.DB.prepare("SELECT id, source, owner_id FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(item.mediaId).first();
+    const stored = await db.prepare("SELECT id, source, owner_id FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(item.mediaId).first();
     if (!stored) return { response: null, error: error("MEDIA_NOT_FOUND", 400, "Referenced media was not found or is already attached.") };
     if (stored.source !== "upload" || (stored.owner_id && stored.owner_id !== session.user_id)) {
       return { response: null, error: error("FORBIDDEN", 403, "You can only attach media that you own.") };
@@ -132,28 +136,28 @@ export async function createPost(request, env) {
 
   let storedAudio = null;
   if (audio?.mediaId) {
-    storedAudio = await env.DB.prepare("SELECT id, source, owner_id FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(audio.mediaId).first();
+    storedAudio = await db.prepare("SELECT id, source, owner_id FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(audio.mediaId).first();
     if (!storedAudio || storedAudio.source !== "upload" || (storedAudio.owner_id && storedAudio.owner_id !== session.user_id)) {
       return { response: null, error: error("AUDIO_NOT_FOUND", 400, "Uploaded music was not found or is not owned by this user.") };
     }
   }
 
-  await env.DB.prepare(
+  await db.prepare(
     "INSERT INTO posts (id, author_id, body, visibility, reply_policy, post_kind, background_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)"
   ).bind(id, session.user_id, text, audience, replyPolicy, kind, background ? JSON.stringify(background) : null).run();
 
   for (let position = 0; position < media.length; position += 1) {
-    await env.DB.prepare("UPDATE post_media SET post_id = ?1, position = ?2 WHERE id = ?3 AND post_id IS NULL").bind(id, position, media[position].mediaId).run();
+    await db.prepare("UPDATE post_media SET post_id = ?1, position = ?2 WHERE id = ?3 AND post_id IS NULL").bind(id, position, media[position].mediaId).run();
   }
 
   if (audio?.source === "catalog") {
-    await env.DB.prepare("INSERT INTO post_media (id, post_id, object_key, media_type, mime_type, byte_size, position, source, external_url, metadata_json, duration_ms) VALUES (?1, ?2, ?3, 'audio', ?4, 0, ?5, 'catalog', ?6, ?7, ?8)")
+    await db.prepare("INSERT INTO post_media (id, post_id, object_key, media_type, mime_type, byte_size, position, source, external_url, metadata_json, duration_ms) VALUES (?1, ?2, ?3, 'audio', ?4, 0, ?5, 'catalog', ?6, ?7, ?8)")
       .bind(globalThis.crypto.randomUUID(), id, `catalog:${audio.musicId}`, audio.type || "audio/mpeg", media.length, audio.url, JSON.stringify({ musicId: audio.musicId, title: audio.title || audio.name || "", artist: audio.artist || "", album: audio.album || "" }), Number(audio.durationMs || 0)).run();
   } else if (audio?.mediaId) {
-    await env.DB.prepare("UPDATE post_media SET post_id = ?1, position = ?2 WHERE id = ?3 AND post_id IS NULL").bind(id, media.length, audio.mediaId).run();
+    await db.prepare("UPDATE post_media SET post_id = ?1, position = ?2 WHERE id = ?3 AND post_id IS NULL").bind(id, media.length, audio.mediaId).run();
   }
 
-  const row = await env.DB.prepare(
+  const row = await db.prepare(
     `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.created_at, p.updated_at, u.username, u.display_name,
       (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id = p.id ORDER BY m.position) AS media,
       0 AS like_count, 0 AS repost_count, 0 AS reply_count, 0 AS bookmark_count
