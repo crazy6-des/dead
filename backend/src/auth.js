@@ -1,5 +1,5 @@
 const SESSION_COOKIE = "s_session";
-const PASSWORD_ITERATIONS = 120000;
+const PASSWORD_ITERATIONS = 100000;
 const PASSWORD_HASH_PREFIX = "pbkdf2-sha256";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 
