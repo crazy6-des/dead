@@ -136,3 +136,24 @@ export function createPostAdapter(options = {}) {
   }
   return createApiPostAdapter(options);
 }
+export async function publishQuotePost({ postId, text = "" } = {}) {
+  if (!hasApiBaseUrl()) {
+    const error = new Error("Quoting is unavailable until the Cloudflare backend is connected.");
+    error.code = "BACKEND_NOT_CONNECTED";
+    throw error;
+  }
+  const normalizedPostId = String(postId || "").trim();
+  const normalizedText = String(text || "").trim();
+  if (!normalizedPostId) throw new TypeError("A post ID is required.");
+  if (!normalizedText) throw new TypeError("A quote must contain text.");
+  return normalizeCreatedPostResponse(await apiClient.post("/api/posts", {
+    text: normalizedText,
+    kind: "text",
+    quotedPostId: normalizedPostId,
+    media: [],
+    audio: null,
+    background: null,
+    audience: "public",
+    replyPolicy: "everyone",
+  }));
+}
