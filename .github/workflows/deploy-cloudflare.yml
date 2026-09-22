@@ -67,28 +67,14 @@ jobs:
           curl --fail-with-body --silent --show-error ${HEALTH_URL} | tee /tmp/health.json
           jq -e '.ok == true and .service == "sss-api"' /tmp/health.json
 
-      - name: Run live persistence E2E with exception diagnostics
-        working-directory: backend
+      - name: Run live persistence E2E
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           LIVE_API_BASE_URL: https://sphere-api.binancecompany274.workers.dev
           TEST_ORIGIN: https://sphereis.netlify.app
           TEST_USERNAME: e2e_${{ github.run_id }}
           TEST_EMAIL: e2e_${{ github.run_id }}@example.invalid
           TEST_PASSWORD: S-live-E2E-${{ github.run_id }}-secure
-        run: |
-          set +e
-          npx --yes wrangler tail sphere-api --format json --status error > /tmp/worker-tail.log 2>&1 &
-          TAIL_PID=$!
-          sleep 4
-          node scripts/live-e2e.mjs
-          TEST_STATUS=$?
-          sleep 5
-          kill ${TAIL_PID} 2>/dev/null || true
-          wait ${TAIL_PID} 2>/dev/null || true
-          cat /tmp/worker-tail.log
-          exit ${TEST_STATUS}
+        run: node backend/scripts/live-e2e.mjs
 
       - name: Cleanup live E2E data
         if: always()
