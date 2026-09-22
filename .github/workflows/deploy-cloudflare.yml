@@ -91,6 +91,9 @@ jobs:
           TEST_USERNAME: e2e_${{ github.run_id }}
           TEST_EMAIL: e2e_${{ github.run_id }}@example.invalid
           TEST_PASSWORD: S-live-E2E-${{ github.run_id }}-secure
+          TEST_USERNAME_2: e2e_partner_${{ github.run_id }}
+          TEST_EMAIL_2: e2e_partner_${{ github.run_id }}@example.invalid
+          TEST_PASSWORD_2: S-live-E2E-partner-${{ github.run_id }}-secure
         run: node backend/scripts/live-e2e.mjs
 
       - name: Cleanup live E2E data
@@ -100,6 +103,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TEST_USERNAME: e2e_${{ github.run_id }}
+          TEST_USERNAME_2: e2e_partner_${{ github.run_id }}
         run: |
           set -euo pipefail
           npx --yes wrangler d1 execute sss --remote --command "SELECT object_key FROM post_media WHERE post_id IN (SELECT id FROM posts WHERE author_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}')) AND source = 'upload';" --json > /tmp/e2e-media.json
@@ -115,4 +119,10 @@ jobs:
                 [ -n "$key" ] || continue
                 npx --yes wrangler r2 object delete "sss/$key" --remote
               done
-          npx --yes wrangler d1 execute sss --remote --command "DELETE FROM posts WHERE author_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}'); DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}'); DELETE FROM relationships WHERE source_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}') OR target_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}') OR source_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}') OR target_user_id = (SELECT id FROM users WHERE username = '${TEST_USERNAME}'); DELETE FROM users WHERE username = '${TEST_USERNAME}';"
+          npx --yes wrangler d1 execute sss --remote --command "DELETE FROM notifications WHERE recipient_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}')) OR actor_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}'));
+          DELETE FROM messages WHERE sender_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}'));
+          DELETE FROM posts WHERE author_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}'));
+          DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}'));
+          DELETE FROM relationships WHERE source_user_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}')) OR target_user_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}'));
+          DELETE FROM conversations WHERE created_by IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}'));
+          DELETE FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}');"
