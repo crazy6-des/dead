@@ -13,11 +13,23 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   const [draft, setDraft] = useState(() => ({ ...createEmptyDraft(), ...initialDraft, poll: null }));
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
-  const [isPublishing, setIsPublishing] = useState(false);\n  const [musicQuery, setMusicQuery] = useState("");\n  const [musicResults, setMusicResults] = useState([]);\n  const [isSearchingMusic, setIsSearchingMusic] = useState(false);\n  const [musicError, setMusicError] = useState("");\n  const musicAdapter = useRef(null);\n  const musicSearchController = useRef(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [musicQuery, setMusicQuery] = useState("");
+  const [musicResults, setMusicResults] = useState([]);
+  const [isSearchingMusic, setIsSearchingMusic] = useState(false);
+  const [musicError, setMusicError] = useState("");
+  const musicAdapter = useRef(null);
+  const musicSearchController = useRef(null);
   const fileUrls = useRef(new Set());
   const validation = validatePostDraft(draft);
 
-  useEffect(() => {\n    musicAdapter.current = createMusicAdapter();\n    return () => {\n      fileUrls.current.forEach((url) => URL.revokeObjectURL(url));\n      musicSearchController.current?.abort();\n    };\n  }, []);
+  useEffect(() => {
+    musicAdapter.current = createMusicAdapter();
+    return () => {
+      fileUrls.current.forEach((url) => URL.revokeObjectURL(url));
+      musicSearchController.current?.abort();
+    };
+  }, []);
   function updateDraft(patch) { setDraft((current) => ({ ...current, ...patch })); setError(""); setStatus(""); }
   function handleImageChange(event) {
     const assets = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/")).map(toFileAsset);
@@ -34,7 +46,34 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
     updateDraft({ audio: asset });
     event.target.value = "";
   }
-  function handleBackgroundChange(event) { updateDraft({ background: { type: "color", value: event.target.value } }); }\n\n  async function handleMusicSearch(event) {\n    event.preventDefault();\n    const query = musicQuery.trim();\n    if (!query || !hasMusicCatalog()) return;\n    musicSearchController.current?.abort();\n    const controller = new AbortController();\n    musicSearchController.current = controller;\n    setIsSearchingMusic(true);\n    setMusicError("");\n    try {\n      const results = await musicAdapter.current.search(query, { signal: controller.signal });\n      setMusicResults(results);\n    } catch (searchError) {\n      if (searchError?.name !== "AbortError") setMusicError(searchError?.message || "Unable to search the music catalog.");\n    } finally {\n      if (!controller.signal.aborted) setIsSearchingMusic(false);\n    }\n  }\n\n  function selectCatalogMusic(track) {\n    const asset = createCatalogMusicAsset({ ...track, musicId: track.musicId, url: track.url });\n    updateDraft({ audio: asset });\n    setMusicResults([]);\n    setMusicQuery("");\n    setMusicError("");\n  }
+  function handleBackgroundChange(event) { updateDraft({ background: { type: "color", value: event.target.value } }); }
+
+  async function handleMusicSearch(event) {
+    event.preventDefault();
+    const query = musicQuery.trim();
+    if (!query || !hasMusicCatalog()) return;
+    musicSearchController.current?.abort();
+    const controller = new AbortController();
+    musicSearchController.current = controller;
+    setIsSearchingMusic(true);
+    setMusicError("");
+    try {
+      const results = await musicAdapter.current.search(query, { signal: controller.signal });
+      setMusicResults(results);
+    } catch (searchError) {
+      if (searchError?.name !== "AbortError") setMusicError(searchError?.message || "Unable to search the music catalog.");
+    } finally {
+      if (!controller.signal.aborted) setIsSearchingMusic(false);
+    }
+  }
+
+  function selectCatalogMusic(track) {
+    const asset = createCatalogMusicAsset({ ...track, musicId: track.musicId, url: track.url });
+    updateDraft({ audio: asset });
+    setMusicResults([]);
+    setMusicQuery("");
+    setMusicError("");
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -67,10 +106,18 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
     <textarea value={draft.text} maxLength={5000} onChange={(event) => updateDraft({ text: event.target.value })} placeholder="Share something… #hashtag" aria-label="Post text" />
     <div className="s-create-composer__media" aria-label="Add to post">
       <label className="s-create-composer__picker" title="Add image"><Image size={16} aria-hidden="true" /><span>Image</span><input type="file" accept="image/*" multiple onChange={handleImageChange} /></label>
-      <label className="s-create-composer__picker" title="Choose local music"><Music2 size={16} aria-hidden="true" /><span>Music</span><input type="file" accept="audio/*" onChange={handleMusicChange} /></label>\n      {hasMusicCatalog() && <div className="s-create-composer__music-search">\n        <input value={musicQuery} onChange={(event) => setMusicQuery(event.target.value)} placeholder="Search music" aria-label="Search music catalog" />\n        <button type="button" onClick={handleMusicSearch} disabled={isSearchingMusic || !musicQuery.trim()}>{isSearchingMusic ? "Searching…" : "Find"}</button>\n      </div>}
+      <label className="s-create-composer__picker" title="Choose local music"><Music2 size={16} aria-hidden="true" /><span>Music</span><input type="file" accept="audio/*" onChange={handleMusicChange} /></label>
+      {hasMusicCatalog() && <div className="s-create-composer__music-search">
+        <input value={musicQuery} onChange={(event) => setMusicQuery(event.target.value)} placeholder="Search music" aria-label="Search music catalog" />
+        <button type="button" onClick={handleMusicSearch} disabled={isSearchingMusic || !musicQuery.trim()}>{isSearchingMusic ? "Searching…" : "Find"}</button>
+      </div>}
       <label className="s-create-composer__picker s-create-composer__color-picker" title="Choose background"><Palette size={16} aria-hidden="true" /><span>Background</span><input type="color" value={draft.background?.value || "#151922"} onChange={handleBackgroundChange} aria-label="Post background color" /></label>
     </div>
-    {hasMusicCatalog() && musicResults.length > 0 && <div className="s-create-composer__music-results" aria-label="Music search results">{musicResults.map((track) => <button type="button" key={track.musicId} className="s-create-composer__music-result" onClick={() => selectCatalogMusic(track)}><span>{track.title}</span><small>{track.artist || "Unknown artist"}{track.album ? ` · ${track.album}` : ""}</small></button>)}</div>}\n    {musicError && <p className="s-create-composer__error" role="alert">{musicError}</p>}\n    {hasMusicCatalog() && musicQuery.trim() && !isSearchingMusic && musicResults.length === 0 && !musicError && <p className="s-create-composer__hint">No catalog tracks found.</p>}\n    {!hasMusicCatalog() && <p className="s-create-composer__hint">Local music is ready now. Online music selection becomes available when a catalog API is configured.</p>}\n    <p className="s-create-composer__hint">Choose any combination — text, image, music, background, or just one of them. Nothing posts until you press Publish.</p>
+    {hasMusicCatalog() && musicResults.length > 0 && <div className="s-create-composer__music-results" aria-label="Music search results">{musicResults.map((track) => <button type="button" key={track.musicId} className="s-create-composer__music-result" onClick={() => selectCatalogMusic(track)}><span>{track.title}</span><small>{track.artist || "Unknown artist"}{track.album ? ` · ${track.album}` : ""}</small></button>)}</div>}
+    {musicError && <p className="s-create-composer__error" role="alert">{musicError}</p>}
+    {hasMusicCatalog() && musicQuery.trim() && !isSearchingMusic && musicResults.length === 0 && !musicError && <p className="s-create-composer__hint">No catalog tracks found.</p>}
+    {!hasMusicCatalog() && <p className="s-create-composer__hint">Local music is ready now. Online music selection becomes available when a catalog API is configured.</p>}
+    <p className="s-create-composer__hint">Choose any combination — text, image, music, background, or just one of them. Nothing posts until you press Publish.</p>
     <PostMediaPreview media={draft.media} audio={draft.audio} background={draft.background} onRemoveImage={(index) => {
       const asset = draft.media[index];
       if (asset?.url?.startsWith("blob:")) {
