@@ -70,7 +70,14 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
       <label className="s-create-composer__picker s-create-composer__color-picker" title="Choose background"><Palette size={16} aria-hidden="true" /><span>Background</span><input type="color" value={draft.background?.value || "#151922"} onChange={handleBackgroundChange} aria-label="Post background color" /></label>
     </div>
     <p className="s-create-composer__hint">Choose any combination — text, image, music, background, or just one of them. Nothing posts until you press Publish.</p>
-    <PostMediaPreview media={draft.media} audio={draft.audio} background={draft.background} onRemoveImage={(index) => updateDraft({ media: draft.media.filter((_, i) => i !== index) })} onRemoveAudio={removeAudio} />
+    <PostMediaPreview media={draft.media} audio={draft.audio} background={draft.background} onRemoveImage={(index) => {
+      const asset = draft.media[index];
+      if (asset?.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(asset.url);
+        fileUrls.current.delete(asset.url);
+      }
+      updateDraft({ media: draft.media.filter((_, i) => i !== index) });
+    }} onRemoveAudio={removeAudio} />
     {status && <p className="s-create-composer__status" role="status" aria-live="polite">{status}</p>}
     {error && <p className="s-create-composer__error" role="alert">{error}</p>}
     <div className="s-create-composer__footer"><span>{draft.text.length}/5000</span><button type="submit" disabled={isPublishing}><Send size={15} aria-hidden="true" />{isPublishing ? "Publishing…" : "Publish"}</button></div>
