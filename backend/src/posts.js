@@ -37,14 +37,6 @@ function normalizeLimit(value) {
   return Math.min(Math.max(parsed, 1), MAX_LIMIT);
 }
 
-function isTextOnlyPayload(body) {
-  return body?.kind === "text"
-    && Array.isArray(body.media) && body.media.length === 0
-    && body.audio === null
-    && body.background === null
-    && body.poll === null;
-}
-
 function serializePost(row) {
   return {
     id: row.id,
