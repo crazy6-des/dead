@@ -103,9 +103,9 @@ assert.equal(imageSent.status, 201);
 const imageBody = await imageSent.json();
 assert.equal(imageBody.type, "image");
 assert.equal(imageBody.media.mediaId, "image-1");
-const notificationCreated = await createNotification({ DB: db }, { recipientId:"user-1", actorId:"user-2", eventType:"message", targetType:"conversation", targetId:"notification-test", payload:{ text:"Hello again" } });
+const notificationCreated = await createNotification({ DB: db }, { recipientId:"user-1", actorId:"user-2", eventType:"message", targetType:"message", targetId:"message-test", conversationId:"notification-test", payload:{ text:"Hello again" } });
 assert.equal(notificationCreated, true);
-assert.equal(state.notifications.some((n) => n.target_id === "notification-test"), true);
+assert.equal(state.notifications.some((n) => n.target_id === "message-test" && n.conversation_id === "notification-test"), true);
 
 const listedMessages = await worker.fetch(authRequest(`/api/messages/conversations/${conversationId}`), { DB:db });
 assert.equal(listedMessages.status, 200);
