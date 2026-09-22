@@ -94,7 +94,7 @@ const conversationId = conversationBody.conversation.id;
 const sent = await worker.fetch(authRequest("/api/messages", { method:"POST", body:JSON.stringify({ conversationId, type:"text", text:"Hello Bob" }) }), { DB:db });
 assert.equal(sent.status, 201);
 assert.equal((await sent.json()).text, "Hello Bob");
-const notificationCreated = await createNotification({ DB: db }, { recipientId:"user-2", actorId:"user-1", eventType:"message", targetType:"conversation", targetId:"notification-test", payload:{ text:"Hello again" } });
+const notificationCreated = await createNotification({ DB: db }, { recipientId:"user-1", actorId:"user-2", eventType:"message", targetType:"conversation", targetId:"notification-test", payload:{ text:"Hello again" } });
 assert.equal(notificationCreated, true);
 assert.equal(state.notifications.some((n) => n.target_id === "notification-test"), true);
 
