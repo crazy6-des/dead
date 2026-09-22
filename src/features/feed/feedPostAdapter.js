@@ -51,6 +51,8 @@ export function toFeedPostFromCreatedPost(
     media,
     music: post.music ?? audio,
     bg: post.bg ?? post.background ?? null,
+    quotedPostId: post.quotedPostId ?? null,
+    quotedPost: post.quotedPost ?? null,
     poll: post.poll ?? null,
     kind: post.kind ?? "text",
   };
