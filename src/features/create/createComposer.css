@@ -73,3 +73,7 @@
 .s-create-composer__background-preview { min-height: 56px; display: grid; place-items: center; border-radius: 10px; color: white; font-size: 12px; }
 
 @media (max-width: 640px) { .s-create-composer { padding: 10px; border-radius: 12px; } .s-create-composer textarea { min-height: 58px; } }
+
+.s-create-composer__status { margin: 0; color: var(--s-muted, #8b93a1); font-size: 12px; }
+.s-create-composer__picker span { margin-left: 4px; }
+.s-create-composer__audio > button { justify-self: end; width: 28px; min-height: 28px; padding: 0; }
