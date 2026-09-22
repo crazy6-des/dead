@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { moderationService } from "../../services/moderationService.js";
 import { pollService } from "../../services/pollService.js";
 import { MODERATION_ACTIONS, REPORT_REASONS } from "../moderation/moderationContract.js";
-import { Bookmark, Check, Copy, Download, Flag, Heart, MessageCircle, MoreHorizontal, Music2, Repeat2, Send, Shield, X, BarChart3 } from "lucide-react";
+import { BarChart3, Bookmark, Check, Copy, Download, Flag, Heart, MessageCircle, MoreHorizontal, Music2, Repeat2, Send, Shield, X } from "lucide-react";
 
 function getMediaItems(media) {
   if (!Array.isArray(media)) return media && typeof media === "object" ? [media] : [];
