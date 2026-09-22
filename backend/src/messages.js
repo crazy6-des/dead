@@ -1,5 +1,6 @@
 import { resolveSession } from "./auth.js";
 import { createNotification } from "./notifications.js";
+import { getUserSettings } from "./settings.js";
 
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 30;
@@ -53,6 +54,8 @@ export async function createConversation(request, env) {
   const target = await env.DB.prepare("SELECT id, username, display_name, avatar_url FROM users WHERE username = ?1 AND deleted_at IS NULL LIMIT 1").bind(username).first();
   if (!target) return failure("USER_NOT_FOUND", 404, "User was not found.");
   if (target.id === session.user_id) return failure("INVALID_CONVERSATION", 400, "You cannot message yourself.");
+  const targetSettings = await getUserSettings(env, target.id);
+  if (targetSettings && !Boolean(targetSettings.allow_messages)) return failure("MESSAGES_DISABLED", 403, "This user is not accepting messages.");
   const existing = await env.DB.prepare("SELECT c.id FROM conversations c JOIN conversation_members a ON a.conversation_id = c.id AND a.user_id = ?1 JOIN conversation_members b ON b.conversation_id = c.id AND b.user_id = ?2 WHERE c.deleted_at IS NULL LIMIT 1").bind(session.user_id, target.id).first();
   if (existing) return { response: { conversation: { id: existing.id, username: target.username, name: target.display_name, avatarUrl: target.avatar_url || null } }, error: null };
   const conversationId = crypto.randomUUID();
@@ -97,6 +100,8 @@ export async function sendMessage(request, env) {
   if (!member) return failure("NOT_FOUND", 404, "Conversation not found.");
   const recipient = await env.DB.prepare("SELECT user_id FROM conversation_members WHERE conversation_id = ?1 AND user_id <> ?2 LIMIT 1").bind(conversationId, session.user_id).first();
   if (!recipient) return failure("INVALID_CONVERSATION", 400, "Conversation must have another member.");
+  const recipientSettings = await getUserSettings(env, recipient.user_id);
+  if (recipientSettings && !Boolean(recipientSettings.allow_messages)) return failure("MESSAGES_DISABLED", 403, "This user is not accepting messages.");
   let media = null;
   if (type === "image") {
     media = await env.DB.prepare("SELECT id, media_type, mime_type, byte_size, metadata_json FROM post_media WHERE id = ?1 AND post_id IS NULL AND owner_id = ?2 LIMIT 1").bind(mediaId, session.user_id).first();
