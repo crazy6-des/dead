@@ -26,7 +26,8 @@ export default function SpacesRoute() {
   const [joined, setJoined] = useState(() => new Set());
 
   const load = () => {
-    spaceService.list().then((page) => { setSpaces(page.items || []); setError(""); }).catch((err) => setError(err?.message || "Could not load Spaces.")).finally(() => setLoading(false));
+    setLoading(true);
+    spaceService.list().then((page) => { setSpaces(page.items || []); setError(""); }).catch((err) => { setSpaces([]); setError(err?.message || "Spaces are not available yet."); }).finally(() => setLoading(false));
   };
   useEffect(() => {
     const timer = window.setTimeout(load, 0);
@@ -35,7 +36,7 @@ export default function SpacesRoute() {
 
   const create = async () => {
     if (!title.trim()) return;
-    try { await spaceService.create({ title, host: undefined, startAt: undefined }); } catch (err) { setError(err?.message || "Could not create the Space."); return; }
+    try { await spaceService.create({ title }); } catch (err) { setError(err?.message || "Could not create the Space."); return; }
     setTitle("");
     setCreating(false);
     load();
@@ -45,7 +46,6 @@ export default function SpacesRoute() {
     try {
       await spaceService.join(space.id);
       setJoined((current) => new Set(current).add(space.id));
-      setSpaces((current) => current.map((item) => item.id === space.id ? { ...item, participants: [...(item.participants || []), "david"] } : item));
       setError("");
     } catch (err) { setError(err?.message || "Could not join that Space."); }
   };
@@ -55,6 +55,6 @@ export default function SpacesRoute() {
     <div className="page-actions"><button className="primary" onClick={() => setCreating((v) => !v)}><Plus size={16}/>Create a Space</button></div>
     {creating && <section className="card composer-panel"><div className="heading"><small>NEW SPACE</small><h3>Start a conversation</h3></div><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What do you want to talk about?" aria-label="Space title"/><div className="composer-panel__footer"><button className="outline" onClick={() => setCreating(false)}>Cancel</button><button className="primary" disabled={!title.trim()} onClick={create}><Mic size={16}/>Schedule Space</button></div></section>}
     {error && <div className="inline-notice" role="status">{error}</div>}
-    <section className="space-list">{loading ? <div className="empty"><p>Loading Spaces…</p></div> : spaces.map((space) => <SpaceCard key={space.id} space={space} joined={joined.has(space.id)} onJoin={join}/>)}</section>
+    <section className="space-list">{loading ? <div className="empty"><p>Loading Spaces…</p></div> : spaces.length ? spaces.map((space) => <SpaceCard key={space.id} space={space} joined={joined.has(space.id)} onJoin={join}/>) : <div className="empty"><h3>Spaces aren't connected yet</h3><p>Live audio conversations are reserved for the Cloudflare Spaces backend. No sample rooms are shown.</p></div>}</section>
   </div>;
 }
