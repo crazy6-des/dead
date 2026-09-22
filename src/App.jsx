@@ -64,7 +64,7 @@ export default function App() {
     setFeedLoading(true);
     setFeedError("");
     try {
-      const feed = createFeedAdapter({ seedPosts: seed });
+      const feed = createFeedAdapter({ seedPosts: [] });
       const page = await feed.list({ mode });
       if (Array.isArray(page?.items)) setPosts(page.items);
     } catch (error) {
