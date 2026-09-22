@@ -12,9 +12,9 @@ function decodeRouteSegment(value) {
   try { return decodeURIComponent(value); } catch { return value; }
 }
 
-function ActionBar({ post, onLike, onSave, onReply, onRepost, onShare }) {
+function ActionBar({ post, replyCount, onLike, onSave, onReply, onRepost, onShare }) {
   return <div className="detail-actions">
-    <button onClick={onReply}><MessageCircle size={17}/>{replyCount} Reply</button>
+    <button onClick={onReply}><MessageCircle size={17}/>{replyCount ?? post.r ?? 0} Reply</button>
     <button className={post.reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)}><Repeat2 size={17}/>{post.p ?? 0} Repost</button>
     <button className={post.liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)}><Heart size={17} fill={post.liked ? "currentColor" : "none"}/>{post.l ?? 0} Like</button>
     <button className={post.saved ? "is-active" : ""} onClick={() => onSave?.(post.id)}><span aria-hidden="true">🔖</span>{post.saved ? "Saved" : "Save"}</button>
@@ -101,7 +101,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
     <p className="detail-post__text">{post.x}</p>
     {Array.isArray(post.media) && post.media.length > 0 && <button className="post-media detail-media" onClick={() => onOpen?.("/post/" + post.id + "/media")}><img src={typeof post.media[0] === "string" ? post.media[0] : post.media[0]?.url} alt="Post media" loading="lazy" /><small>Open media viewer</small></button>}
     {music && <div className="audio-card"><strong>{music.title || music.name || "Audio attachment"}</strong><span>{music.artist || music.type || "Audio"}{music.durationMs ? " · " + Math.round(music.durationMs / 1000) + "s" : ""}</span></div>}
-    <ActionBar post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onReply={() => document.getElementById("reply-box")?.focus()} onShare={share}/>
+    <ActionBar post={post} replyCount={replyCount} onLike={onLike} onSave={onSave} onRepost={onRepost} onReply={() => document.getElementById("reply-box")?.focus()} onShare={share}/>
   </div></article>
   {mode === "quote" && <section className="composer-panel"><div className="heading"><small>QUOTE POST</small><h3>Add your perspective</h3></div><textarea value={quote} onChange={(e) => setQuote(e.target.value)} placeholder="Say something about this post…" maxLength={5000}/><div className="composer-panel__footer"><span>{quote.length}/5000</span><button className="primary" disabled={!quote.trim() || quoteSubmitting} onClick={submitQuote}>{quoteSubmitting ? "Quoting…" : "Quote"}</button></div></section>}
   <section className="thread"><div className="thread-head"><h3>{mode === "media" ? "Media" : "Replies"}</h3><span>{mode === "media" ? "Media from this post" : replies.length + " repl" + (replies.length === 1 ? "y" : "ies")}</span></div>
