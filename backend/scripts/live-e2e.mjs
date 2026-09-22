@@ -129,12 +129,6 @@ if (!backgroundPostId || backgroundCreated.post?.background?.value !== "#123456"
   throw new Error("Background-only post persistence contract failed.");
 }
 
-const mixedImageForm = new FormData();
-mixedImageForm.append("file", new Blob([imageBytes], { type: "image/png" }), "mixed-e2e.png");
-const mixedUploadedMedia = await request("/api/media/upload", { method: "POST", body: mixedImageForm });
-const mixedMediaId = mixedUploadedMedia.media?.mediaId;
-if (!mixedMediaId) throw new Error("Mixed post media upload persistence contract failed.");
-
 const mixedMediaForm = new FormData();
 mixedMediaForm.append("file", new Blob([imageBytes], { type: "image/png" }), "e2e-mixed.png");
 const mixedUploadedMedia = await request("/api/media/upload", { method: "POST", body: mixedMediaForm });
