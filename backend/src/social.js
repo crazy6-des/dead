@@ -1,5 +1,6 @@
 import { resolveSession } from "./auth.js";
 import { createNotification } from "./notifications.js";
+import { serializePost } from "./posts.js";
 
 const RELATIONSHIPS = new Set(["follow", "block", "mute"]);
 const POST_ACTIONS = new Set(["like", "repost", "bookmark"]);
@@ -78,6 +79,27 @@ export async function setPostAction(request, env, postId, action) {
   return { response: { ok: true, postId, action, enabled, count: Number(count?.count || 0), [countColumn]: Number(count?.count || 0) }, error: null };
 }
 
+
+export async function listSavedPosts(request, env) {
+  const { session, failure: authFailure } = await sessionOrFailure(request, env);
+  if (authFailure) return authFailure;
+  const url = new URL(request.url);
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 20, 1), 50);
+  const rows = await env.DB.prepare(
+    `SELECT p.id,p.author_id,p.body,p.visibility,p.reply_policy,p.post_kind,p.background_json,p.quoted_post_id,p.created_at,p.updated_at,
+      u.username,u.display_name,
+      (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url,'/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id=p.id ORDER BY m.position) AS media,
+      (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id=p.id AND r.reaction_type='like') AS like_count,
+      (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id=p.id AND r.reaction_type='repost') AS repost_count,
+      (SELECT COUNT(*) FROM posts rp WHERE rp.reply_to_id=p.id AND rp.deleted_at IS NULL) AS reply_count,
+      (SELECT COUNT(*) FROM bookmarks b2 WHERE b2.post_id=p.id) AS bookmark_count
+     FROM bookmarks b JOIN posts p ON p.id=b.post_id JOIN users u ON u.id=p.author_id
+     WHERE b.user_id=?1 AND p.deleted_at IS NULL
+       AND (p.author_id=?1 OR p.visibility='public' OR (p.visibility='followers' AND EXISTS (SELECT 1 FROM relationships f WHERE f.source_user_id=?1 AND f.target_user_id=p.author_id AND f.relationship_type='follow')))
+     ORDER BY b.created_at DESC LIMIT ?2`
+  ).bind(session.user_id, limit).all();
+  return { response: { items: (rows.results || []).map(serializePost), nextCursor: null }, error: null };
+}
 
 export async function sharePostWithFollowers(request, env, postId) {
   const { session, failure: authFailure } = await sessionOrFailure(request, env);
