@@ -18,6 +18,7 @@ import { getMyProfile, getProfile, listProfilePosts, updateMyProfile } from "./p
 import { deleteMedia, getMedia, uploadMedia } from "./media.js";
 import { getMySettings, updateMySettings } from "./settings.js";
 import { browseMusic, searchMusic } from "./music.js";
+import { requestPasswordReset, confirmPasswordReset } from "./passwordReset.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const MAX_BODY_BYTES = 16 * 1024;
@@ -86,6 +87,6 @@ export default { async fetch(request, env) {
   if (url.pathname === "/api/auth/session") { if (request.method !== "GET") return methodNotAllowed(request, env); const session = await resolveSession(request, env); if (!session) return json({ authenticated: false, user: null }, 200, request, env); return json({ authenticated: true, user: userPayload(session) }, 200, request, env); }
   if (url.pathname === "/api/auth/sign-up") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); return signUp(request, env); }
   if (url.pathname === "/api/auth/sign-in") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); return signIn(request, env); }
-  if (url.pathname === "/api/auth/sign-out") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); await revokeSession(request, env); return json({ ok: true }, 200, request, env, { "set-cookie": clearSessionCookie() }); }
+  if (url.pathname === "/api/auth/password-reset/request") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await requestPasswordReset(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env); return json(result.response, 200, request, env); }\n  if (url.pathname === "/api/auth/password-reset/confirm") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await confirmPasswordReset(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env); return json(result.response, 200, request, env); }\n  if (url.pathname === "/api/auth/sign-out") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); await revokeSession(request, env); return json({ ok: true }, 200, request, env, { "set-cookie": clearSessionCookie() }); }
   return errorResponse("NOT_FOUND", 404, "Route not found.", request, env);
 } };
