@@ -5,6 +5,7 @@ import PostCard from "../post/PostCard.jsx";
 import { NOTIFICATION_FILTERS } from "../notifications/notificationContract.js";
 import { createNotificationAdapter } from "../../services/notificationService.js";
 import { createMessageAdapter } from "../../services/messageService.js";
+import { bookmarkService } from "../../services/bookmarkService.js";
 import { MESSAGE_IMAGE_LIMITS } from "../messages/messageContract.js";
 
 export function NotificationsRoute({ onOpen }) {
@@ -214,8 +215,16 @@ export function MessagesRoute() {
   </div>;
 }
 
-export function SavedRoute({ posts, onSave, onOpen }) {
+export function SavedRoute({ posts = [], onSave, onOpen }) {
   const folder = new URLSearchParams(window.location.search).get("folder");
-  const saved = posts.filter((p) => p.saved);
-  return <div className="page"><div className="heading"><small>YOUR LIBRARY</small><h2>Saved{folder && folder !== "all" ? ` · ${decodeURIComponent(folder)}` : ""}</h2><p>Posts you chose to keep.</p></div>{saved.length ? saved.map((p) => <PostCard key={p.id} post={p} onSave={onSave} onOpen={onOpen}/>) : <div className="empty"><h3>Your saved posts will live here.</h3><p>Bookmark something from your feed and return to it anytime.</p></div>}</div>;
+  const [saved, setSaved] = useState(() => posts.filter((post) => post.saved));
+  const [loading, setLoading] = useState(Boolean(window.__S_API_BASE_URL || import.meta.env.VITE_API_BASE_URL));
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    bookmarkService.listSaved().then((page) => { if (active) { setSaved(Array.isArray(page?.items) ? page.items : []); setError(""); } }).catch((err) => { if (active) { setSaved(posts.filter((post) => post.saved)); setError(err?.message || "Could not load saved posts."); } }).finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [posts]);
+  const removeSaved = (id) => { setSaved((current) => current.filter((post) => post.id !== id)); onSave?.(id); };
+  return <div className="page"><div className="heading"><small>YOUR LIBRARY</small><h2>Saved</h2><p>Posts you chose to keep.</p></div>{loading ? <div className="empty"><p>Loading saved posts…</p></div> : error && saved.length === 0 ? <div className="empty"><h3>Could not load saved posts</h3><p>{error}</p></div> : saved.length ? saved.map((post) => <PostCard key={post.id} post={{ ...post, saved: true }} onSave={removeSaved} onOpen={onOpen}/>) : <div className="empty"><h3>Your saved posts will live here.</h3><p>Bookmark something from your feed and return to it anytime.</p></div>}</div>;
 }
