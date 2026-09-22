@@ -135,6 +135,12 @@ const mixedUploadedMedia = await request("/api/media/upload", { method: "POST", 
 const mixedMediaId = mixedUploadedMedia.media?.mediaId;
 if (!mixedMediaId) throw new Error("Mixed post media upload persistence contract failed.");
 
+const mixedMediaForm = new FormData();
+mixedMediaForm.append("file", new Blob([imageBytes], { type: "image/png" }), "e2e-mixed.png");
+const mixedUploadedMedia = await request("/api/media/upload", { method: "POST", body: mixedMediaForm });
+const mixedMediaId = mixedUploadedMedia.media?.mediaId;
+if (!mixedMediaId) throw new Error("Mixed-post media upload persistence contract failed.");
+
 const mixedCreated = await request("/api/posts", {
   method: "POST",
   body: JSON.stringify({
