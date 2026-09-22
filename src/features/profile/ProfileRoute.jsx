@@ -154,6 +154,9 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
   };
 
   const initials = profile.displayName.charAt(0).toUpperCase() || "D";
+  const websiteHref = (() => { const value = String(profile.website || "").trim(); if (!value) return ""; try { const parsed = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`); return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : ""; } catch { return ""; } })();
+  const followerCount = Number(profile.counts?.followers ?? 0);
+  const followingCount = Number(profile.counts?.following ?? 0);
 
   return (
     <div className="profile">
@@ -175,12 +178,12 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
         <p>{profile.bio || "No bio yet."}</p>
         <div className="links">
           {profile.location && <span><MapPin />{profile.location}</span>}
-          {profile.website && <span><Link2 />{profile.website}</span>}
+          {profile.website && (websiteHref ? <a href={websiteHref} target="_blank" rel="noreferrer"><Link2 />{profile.website}</a> : <span><Link2 />{profile.website}</span>)}
           <span>Joined September 2026</span>
         </div>
         <div className="stats">
-          <button onClick={() => onOpen?.(`/following/${profile.username}`)}><b>0</b> Following</button>
-          {profile.showFollowerCount && <button onClick={() => onOpen?.(`/followers/${profile.username}`)}><b>0</b> Followers</button>}
+          <button onClick={() => onOpen?.(`/following/${profile.username}`)}><b>{followingCount}</b> Following</button>
+          {profile.showFollowerCount && <button onClick={() => onOpen?.(`/followers/${profile.username}`)}><b>{followerCount}</b> Followers</button>}
         </div>
       </div>
 
