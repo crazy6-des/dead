@@ -87,6 +87,7 @@ export function createCatalogMusicAsset({
   album = "",
   type = "audio/mpeg",
   durationMs = 0,
+  artworkUrl = "",
 } = {}) {
   if (!musicId || !url) throw new Error("Catalog music requires musicId and url.");
   if (!/^https?:\/\//i.test(String(url))) throw new Error("Catalog music requires an HTTP(S) URL.");
@@ -99,6 +100,7 @@ export function createCatalogMusicAsset({
     artist,
     album,
     type,
+    artworkUrl: /^https?:\/\//i.test(String(artworkUrl)) ? String(artworkUrl) : "",
     size: 0,
     durationMs: Number.isFinite(durationMs) ? durationMs : 0,
   };
