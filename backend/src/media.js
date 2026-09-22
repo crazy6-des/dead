@@ -31,8 +31,8 @@ export async function uploadMedia(request, env) {
     httpMetadata: { contentType: type, cacheControl: "public, max-age=31536000, immutable" },
     customMetadata: { ownerId: session.user_id, originalName: safeName(file.name) },
   });
-  await env.DB.prepare("INSERT INTO post_media (id, post_id, object_key, media_type, mime_type, byte_size, position, source, metadata_json) VALUES (?1, NULL, ?2, ?3, ?4, ?5, 0, 'upload', ?6)")
-    .bind(mediaId, objectKey, isImage ? "image" : "audio", type, file.size, JSON.stringify({name:safeName(file.name)})).run();
+  await env.DB.prepare("INSERT INTO post_media (id, post_id, object_key, media_type, mime_type, byte_size, position, source, metadata_json, owner_id) VALUES (?1, NULL, ?2, ?3, ?4, ?5, 0, 'upload', ?6, ?7)")
+    .bind(mediaId, objectKey, isImage ? "image" : "audio", type, file.size, JSON.stringify({name:safeName(file.name)}), session.user_id).run();
 
   return { response: { media: { mediaId, url: "/api/media/" + mediaId, mediaType: isImage ? "image" : "audio", mimeType: type, size: file.size, name: safeName(file.name), source: "upload" }, status:"uploaded" }, error:null };
 }
@@ -55,12 +55,12 @@ export async function deleteMedia(request, env, mediaId) {
   const session = await resolveSession(request, env);
   if (!session?.user_id) return fail("UNAUTHORIZED",401,"Authentication is required.");
   if (!env?.DB || !env?.MEDIA_BUCKET) return fail("SERVICE_UNAVAILABLE",503,"Media service is not configured.");
-  const row = await env.DB.prepare("SELECT id, object_key, source FROM post_media WHERE id = ?1 LIMIT 1").bind(mediaId).first();
+  const row = await env.DB.prepare("SELECT id, object_key, source, owner_id, post_id FROM post_media WHERE id = ?1 LIMIT 1").bind(mediaId).first();
   if (!row) return fail("NOT_FOUND",404,"Media not found.");
   if (row.source !== "upload") return fail("MEDIA_NOT_FOUND",400,"Only uploaded media can be deleted here.");
-  const owner = await env.DB.prepare("SELECT 1 FROM post_media m JOIN posts p ON p.id = m.post_id WHERE m.id = ?1 AND p.author_id = ?2 LIMIT 1").bind(mediaId, session.user_id).first();
-  if (owner) return fail("MEDIA_IN_USE",409,"Media is attached to a published post.");
+  if (row.owner_id && row.owner_id !== session.user_id) return fail("FORBIDDEN",403,"You do not own this media.");
+  if (row.post_id) return fail("MEDIA_IN_USE",409,"Media is attached to a published post.");
   await env.MEDIA_BUCKET.delete(row.object_key);
-  await env.DB.prepare("DELETE FROM post_media WHERE id = ?1 AND post_id IS NULL").bind(mediaId).run();
+  await env.DB.prepare("DELETE FROM post_media WHERE id = ?1 AND post_id IS NULL AND (owner_id = ?2 OR owner_id IS NULL)").bind(mediaId, session.user_id).run();
   return { response:{ ok:true, mediaId }, error:null };
 }
