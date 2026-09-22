@@ -11,6 +11,7 @@ export const APP_ROUTES = Object.freeze({
   SETTINGS: "/settings",
   EARN: "/earn",
   SEARCH: "/search",
+  RESET_PASSWORD: "/reset-password",
 });
 
 export const ROUTE_LABELS = Object.freeze({
@@ -26,6 +27,7 @@ export const ROUTE_LABELS = Object.freeze({
   [APP_ROUTES.SETTINGS]: "Settings",
   [APP_ROUTES.EARN]: "Earn",
   [APP_ROUTES.SEARCH]: "Search",
+  [APP_ROUTES.RESET_PASSWORD]: "Reset password",
 });
 
 function getPathname(value) {
@@ -35,6 +37,7 @@ function getPathname(value) {
 export function normalizeRoute(pathname = typeof window === "undefined" ? "/" : window.location.pathname) {
   const path = getPathname(pathname);
   if (path === "/david" || path === "/profile") return APP_ROUTES.PROFILE;
+  if (path === APP_ROUTES.RESET_PASSWORD) return APP_ROUTES.RESET_PASSWORD;
   if (Object.values(APP_ROUTES).includes(path)) return path;
   if (/^\/(post|share|user|topic|followers|following|search|settings)(\/|$)/.test(path)) return path;
   return APP_ROUTES.HOME;
