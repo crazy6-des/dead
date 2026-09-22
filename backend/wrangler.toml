@@ -14,3 +14,5 @@ bucket_name = "sss"
 
 [vars]
 FRONTEND_ORIGIN = "https://sphereis.netlify.app"
+BREVO_SENDER_EMAIL = "growthmedia70@gmail.com"
+BREVO_SENDER_NAME = "sphere"
