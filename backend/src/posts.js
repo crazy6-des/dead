@@ -1,4 +1,5 @@
 import { resolveSession } from "./auth.js";
+import { getUserSettings } from "./settings.js";
 
 const MAX_POST_TEXT = 5000;
 const MAX_LIMIT = 50;
@@ -177,14 +178,19 @@ export async function createPost(request, env) {
 
 function visibilitySql(alias = "p") {
   return `(
-    ${alias}.visibility = 'public'
-    OR ${alias}.author_id = ?USER?
-    OR (${alias}.visibility = 'followers' AND EXISTS (
-      SELECT 1 FROM relationships rel
-      WHERE rel.source_user_id = ?USER?
-        AND rel.target_user_id = ${alias}.author_id
-        AND rel.relationship_type = 'follow'
-    ))
+    ${alias}.author_id = ?USER?
+    OR (
+      EXISTS (SELECT 1 FROM user_settings us WHERE us.user_id = ${alias}.author_id AND us.private_account = 0)
+      AND ${alias}.visibility = 'public'
+    )
+    OR (
+      ${alias}.visibility = 'followers' AND EXISTS (
+        SELECT 1 FROM relationships rel
+        WHERE rel.source_user_id = ?USER?
+          AND rel.target_user_id = ${alias}.author_id
+          AND rel.relationship_type = 'follow'
+      )
+    )
   )`;
 }
 
