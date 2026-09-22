@@ -37,6 +37,9 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
   const [error, setError] = useState("");
   const [loadingProfile, setLoadingProfile] = useState(hasApiBaseUrl());
   const [savingProfile, setSavingProfile] = useState(false);
+  const [activityPosts, setActivityPosts] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(hasApiBaseUrl());
+  const [activityError, setActivityError] = useState("");
   const fileRef = useRef(null);
   const avatarObjectUrlsRef = useRef(new Set());
   const tabs = ["Posts", "Replies", "Media", "Likes"];
@@ -76,6 +79,22 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
     if (tab === "Replies") return posts.filter((post) => Number(post.r ?? 0) > 0);
     return posts;
   }, [posts, tab]);
+
+  const visiblePosts = hasApiBaseUrl() ? activityPosts : visible;
+
+  useEffect(() => {
+    if (!hasApiBaseUrl() || !profile.username) return undefined;
+    let active = true;
+    setActivityLoading(true);
+    setActivityError("");
+    profileService.listPosts(profile.username, tab.toLowerCase()).then((result) => {
+      if (!active) return;
+      setActivityPosts(Array.isArray(result?.items) ? result.items : []);
+    }).catch((cause) => {
+      if (active) setActivityError(cause?.message || "Could not load profile activity.");
+    }).finally(() => { if (active) setActivityLoading(false); });
+    return () => { active = false; };
+  }, [profile.username, tab]);
 
   const openEditor = () => {
     setDraft({ ...profile });
@@ -170,8 +189,8 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
         {tabs.map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}
       </div>
 
-      {visible.length > 0
-        ? visible.slice(0, 8).map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onFollow={onFollow} onRepost={onRepost} onOpen={onOpen} />)
+      {activityLoading ? <div className="empty" role="status"><p>Loading activity…</p></div> : activityError ? <div className="empty"><h3>Could not load activity</h3><p>{activityError}</p></div> : visiblePosts.length > 0
+        ? visiblePosts.slice(0, 8).map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onFollow={onFollow} onRepost={onRepost} onOpen={onOpen} />)
         : <div className="empty"><h3>No {tab.toLowerCase()} yet</h3><p>This space will fill as your activity grows.</p></div>}
 
       {editing && (
