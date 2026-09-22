@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createCreatePublishHandler } from "../src/features/create/createIntegration.js";
 import { validatePostDraft } from "../src/features/create/postValidation.js";
 import { normalizeCreatedPostResponse } from "../src/features/create/postContract.js";
-import { createApiPostAdapter } from "../src/services/postService.js";
+import { createApiPostAdapter, createPostRequest } from "../src/services/postService.js";
 
 const draft = {
   text: "Integration test post",
