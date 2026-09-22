@@ -3,6 +3,7 @@ import { createBookmarkFolder, createBookmarkRequest } from "../features/bookmar
 
 export function createApiBookmarkAdapter(client = apiClient) {
   return {
+    listSaved() { return client.get("/api/bookmarks"); },
     listFolders() { return client.get("/api/bookmarks/folders"); },
     createFolder(input) { return client.post("/api/bookmarks/folders", createBookmarkFolder(input)); },
     save(input) { return client.post("/api/bookmarks", createBookmarkRequest(input)); },
@@ -13,6 +14,7 @@ export function createApiBookmarkAdapter(client = apiClient) {
 export function createUnavailableBookmarkAdapter() {
   const unavailable = () => Promise.reject(new Error("Bookmark folders require the Cloudflare backend."));
   return {
+    listSaved: unavailable,
     listFolders: unavailable,
     createFolder: unavailable,
     save: unavailable,
