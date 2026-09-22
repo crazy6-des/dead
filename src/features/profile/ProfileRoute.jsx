@@ -214,10 +214,10 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
               <label>Bio<textarea value={draft.bio} maxLength={MAX_LENGTHS.bio} rows={3} onChange={(event) => updateDraft({ bio: event.target.value })} /></label>
               <label>Location<input value={draft.location} maxLength={MAX_LENGTHS.location} placeholder="Your city or region" onChange={(event) => updateDraft({ location: event.target.value })} /></label>
               <label>Website or social link<input value={draft.website} maxLength={MAX_LENGTHS.website} placeholder="https://…" onChange={(event) => updateDraft({ website: event.target.value })} /></label>
-              <label className="s-profile-editor__check"><input type="checkbox" checked={draft.privateAccount} onChange={(event) => updateDraft({ privateAccount: event.target.checked })} /> Private account <small>(preview only)</small></label>
+              <label className="s-profile-editor__check"><input type="checkbox" checked={draft.privateAccount} onChange={(event) => updateDraft({ privateAccount: event.target.checked })} /> Private account</label>
               {error && <p className="s-create-composer__error" role="alert">{error}</p>}
             </div>
-            <footer><button type="button" className="outline" onClick={() => { if (draft.avatarUrl !== profile.avatarUrl) revokeAvatarObjectUrl(draft.avatarUrl); setEditing(false); }} disabled={savingProfile}>Cancel</button><button className="primary" type="submit" disabled={savingProfile}>{savingProfile ? "Saving…" : hasApiBaseUrl() ? "Save profile" : "Save preview"}</button></footer>
+            <footer><button type="button" className="outline" onClick={() => { if (draft.avatarUrl !== profile.avatarUrl) revokeAvatarObjectUrl(draft.avatarUrl); setEditing(false); }} disabled={savingProfile}>Cancel</button><button className="primary" type="submit" disabled={savingProfile}>{savingProfile ? "Saving…" : hasApiBaseUrl() ? "Save profile" : "Save locally"}</button></footer>
           </form>
         </div>
       )}
