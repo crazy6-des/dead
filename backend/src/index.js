@@ -9,6 +9,7 @@ import {
   verifyPassword,
 } from "./auth.js";
 import { createPost, listFeed } from "./posts.js";
+import { createReply, listReplies } from "./replies.js";
 import { setPostAction, setRelationship } from "./social.js";
 import { createConversation, listConversations, listMessages, markConversationRead, sendMessage } from "./messages.js";
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from "./notifications.js";
@@ -35,6 +36,13 @@ export default { async fetch(request, env) {
   if (url.pathname === "/health" || url.pathname === "/api/health") { if (request.method !== "GET") return methodNotAllowed(request, env); return json({ ok: true, service: "sss-api", version: "0.1.0" }, 200, request, env); }
   if (url.pathname === "/api/posts") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await createPost(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 201, request, env); }
   if (url.pathname === "/api/feed") { if (request.method !== "GET") return methodNotAllowed(request, env); const result = await listFeed(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
+  const repliesMatch = url.pathname.match(/^\/api\/posts\/([^/]+)\/replies$/);
+  if (repliesMatch) {
+    const postId = decodeURIComponent(repliesMatch[1]);
+    if (request.method === "GET") { const result = await listReplies(request, env, postId); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
+    if (request.method === "POST") { if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await createReply(request, env, postId); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 201, request, env); }
+    return methodNotAllowed(request, env);
+  }
   if (url.pathname === "/api/social/relationships") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await setRelationship(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
   const postAction = url.pathname.match(/^\/api\/social\/posts\/([^/]+)\/(like|repost|bookmark)$/);
   if (postAction) { if (!['POST','DELETE'].includes(request.method)) return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await setPostAction(request, env, decodeURIComponent(postAction[1]), postAction[2]); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
