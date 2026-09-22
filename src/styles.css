@@ -138,3 +138,17 @@ button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .audio-card__body{display:grid;gap:4px;flex:1;min-width:0;}
 .audio-card__body span{font-size:11px;color:var(--muted);}
 .audio-card__body audio{width:100%;margin-top:5px;}
+
+
+/* S message media composer */
+.chat-attach{position:relative;display:grid;place-items:center;width:34px;height:34px;border:0;background:transparent;color:var(--muted);border-radius:8px;cursor:pointer}
+.chat-attach:hover{background:var(--surface2);color:var(--text)}
+.chat-attach input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.chat-image-preview{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid var(--line);background:var(--surface2)}
+.chat-image-preview img{width:52px;height:52px;object-fit:cover;border-radius:9px;border:1px solid var(--line)}
+.chat-image-preview>div{display:grid;gap:3px;min-width:0;flex:1}
+.chat-image-preview small{color:var(--muted);font-size:10px}
+.chat-image-preview button{border:0;background:transparent;color:var(--muted);width:30px;height:30px;border-radius:8px;display:grid;place-items:center}
+.chat-image-preview button:hover{background:var(--surface);color:var(--text)}
+.message-image{display:block;width:min(280px,100%);max-height:320px;object-fit:cover;border-radius:10px;margin:-2px -3px 7px}
+.chat-error{padding:7px 12px;color:var(--danger);font-size:10px;border-top:1px solid var(--line)}
