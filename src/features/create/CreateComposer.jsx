@@ -88,7 +88,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   }
 
   function selectCatalogMusic(track) {
-    const asset = createCatalogMusicAsset({ ...track, musicId: track.musicId, url: track.url });
+    const asset = createCatalogMusicAsset({ ...track, musicId: track.musicId, url: track.url, provider: track.provider, licenseUrl: track.licenseUrl });
     updateDraft({ audio: asset });
     setMusicResults([]);
     setMusicQuery("");
@@ -133,10 +133,11 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
       </div>}
       <label className="s-create-composer__picker s-create-composer__color-picker" title="Choose background"><Palette size={16} aria-hidden="true" /><span>Background</span><input type="color" value={draft.background?.value || "#151922"} onChange={handleBackgroundChange} aria-label="Post background color" /></label>
     </div>
-    {hasMusicCatalog() && musicResults.length > 0 && <div className="s-create-composer__music-results" aria-label="Music search results">{musicResults.map((track) => <button type="button" key={track.musicId} className="s-create-composer__music-result" onClick={() => selectCatalogMusic(track)}><span>{track.title}</span><small>{track.artist || "Unknown artist"}{track.album ? ` · ${track.album}` : ""}</small></button>)}</div>}
+    {hasMusicCatalog() && musicResults.length > 0 && <div className="s-create-composer__music-results" aria-label="Music search results">{musicResults.map((track) => <button type="button" key={track.musicId} className="s-create-composer__music-result" onClick={() => selectCatalogMusic(track)}><span>{track.title}</span><small>{track.artist || "Unknown artist"}{track.album ? ` · ${track.album}` : ""}{track.provider ? ` · ${track.provider}` : ""}</small></button>)}</div>}
     {musicError && <p className="s-create-composer__error" role="alert">{musicError}</p>}
     {hasMusicCatalog() && musicQuery.trim() && !isSearchingMusic && musicResults.length === 0 && !musicError && <p className="s-create-composer__hint">No catalog tracks found.</p>}
     {!hasMusicCatalog() && <p className="s-create-composer__hint">Local music is ready now. Online music selection becomes available when a catalog API is configured.</p>}
+    <p className="s-create-composer__hint">Catalog music is provided under its provider license. <a href="https://api.freetouse.com/license" target="_blank" rel="noreferrer">Review Free To Use licensing</a>, especially before commercial use.</p>
     <p className="s-create-composer__hint">Choose any combination — text, image, music, background, or just one of them. Nothing posts until you press Publish.</p>
     <PostMediaPreview media={draft.media} audio={draft.audio} background={draft.background} onRemoveImage={(index) => {
       const asset = draft.media[index];
