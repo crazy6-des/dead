@@ -129,5 +129,7 @@ export function hasApiBaseUrl() {
 }
 
 export function resolveApiUrl(path) {
-  return buildUrl(String(path || ""));
+  const value = String(path || "");
+  if (/^(https?:|blob:|data:)/i.test(value)) return value;
+  return buildUrl(value);
 }
