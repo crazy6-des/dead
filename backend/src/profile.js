@@ -52,7 +52,7 @@ export async function listProfilePosts(request, env, username) {
 
   const values = [target.id];
   let where = "p.deleted_at IS NULL AND p.author_id = ?1";
-  if (!ownProfile) where += targetSettings?.private_account && !isFollower ? " AND 1 = 0" : " AND p.visibility IN ('public', 'followers')";
+  if (!ownProfile) where += targetSettings?.private_account && !isFollower ? " AND p.visibility = 'public' AND 1 = 0" : " AND (p.visibility = 'public' OR (p.visibility = 'followers' AND EXISTS (SELECT 1 FROM relationships rel WHERE rel.source_user_id = ?2 AND rel.target_user_id = p.author_id AND rel.relationship_type = 'follow')))";
   if (tab === "replies") where += " AND p.reply_to_id IS NOT NULL";
   if (tab === "media") where += " AND EXISTS (SELECT 1 FROM post_media pm WHERE pm.post_id = p.id)";
   if (tab === "likes") {
