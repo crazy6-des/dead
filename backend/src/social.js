@@ -77,3 +77,32 @@ export async function setPostAction(request, env, postId, action) {
     : await env.DB.prepare("SELECT COUNT(*) AS count FROM post_reactions WHERE post_id = ?1 AND reaction_type = ?2").bind(postId, action).first();
   return { response: { ok: true, postId, action, enabled, count: Number(count?.count || 0), [countColumn]: Number(count?.count || 0) }, error: null };
 }
+
+
+export async function sharePostWithFollowers(request, env, postId) {
+  const { session, failure: authFailure } = await sessionOrFailure(request, env);
+  if (authFailure) return authFailure;
+  const normalizedPostId = String(postId || "").trim();
+  if (!normalizedPostId) return failure("VALIDATION_ERROR", 400, "A post id is required.");
+  const post = await env.DB.prepare("SELECT id, author_id, deleted_at, visibility FROM posts WHERE id = ?1 LIMIT 1").bind(normalizedPostId).first();
+  if (!post || post.deleted_at) return failure("POST_NOT_FOUND", 404, "Post was not found.");
+  if (post.author_id !== session.user_id) {
+    const blocked = await env.DB.prepare("SELECT 1 FROM relationships WHERE relationship_type = 'block' AND ((source_user_id = ?1 AND target_user_id = ?2) OR (source_user_id = ?2 AND target_user_id = ?1)) LIMIT 1").bind(session.user_id, post.author_id).first();
+    if (blocked) return failure("FORBIDDEN", 403, "This post is not available.");
+  }
+  const followers = await env.DB.prepare("SELECT source_user_id AS recipient_id FROM relationships WHERE target_user_id = ?1 AND relationship_type = 'follow'").bind(session.user_id).all();
+  let notified = 0;
+  for (const follower of followers.results || []) {
+    if (follower.recipient_id === session.user_id) continue;
+    const created = await createNotification(env, {
+      recipientId: follower.recipient_id,
+      actorId: session.user_id,
+      eventType: "share",
+      targetType: "post",
+      targetId: normalizedPostId,
+      payload: { text: "shared a post with their followers" },
+    });
+    if (created) notified += 1;
+  }
+  return { response: { ok: true, postId: normalizedPostId, recipientCount: notified }, error: null };
+}
