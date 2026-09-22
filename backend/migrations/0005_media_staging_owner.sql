@@ -20,8 +20,8 @@ CREATE TABLE post_media_new (
   owner_id TEXT REFERENCES users(id) ON DELETE CASCADE
 );
 
-INSERT INTO post_media_new (id, post_id, object_key, media_type, mime_type, byte_size, position, created_at, source, external_url, metadata_json, duration_ms)
-SELECT id, post_id, object_key, media_type, mime_type, byte_size, position, created_at, source, external_url, metadata_json, duration_ms
+INSERT INTO post_media_new (id, post_id, object_key, media_type, mime_type, byte_size, position, created_at, source, external_url, metadata_json, duration_ms, owner_id)
+SELECT id, post_id, object_key, media_type, mime_type, byte_size, position, created_at, source, external_url, metadata_json, duration_ms, NULL
 FROM post_media;
 
 
