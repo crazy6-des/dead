@@ -1,6 +1,8 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Camera, Check, Link2, MapPin, MoreHorizontal, X } from "lucide-react";
 import PostCard from "../post/PostCard.jsx";
+import { profileService } from "../../services/profileService.js";
+import { hasApiBaseUrl } from "../../services/apiClient.js";
 
 const DEFAULT_PROFILE = Object.freeze({
   displayName: "David",
@@ -33,8 +35,28 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
   const [draft, setDraft] = useState(DEFAULT_PROFILE);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
+  const [loadingProfile, setLoadingProfile] = useState(hasApiBaseUrl());
+  const [savingProfile, setSavingProfile] = useState(false);
   const fileRef = useRef(null);
   const tabs = ["Posts", "Replies", "Media", "Likes"];
+
+  useEffect(() => {
+    if (!hasApiBaseUrl()) return undefined;
+    let active = true;
+    profileService.getMe().then((result) => {
+      const next = result?.profile || result;
+      if (!active || !next?.username) return;
+      const normalized = { ...DEFAULT_PROFILE, ...next };
+      setProfile(normalized);
+      setDraft(normalized);
+      setError("");
+    }).catch((cause) => {
+      if (active && cause?.status !== 401) setError(cause?.message || "Could not load your profile.");
+    }).finally(() => {
+      if (active) setLoadingProfile(false);
+    });
+    return () => { active = false; };
+  }, []);
 
   const visible = useMemo(() => {
     if (tab === "Media") return posts.filter((post) => Array.isArray(post.media) && post.media.length > 0);
@@ -68,7 +90,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
     updateDraft({ avatarUrl: URL.createObjectURL(file) });
   };
 
-  const saveProfile = (event) => {
+  const saveProfile = async (event) => {
     event.preventDefault();
     const next = normalizeDraft(draft);
 
@@ -79,9 +101,20 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
     if (next.location.length > MAX_LENGTHS.location) return setError("Location must be 100 characters or fewer.");
     if (next.website.length > MAX_LENGTHS.website) return setError("Website must be 200 characters or fewer.");
 
-    setProfile(next);
-    onProfileUpdate?.(next);
-    setEditing(false);
+    setSavingProfile(true);
+    try {
+      const result = hasApiBaseUrl() ? await profileService.updateMe(next) : next;
+      const saved = result?.profile || result || next;
+      const normalizedSaved = { ...DEFAULT_PROFILE, ...saved };
+      setProfile(normalizedSaved);
+      setDraft(normalizedSaved);
+      onProfileUpdate?.(normalizedSaved);
+      setEditing(false);
+    } catch (cause) {
+      setError(cause?.message || "Could not save your profile.");
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const initials = profile.displayName.charAt(0).toUpperCase() || "D";
@@ -99,6 +132,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
         </div>
       </div>
 
+      {loadingProfile ? <div className="empty" role="status"><p>Loading profile…</p></div> : null}
       <div className="profile-info">
         <h2>{profile.displayName} <span className="verified"><Check size={10} /></span></h2>
         <span>@{profile.username}</span>
@@ -130,7 +164,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
               <button type="button" className="icon-btn" onClick={() => setEditing(false)} aria-label="Close"><X /></button>
             </header>
             <div className="s-profile-editor__body">
-              <p className="s-create-composer__hint" role="note">Preview only: profile edits stay in this session until the authenticated profile API is connected. They are not saved to the server.</p>
+              <p className="s-create-composer__hint" role="note">{hasApiBaseUrl() ? "Changes are saved to your S profile." : "Preview mode: changes stay in this session until the profile API is configured."}</p>
               <div className="s-profile-editor__avatar">
                 <div className="profile-avatar avatar">{draft.avatarUrl ? <img src={draft.avatarUrl} alt="Selected profile" /> : draft.displayName.charAt(0).toUpperCase() || "D"}</div>
                 <button type="button" className="outline" onClick={() => fileRef.current?.click()}><Camera size={15} /> Choose picture</button>
@@ -145,7 +179,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
               <label className="s-profile-editor__check"><input type="checkbox" checked={draft.showFollowerCount} onChange={(event) => updateDraft({ showFollowerCount: event.target.checked })} /> Show follower count <small>(preview only)</small></label>
               {error && <p className="s-create-composer__error" role="alert">{error}</p>}
             </div>
-            <footer><button type="button" className="outline" onClick={() => setEditing(false)}>Cancel</button><button className="primary" type="submit">Save preview</button></footer>
+            <footer><button type="button" className="outline" onClick={() => setEditing(false)} disabled={savingProfile}>Cancel</button><button className="primary" type="submit" disabled={savingProfile}>{savingProfile ? "Saving…" : hasApiBaseUrl() ? "Save profile" : "Save preview"}</button></footer>
           </form>
         </div>
       )}
