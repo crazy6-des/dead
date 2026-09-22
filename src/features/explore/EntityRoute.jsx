@@ -14,7 +14,7 @@ function decodeRouteSegment(value) {
 
 function ActionBar({ post, onLike, onSave, onReply, onRepost, onShare }) {
   return <div className="detail-actions">
-    <button onClick={onReply}><MessageCircle size={17}/>{post.r ?? 0} Reply</button>
+    <button onClick={onReply}><MessageCircle size={17}/>{replyCount} Reply</button>
     <button className={post.reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)}><Repeat2 size={17}/>{post.p ?? 0} Repost</button>
     <button className={post.liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)}><Heart size={17} fill={post.liked ? "currentColor" : "none"}/>{post.l ?? 0} Like</button>
     <button className={post.saved ? "is-active" : ""} onClick={() => onSave?.(post.id)}><span aria-hidden="true">🔖</span>{post.saved ? "Saved" : "Save"}</button>
@@ -26,6 +26,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
   const [reply, setReply] = useState("");
   const [quote, setQuote] = useState("");
   const [replies, setReplies] = useState([]);
+  const [replyCount, setReplyCount] = useState(Number(post.r ?? 0));
   const [replyLoading, setReplyLoading] = useState(mode !== "quote" && mode !== "media");
   const [replySubmitting, setReplySubmitting] = useState(false);
   const [replyError, setReplyError] = useState("");
@@ -39,6 +40,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
       .then((page) => {
         if (!active) return;
         setReplies(page.items);
+        setReplyCount(Number(post.r ?? page.items.length));
         setReplyLoading(false);
       })
       .catch((error) => {
@@ -58,6 +60,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
       const created = await replyService.create(post.id, text);
       if (!created) throw new Error("The reply was not returned by the server.");
       setReplies((items) => [...items, created]);
+      setReplyCount((count) => count + 1);
       setReply("");
     } catch (error) {
       setReplyError(error?.message || "Your reply could not be posted.");
