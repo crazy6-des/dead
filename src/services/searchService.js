@@ -7,7 +7,7 @@ export function createDevSearchAdapter({ posts = [] } = {}) {
   return {
     search(query, type = "all") {
       const q = String(query || "").trim().toLowerCase();
-      const people = [{ name: "Maya Okafor", username: "maya" }, { name: "Daniel Cole", username: "daniel" }, { name: "Nia James", username: "nia" }, { name: "S Team", username: "s" }];
+      const people = [...new Map(posts.map((post) => [post.u || post.username, { name: post.a || post.displayName || post.username, username: post.u || post.username }]).filter(([username]) => username)).values()];
       return Promise.resolve({
         items: {
           people: people.filter((p) => !q || (p.name + " " + p.username).toLowerCase().includes(q)),
