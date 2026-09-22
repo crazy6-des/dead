@@ -7,8 +7,8 @@ const MAX_TEXT = 5000;
 const MESSAGE_TYPES = new Set(["text", "image", "audio", "file"]);
 
 function failure(code, status, message) { return { response: null, error: { code, status, message } }; }
-function encodeCursor(createdAt, id) { return btoa(JSON.stringify({ createdAt, id })).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"); }
-function decodeCursor(value) { if (!value) return null; try { const normalized = String(value).replace(/-/g, "+").replace(/_/g, "/"); return JSON.parse(atob(normalized + "=".repeat((4 - normalized.length % 4) % 4))); } catch { return null; } }
+function encodeCursor(createdAt, id) { return globalThis.btoa(JSON.stringify({ createdAt, id })).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"); }
+function decodeCursor(value) { if (!value) return null; try { const normalized = String(value).replace(/-/g, "+").replace(/_/g, "/"); return JSON.parse(globalThis.atob(normalized + "=".repeat((4 - normalized.length % 4) % 4))); } catch { return null; } }
 function limitValue(value) { const n = Number(value); return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_LIMIT) : DEFAULT_LIMIT; }
 async function requireSession(request, env) { const session = await resolveSession(request, env); if (!session?.user_id) return { session: null, failure: failure("UNAUTHORIZED", 401, "Authentication is required.") }; if (!env?.DB) return { session: null, failure: failure("SERVICE_UNAVAILABLE", 503, "Messaging service is not configured.") }; return { session, failure: null }; }
 function messagePayload(row) { return { id: row.id, conversationId: row.conversation_id, senderId: row.sender_id, type: row.message_type, text: row.body || "", createdAt: row.created_at, status: row.deleted_at ? "deleted" : "sent" }; }
