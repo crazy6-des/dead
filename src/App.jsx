@@ -58,7 +58,7 @@ export default function App() {
   const { route, go } = useAppRouter();
   const auth = useAuthState({ enabled: hasApiBaseUrl() });
   const [posts,setPosts] = useState(() => demoOnly(seed, []));
-  const [userSettings,setUserSettings] = useState(settingsService.defaults);
+  const [userSettings,setUserSettings] = useState(() => { try { const stored = JSON.parse(window.localStorage.getItem("s.settings") || "null"); return stored ? settingsService.normalize(stored) : settingsService.defaults; } catch (error) { void error; return settingsService.defaults; } });
   const [creating,setCreating] = useState(false);
   const [mobileMenuOpen,setMobileMenuOpen] = useState(false);
   const [toast,setToast] = useState("");
@@ -72,7 +72,7 @@ export default function App() {
       settingsService.get().then(setUserSettings).catch(() => {});
       return;
     }
-    try { const stored = JSON.parse(window.localStorage.getItem("s.settings") || "null"); if (stored) setUserSettings(settingsService.normalize(stored)); } catch {}
+    try { const stored = JSON.parse(window.localStorage.getItem("s.settings") || "null"); if (stored) setUserSettings(settingsService.normalize(stored)); } catch (error) { void error; }
   }, []);
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
   useEffect(() => { if (!creating) return undefined; const onKeyDown = (event) => { if (event.key === "Escape") setCreating(false); }; const previousOverflow = document.body.style.overflow; document.body.style.overflow = "hidden"; window.addEventListener("keydown", onKeyDown); return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", onKeyDown); }; }, [creating]);
