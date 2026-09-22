@@ -1,10 +1,5 @@
 import { apiClient, hasApiBaseUrl } from "./apiClient.js";
-import { createSpace, createSpacePage, createSpaceRequest, SPACE_STATUSES } from "../features/spaces/spaceContract.js";
-
-const DEV_SPACES = [
-  createSpace({ id: "space-1", title: "Building in public", host: "S Team", status: SPACE_STATUSES.LIVE, participants: ["maya", "nia"] }),
-  createSpace({ id: "space-2", title: "Late night creators", host: "Maya Okafor", status: SPACE_STATUSES.SCHEDULED, startAt: "Tonight" }),
-];
+import { createSpace, createSpacePage, createSpaceRequest } from "../features/spaces/spaceContract.js";
 
 export function createApiSpaceAdapter(client = apiClient) {
   return {
@@ -19,22 +14,13 @@ export function createApiSpaceAdapter(client = apiClient) {
   };
 }
 
-export function createDevSpaceAdapter(seed = DEV_SPACES) {
-  const spaces = [...seed];
-  return {
-    list() { return Promise.resolve(createSpacePage(spaces)); },
-    create(input) {
-      const space = createSpace({ ...input, id: "space-" + Date.now(), status: SPACE_STATUSES.SCHEDULED });
-      spaces.push(space);
-      return Promise.resolve(space);
-    },
-    join(id) { return Promise.resolve({ ok: true, id, joined: true }); },
-    leave(id) { return Promise.resolve({ ok: true, id, joined: false }); },
-  };
+export function createUnavailableSpaceAdapter() {
+  const unavailable = () => Promise.reject(new Error("Spaces require the Cloudflare backend."));
+  return { list: unavailable, create: unavailable, join: unavailable, leave: unavailable };
 }
 
-export function createSpaceAdapter({ client = apiClient, devSeed = DEV_SPACES } = {}) {
-  return hasApiBaseUrl() ? createApiSpaceAdapter(client) : createDevSpaceAdapter(devSeed);
+export function createSpaceAdapter({ client = apiClient } = {}) {
+  return hasApiBaseUrl() ? createApiSpaceAdapter(client) : createUnavailableSpaceAdapter();
 }
 
 export const spaceService = createSpaceAdapter();
