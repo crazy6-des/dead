@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Image, Music2, Palette, Send, X } from "lucide-react";
+import { Image, Music2, Palette, Send } from "lucide-react";
 import { createEmptyDraft } from "./postContract";
 import { createLocalMediaAsset } from "./mediaContract";
 import { validatePostDraft } from "./postValidation";
