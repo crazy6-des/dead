@@ -34,7 +34,7 @@ if (appSource.includes("function Create({publish,close})")) {
 }
 
 const composerSource = fs.readFileSync(new URL("../src/features/create/CreateComposer.jsx", import.meta.url), "utf8");
-for (const marker of ["type="submit"", "onSubmit={handleSubmit}", "Nothing posts until you press Publish"]) {
+for (const marker of [`type="submit"`, "onSubmit={handleSubmit}", "Nothing posts until you press Publish"]) {
   if (!composerSource.includes(marker)) throw new Error("Verification failed: Create must require explicit Publish.");
 }
 for (const marker of ["text, image, music, background", "Add image", "Choose local music", "Choose background"]) {
