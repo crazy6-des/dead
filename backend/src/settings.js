@@ -53,6 +53,5 @@ export async function updateMySettings(request, env) {
 }
 export async function getUserSettings(env, userId) {
   if (!env?.DB || !userId) return null;
-  await env.DB.prepare("INSERT OR IGNORE INTO user_settings (user_id) VALUES (?1)").bind(userId).run();
   return env.DB.prepare("SELECT private_account, show_follower_count, allow_messages, theme, reduce_motion FROM user_settings WHERE user_id = ?1 LIMIT 1").bind(userId).first();
 }
