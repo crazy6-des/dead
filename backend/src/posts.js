@@ -38,6 +38,22 @@ function normalizeLimit(value) {
 }
 
 function serializePost(row) {
+  const media = row.media ? JSON.parse(row.media) : [];
+  const audioMedia = media.find((item) => item?.mediaType === "audio") || null;
+  let audio = null;
+  if (audioMedia) {
+    let metadata = {};
+    try { metadata = audioMedia.metadata ? JSON.parse(audioMedia.metadata) : {}; } catch { metadata = {}; }
+    audio = {
+      ...audioMedia,
+      source: audioMedia.source || "upload",
+      musicId: metadata.musicId || null,
+      title: metadata.title || metadata.name || null,
+      artist: metadata.artist || null,
+      album: metadata.album || null,
+      durationMs: Number(audioMedia.durationMs || 0),
+    };
+  }
   return {
     id: row.id,
     author: {
@@ -47,8 +63,8 @@ function serializePost(row) {
     },
     text: row.body,
     kind: row.post_kind || "text",
-    media: row.media ? JSON.parse(row.media) : [],
-    audio: row.audio || null,
+    media,
+    audio,
     background: row.background_json ? JSON.parse(row.background_json) : null,
     audience: row.visibility,
     replyPolicy: row.reply_policy || "everyone",
