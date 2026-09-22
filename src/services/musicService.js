@@ -6,7 +6,7 @@ const FREE_TO_USE_SEARCH_URL = "https://api.freetouse.com/v3/music/tracks/search
 const FREE_TO_USE_BROWSE_URL = "https://api.freetouse.com/v3/music/tracks/all";
 
 function getCatalogUrl() {
-  return String(import.meta.env.VITE_MUSIC_CATALOG_URL || "").trim();
+  return String(import.meta.env?.VITE_MUSIC_CATALOG_URL || "").trim();
 }
 
 function normalizeTrack(item) {
