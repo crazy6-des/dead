@@ -62,7 +62,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
     profileService.getMe().then((result) => {
       const next = result?.profile || result;
       if (!active || !next?.username) return;
-      const normalized = { ...DEFAULT_PROFILE, ...next };
+      const normalized = { ...DEFAULT_PROFILE, ...next, privateAccount: Boolean(next.privacy?.privateAccount), showFollowerCount: next.privacy?.showFollowerCount !== false };
       setProfile(normalized);
       setDraft(normalized);
       setError("");
@@ -155,7 +155,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
 
   const initials = profile.displayName.charAt(0).toUpperCase() || "D";
   const websiteHref = (() => { const value = String(profile.website || "").trim(); if (!value) return ""; try { const parsed = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`); return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : ""; } catch { return ""; } })();
-  const followerCount = Number(profile.counts?.followers ?? 0);
+  const followerCount = profile.counts?.followers == null ? null : Number(profile.counts.followers);
   const followingCount = Number(profile.counts?.following ?? 0);
 
   return (
@@ -183,7 +183,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
         </div>
         <div className="stats">
           <button onClick={() => onOpen?.(`/following/${profile.username}`)}><b>{followingCount}</b> Following</button>
-          {profile.showFollowerCount && <button onClick={() => onOpen?.(`/followers/${profile.username}`)}><b>{followerCount}</b> Followers</button>}
+          {profile.showFollowerCount && followerCount != null && <button onClick={() => onOpen?.(`/followers/${profile.username}`)}><b>{followerCount}</b> Followers</button>}
         </div>
       </div>
 
@@ -215,7 +215,6 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
               <label>Location<input value={draft.location} maxLength={MAX_LENGTHS.location} placeholder="Your city or region" onChange={(event) => updateDraft({ location: event.target.value })} /></label>
               <label>Website or social link<input value={draft.website} maxLength={MAX_LENGTHS.website} placeholder="https://…" onChange={(event) => updateDraft({ website: event.target.value })} /></label>
               <label className="s-profile-editor__check"><input type="checkbox" checked={draft.privateAccount} onChange={(event) => updateDraft({ privateAccount: event.target.checked })} /> Private account <small>(preview only)</small></label>
-              <label className="s-profile-editor__check"><input type="checkbox" checked={draft.showFollowerCount} onChange={(event) => updateDraft({ showFollowerCount: event.target.checked })} /> Show follower count <small>(preview only)</small></label>
               {error && <p className="s-create-composer__error" role="alert">{error}</p>}
             </div>
             <footer><button type="button" className="outline" onClick={() => { if (draft.avatarUrl !== profile.avatarUrl) revokeAvatarObjectUrl(draft.avatarUrl); setEditing(false); }} disabled={savingProfile}>Cancel</button><button className="primary" type="submit" disabled={savingProfile}>{savingProfile ? "Saving…" : hasApiBaseUrl() ? "Save profile" : "Save preview"}</button></footer>
