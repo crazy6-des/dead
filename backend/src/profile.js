@@ -51,7 +51,8 @@ export async function listProfilePosts(request, env, username) {
   if (tab === "replies") where += " AND p.reply_to_id IS NOT NULL";
   if (tab === "media") where += " AND EXISTS (SELECT 1 FROM post_media pm WHERE pm.post_id = p.id)";
   if (tab === "likes") {
-    where = "p.deleted_at IS NULL AND p.visibility = 'public' AND EXISTS (SELECT 1 FROM post_reactions pr WHERE pr.post_id = p.id AND pr.user_id = ?1 AND pr.reaction_type = 'like')";
+    where = "p.deleted_at IS NULL AND EXISTS (SELECT 1 FROM post_reactions pr WHERE pr.post_id = p.id AND pr.user_id = ?1 AND pr.reaction_type = 'like')";
+    if (!ownProfile) where += " AND p.visibility = 'public'";
   }
   const rows = await env.DB.prepare(
     `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.quoted_post_id, p.reply_to_id, p.created_at, p.updated_at,
