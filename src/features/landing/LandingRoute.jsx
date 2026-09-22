@@ -31,7 +31,12 @@ function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
     } finally { setBusy(false); }
   };
 
-  const confirmReset = async (event) => {\n    event.preventDefault(); setBusy(true); setError(""); setMessage("");\n    try { const token = new URLSearchParams(window.location.search).get("token"); const result = await authService.resetPassword({ token, password: form.password }); setMessage(result?.message || "Password updated. You can now sign in."); setForm({ ...form, password: "" }); setMode("signin"); } catch (cause) { setError(cause?.message || "We could not update your password."); } finally { setBusy(false); }\n  };\n\n  const reset = async (event) => {
+  const confirmReset = async (event) => {
+    event.preventDefault(); setBusy(true); setError(""); setMessage("");
+    try { const token = new URLSearchParams(window.location.search).get("token"); const result = await authService.resetPassword({ token, password: form.password }); setMessage(result?.message || "Password updated. You can now sign in."); setForm({ ...form, password: "" }); setMode("signin"); } catch (cause) { setError(cause?.message || "We could not update your password."); } finally { setBusy(false); }
+  };
+
+  const reset = async (event) => {
     event.preventDefault(); setBusy(true); setError(""); setMessage("");
     try {
       const result = await authService.requestPasswordReset({ email: form.email });
