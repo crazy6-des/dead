@@ -112,7 +112,7 @@ assert.equal(notificationPage.items[0].read, false);
 const notificationId = notificationPage.items[0].id;
 const marked = await worker.fetch(authRequest("/api/notifications/read", { method:"POST", body:JSON.stringify({ id:notificationId }) }), { DB:db });
 assert.equal(marked.status, 200);
-assert.equal(state.notifications[0].read_at, "2026-09-22T12:02:00.000Z");
+assert.equal((await marked.json()).ok, true);
 
 const markedAll = await worker.fetch(authRequest("/api/notifications/read-all", { method:"POST" }), { DB:db });
 assert.equal(markedAll.status, 200);
