@@ -1,4 +1,5 @@
 import { resolveSession } from "./auth.js";
+import { createNotification } from "./notifications.js";
 
 const RELATIONSHIPS = new Set(["follow", "block", "mute"]);
 const POST_ACTIONS = new Set(["like", "repost", "bookmark"]);
@@ -38,6 +39,7 @@ export async function setRelationship(request, env) {
       ]);
     }
     await env.DB.prepare("INSERT OR IGNORE INTO relationships (source_user_id, target_user_id, relationship_type) VALUES (?1, ?2, ?3)").bind(session.user_id, target.id, relationship).run();
+    if (relationship === "follow") await createNotification(env, { recipientId: target.id, actorId: session.user_id, eventType: "follow", targetType: "profile", targetId: target.id });
   } else {
     await env.DB.prepare("DELETE FROM relationships WHERE source_user_id = ?1 AND target_user_id = ?2 AND relationship_type = ?3").bind(session.user_id, target.id, relationship).run();
   }
@@ -65,7 +67,7 @@ export async function setPostAction(request, env, postId, action) {
     if (enabled) await env.DB.prepare("INSERT OR IGNORE INTO bookmarks (user_id, post_id) VALUES (?1, ?2)").bind(session.user_id, postId).run();
     else await env.DB.prepare("DELETE FROM bookmarks WHERE user_id = ?1 AND post_id = ?2").bind(session.user_id, postId).run();
   } else {
-    if (enabled) await env.DB.prepare("INSERT OR IGNORE INTO post_reactions (user_id, post_id, reaction_type) VALUES (?1, ?2, ?3)").bind(session.user_id, postId, action).run();
+    if (enabled) { await env.DB.prepare("INSERT OR IGNORE INTO post_reactions (user_id, post_id, reaction_type) VALUES (?1, ?2, ?3)").bind(session.user_id, postId, action).run(); if (action === "like" || action === "repost") await createNotification(env, { recipientId: post.author_id, actorId: session.user_id, eventType: action, targetType: "post", targetId: postId }); }
     else await env.DB.prepare("DELETE FROM post_reactions WHERE user_id = ?1 AND post_id = ?2 AND reaction_type = ?3").bind(session.user_id, postId, action).run();
   }
 

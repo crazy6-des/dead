@@ -1,0 +1,96 @@
+import { resolveSession } from "./auth.js";
+import { createNotification } from "./notifications.js";
+
+const MAX_LIMIT = 50;
+const DEFAULT_LIMIT = 30;
+const MAX_TEXT = 5000;
+const MESSAGE_TYPES = new Set(["text", "image", "audio", "file"]);
+
+function failure(code, status, message) { return { response: null, error: { code, status, message } }; }
+function encodeCursor(createdAt, id) { return btoa(JSON.stringify({ createdAt, id })).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"); }
+function decodeCursor(value) { if (!value) return null; try { const normalized = String(value).replace(/-/g, "+").replace(/_/g, "/"); return JSON.parse(atob(normalized + "=".repeat((4 - normalized.length % 4) % 4))); } catch { return null; } }
+function limitValue(value) { const n = Number(value); return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_LIMIT) : DEFAULT_LIMIT; }
+async function requireSession(request, env) { const session = await resolveSession(request, env); if (!session?.user_id) return { session: null, failure: failure("UNAUTHORIZED", 401, "Authentication is required.") }; if (!env?.DB) return { session: null, failure: failure("SERVICE_UNAVAILABLE", 503, "Messaging service is not configured.") }; return { session, failure: null }; }
+function messagePayload(row) { return { id: row.id, conversationId: row.conversation_id, senderId: row.sender_id, type: row.message_type, text: row.body || "", createdAt: row.created_at, status: row.deleted_at ? "deleted" : "sent" }; }
+
+export async function listConversations(request, env) {
+  const { session, failure: authFailure } = await requireSession(request, env); if (authFailure) return authFailure;
+  const url = new URL(request.url); const limit = limitValue(url.searchParams.get("limit")); const cursor = decodeCursor(url.searchParams.get("cursor"));
+  if (url.searchParams.get("cursor") && !cursor?.updatedAt) return failure("INVALID_CURSOR", 400, "Conversation cursor is invalid.");
+  const values = [session.user_id]; let where = "c.deleted_at IS NULL AND cm.user_id = ?1";
+  if (cursor?.updatedAt && cursor?.id) { values.push(cursor.updatedAt, cursor.id); where += ` AND (c.updated_at < ?${values.length - 1} OR (c.updated_at = ?${values.length - 1} AND c.id < ?${values.length}))`; }
+  values.push(limit + 1);
+  const rows = await env.DB.prepare(`SELECT c.id, c.updated_at, other.id AS other_id, other.username AS other_username, other.display_name AS other_display_name, other.avatar_url AS other_avatar_url,
+    (SELECT m.body FROM messages m WHERE m.conversation_id = c.id AND m.deleted_at IS NULL ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_body,
+    (SELECT m.created_at FROM messages m WHERE m.conversation_id = c.id AND m.deleted_at IS NULL ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS last_message_at,
+    (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.created_at > COALESCE(cm.last_read_at, '1970-01-01T00:00:00.000Z') AND m.sender_id <> ?1 AND m.deleted_at IS NULL) AS unread_count
+    FROM conversations c JOIN conversation_members cm ON cm.conversation_id = c.id AND cm.user_id = ?1
+    JOIN conversation_members other_member ON other_member.conversation_id = c.id AND other_member.user_id <> ?1
+    JOIN users other ON other.id = other_member.user_id AND other.deleted_at IS NULL
+    WHERE ${where} ORDER BY c.updated_at DESC, c.id DESC LIMIT ?${values.length}`).bind(...values).all();
+  const items = rows.results.slice(0, limit).map(row => ({ id: row.id, name: row.other_display_name || row.other_username, username: row.other_username, avatarUrl: row.other_avatar_url || null, lastMessage: row.last_body || "", updatedAt: row.last_message_at || row.updated_at, unreadCount: Number(row.unread_count || 0) }));
+  const last = items.at(-1);
+  return { response: { items, nextCursor: rows.results.length > limit && last ? encodeCursor(last.updatedAt, last.id) : null }, error: null };
+}
+
+export async function createConversation(request, env) {
+  const { session, failure: authFailure } = await requireSession(request, env); if (authFailure) return authFailure;
+  let body; try { body = await request.json(); } catch { return failure("INVALID_JSON", 400, "Request body must be valid JSON."); }
+  const username = String(body?.username || "").replace(/^@/, "").trim().toLowerCase();
+  if (!username) return failure("VALIDATION_ERROR", 400, "A username is required.");
+  const target = await env.DB.prepare("SELECT id, username, display_name, avatar_url FROM users WHERE username = ?1 AND deleted_at IS NULL LIMIT 1").bind(username).first();
+  if (!target) return failure("USER_NOT_FOUND", 404, "User was not found.");
+  if (target.id === session.user_id) return failure("INVALID_CONVERSATION", 400, "You cannot message yourself.");
+  const existing = await env.DB.prepare("SELECT c.id FROM conversations c JOIN conversation_members a ON a.conversation_id = c.id AND a.user_id = ?1 JOIN conversation_members b ON b.conversation_id = c.id AND b.user_id = ?2 WHERE c.deleted_at IS NULL LIMIT 1").bind(session.user_id, target.id).first();
+  if (existing) return { response: { conversation: { id: existing.id, username: target.username, name: target.display_name, avatarUrl: target.avatar_url || null } }, error: null };
+  const conversationId = crypto.randomUUID();
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO conversations (id, created_by) VALUES (?1, ?2)").bind(conversationId, session.user_id),
+    env.DB.prepare("INSERT INTO conversation_members (conversation_id, user_id) VALUES (?1, ?2)").bind(conversationId, session.user_id),
+    env.DB.prepare("INSERT INTO conversation_members (conversation_id, user_id) VALUES (?1, ?2)").bind(conversationId, target.id)
+  ]);
+  return { response: { conversation: { id: conversationId, username: target.username, name: target.display_name, avatarUrl: target.avatar_url || null } }, error: null };
+}
+
+export async function listMessages(request, env, conversationId) {
+  const { session, failure: authFailure } = await requireSession(request, env); if (authFailure) return authFailure;
+  if (!conversationId) return failure("VALIDATION_ERROR", 400, "A conversation id is required.");
+  const member = await env.DB.prepare("SELECT 1 FROM conversation_members WHERE conversation_id = ?1 AND user_id = ?2 LIMIT 1").bind(conversationId, session.user_id).first();
+  if (!member) return failure("NOT_FOUND", 404, "Conversation not found.");
+  const url = new URL(request.url); const limit = limitValue(url.searchParams.get("limit")); const cursor = decodeCursor(url.searchParams.get("cursor"));
+  if (url.searchParams.get("cursor") && !cursor?.createdAt) return failure("INVALID_CURSOR", 400, "Message cursor is invalid.");
+  const values = [conversationId]; let where = "m.conversation_id = ?1 AND m.deleted_at IS NULL";
+  if (cursor?.createdAt && cursor?.id) { values.push(cursor.createdAt, cursor.id); where += ` AND (m.created_at < ?${values.length - 1} OR (m.created_at = ?${values.length - 1} AND m.id < ?${values.length}))`; }
+  values.push(limit + 1);
+  const rows = await env.DB.prepare(`SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.body, m.created_at, m.deleted_at FROM messages m WHERE ${where} ORDER BY m.created_at DESC, m.id DESC LIMIT ?${values.length}`).bind(...values).all();
+  const items = rows.results.slice(0, limit).map(messagePayload).reverse(); const oldest = items[0];
+  return { response: { items, nextCursor: rows.results.length > limit && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null }, error: null };
+}
+
+export async function sendMessage(request, env) {
+  const { session, failure: authFailure } = await requireSession(request, env); if (authFailure) return authFailure;
+  let body; try { body = await request.json(); } catch { return failure("INVALID_JSON", 400, "Request body must be valid JSON."); }
+  const conversationId = String(body?.conversationId || ""); const type = String(body?.type || "text"); const text = String(body?.text || "").trim();
+  if (!conversationId || !MESSAGE_TYPES.has(type)) return failure("VALIDATION_ERROR", 400, "A valid conversation and message type are required.");
+  if (type === "text" && (!text || text.length > MAX_TEXT)) return failure("VALIDATION_ERROR", 400, "Text messages must contain 1-5000 characters.");
+  if (type !== "text" && text.length > MAX_TEXT) return failure("VALIDATION_ERROR", 400, "Message text is too long.");
+  const member = await env.DB.prepare("SELECT 1 FROM conversation_members WHERE conversation_id = ?1 AND user_id = ?2 LIMIT 1").bind(conversationId, session.user_id).first();
+  if (!member) return failure("NOT_FOUND", 404, "Conversation not found.");
+  const recipient = await env.DB.prepare("SELECT user_id FROM conversation_members WHERE conversation_id = ?1 AND user_id <> ?2 LIMIT 1").bind(conversationId, session.user_id).first();
+  if (!recipient) return failure("INVALID_CONVERSATION", 400, "Conversation must have another member.");
+  const id = crypto.randomUUID();
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO messages (id, conversation_id, sender_id, message_type, body) VALUES (?1, ?2, ?3, ?4, ?5)").bind(id, conversationId, session.user_id, type, text),
+    env.DB.prepare("UPDATE conversations SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?1").bind(conversationId)
+  ]);
+  await createNotification(env, { recipientId: recipient.user_id, actorId: session.user_id, eventType: "message", targetType: "conversation", targetId: conversationId, conversationId, payload: { text: text.slice(0, 120) } });
+  const row = await env.DB.prepare("SELECT id, conversation_id, sender_id, message_type, body, created_at, deleted_at FROM messages WHERE id = ?1 LIMIT 1").bind(id).first();
+  return { response: messagePayload(row), error: null };
+}
+
+export async function markConversationRead(request, env, conversationId) {
+  const { session, failure: authFailure } = await requireSession(request, env); if (authFailure) return authFailure;
+  const result = await env.DB.prepare("UPDATE conversation_members SET last_read_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE conversation_id = ?1 AND user_id = ?2").bind(conversationId, session.user_id).run();
+  if (!result?.meta?.changes && !result?.changes) return failure("NOT_FOUND", 404, "Conversation not found.");
+  return { response: { ok: true, conversationId }, error: null };
+}
