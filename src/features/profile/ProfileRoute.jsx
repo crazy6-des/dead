@@ -38,7 +38,19 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
   const [loadingProfile, setLoadingProfile] = useState(hasApiBaseUrl());
   const [savingProfile, setSavingProfile] = useState(false);
   const fileRef = useRef(null);
+  const avatarObjectUrlsRef = useRef(new Set());
   const tabs = ["Posts", "Replies", "Media", "Likes"];
+
+  const revokeAvatarObjectUrl = (value) => {
+    if (typeof value !== "string" || !value.startsWith("blob:")) return;
+    URL.revokeObjectURL(value);
+    avatarObjectUrlsRef.current.delete(value);
+  };
+
+  useEffect(() => () => {
+    avatarObjectUrlsRef.current.forEach((value) => URL.revokeObjectURL(value));
+    avatarObjectUrlsRef.current.clear();
+  }, []);
 
   useEffect(() => {
     if (!hasApiBaseUrl()) return undefined;
@@ -87,7 +99,11 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
       setError("Profile picture must be 10 MB or smaller.");
       return;
     }
-    updateDraft({ avatarUrl: URL.createObjectURL(file) });
+    const previous = draft.avatarUrl;
+    const nextUrl = URL.createObjectURL(file);
+    avatarObjectUrlsRef.current.add(nextUrl);
+    if (previous && previous !== profile.avatarUrl) revokeAvatarObjectUrl(previous);
+    updateDraft({ avatarUrl: nextUrl });
   };
 
   const saveProfile = async (event) => {
@@ -106,6 +122,8 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
       const result = hasApiBaseUrl() ? await profileService.updateMe(next) : next;
       const saved = result?.profile || result || next;
       const normalizedSaved = { ...DEFAULT_PROFILE, ...saved };
+      if (profile.avatarUrl && profile.avatarUrl !== normalizedSaved.avatarUrl) revokeAvatarObjectUrl(profile.avatarUrl);
+      if (draft.avatarUrl && draft.avatarUrl !== normalizedSaved.avatarUrl) revokeAvatarObjectUrl(draft.avatarUrl);
       setProfile(normalizedSaved);
       setDraft(normalizedSaved);
       onProfileUpdate?.(normalizedSaved);
@@ -179,7 +197,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
               <label className="s-profile-editor__check"><input type="checkbox" checked={draft.showFollowerCount} onChange={(event) => updateDraft({ showFollowerCount: event.target.checked })} /> Show follower count <small>(preview only)</small></label>
               {error && <p className="s-create-composer__error" role="alert">{error}</p>}
             </div>
-            <footer><button type="button" className="outline" onClick={() => setEditing(false)} disabled={savingProfile}>Cancel</button><button className="primary" type="submit" disabled={savingProfile}>{savingProfile ? "Saving…" : hasApiBaseUrl() ? "Save profile" : "Save preview"}</button></footer>
+            <footer><button type="button" className="outline" onClick={() => { if (draft.avatarUrl !== profile.avatarUrl) revokeAvatarObjectUrl(draft.avatarUrl); setEditing(false); }} disabled={savingProfile}>Cancel</button><button className="primary" type="submit" disabled={savingProfile}>{savingProfile ? "Saving…" : hasApiBaseUrl() ? "Save profile" : "Save preview"}</button></footer>
           </form>
         </div>
       )}
