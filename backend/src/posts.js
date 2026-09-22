@@ -1,5 +1,4 @@
 import { resolveSession } from "./auth.js";
-import { getUserSettings } from "./settings.js";
 
 const MAX_POST_TEXT = 5000;
 const MAX_LIMIT = 50;
