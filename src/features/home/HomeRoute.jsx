@@ -27,7 +27,7 @@ export default function HomeRoute({ posts, onLike, onSave, onFollow, onRepost, o
     </button>
     {loading ? <div className="empty" role="status" aria-live="polite"><h3>Loading your timeline…</h3><p>Fetching the latest posts from S.</p></div> : visible.length > 0 ? visible.map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onFollow={onFollow} onRepost={onRepost} onOpen={onOpen} />) : <div className="empty" role="status">
       <h3>{tab === "Following" ? "No posts from followed accounts yet" : "Your timeline is empty"}</h3>
-      <p>{tab === "Following" ? "Follow accounts to see their posts here when real feed data is available." : "Posts will appear here when the feed service returns real data."}</p>
+      <p>{tab === "Following" ? "Follow accounts to see their posts here." : "Posts will appear here when the feed service returns real data."}</p>
     </div>}
   </>;
 }
