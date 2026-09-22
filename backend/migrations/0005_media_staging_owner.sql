@@ -24,6 +24,7 @@ INSERT INTO post_media_new (id, post_id, object_key, media_type, mime_type, byte
 SELECT id, post_id, object_key, media_type, mime_type, byte_size, position, created_at, source, external_url, metadata_json, duration_ms
 FROM post_media;
 
+
 DROP TABLE post_media;
 ALTER TABLE post_media_new RENAME TO post_media;
 
