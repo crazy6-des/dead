@@ -77,3 +77,54 @@
 .s-create-composer__status { margin: 0; color: var(--s-muted, #8b93a1); font-size: 12px; }
 .s-create-composer__picker span { margin-left: 4px; }
 .s-create-composer__audio > button { justify-self: end; width: 28px; min-height: 28px; padding: 0; }
+
+
+.s-create-composer__music-search {
+  display: flex;
+  flex: 1 1 260px;
+  gap: 6px;
+  align-items: center;
+}
+
+.s-create-composer__music-search input {
+  min-width: 0;
+  flex: 1;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--s-border, #2b2f36);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+
+.s-create-composer__music-results {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--s-border, #2b2f36);
+  border-radius: 10px;
+}
+
+.s-create-composer__music-result {
+  display: grid !important;
+  justify-items: start !important;
+  gap: 2px;
+  width: 100%;
+  border: 0 !important;
+  border-radius: 8px !important;
+  padding: 8px 10px !important;
+  text-align: left;
+}
+
+.s-create-composer__music-result span {
+  font-weight: 600;
+}
+
+.s-create-composer__music-result small {
+  color: var(--s-muted, #8b93a1);
+  font-size: 11px;
+}
