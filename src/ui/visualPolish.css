@@ -50,3 +50,56 @@ body { background: var(--bg); }
 @media (min-width: 1280px) { .app { grid-template-columns: minmax(210px, 232px) minmax(0, var(--s-content-width)) minmax(270px, 300px); } }
 @media (max-width: 1100px) { .app { grid-template-columns: 72px minmax(0, var(--s-content-width)); gap: 0; } }
 @media (max-width: 640px) { .top { padding: 9px 14px; } .top-actions { gap: 2px; } .top-actions button { flex-basis: 34px; width: 34px; } .heading { padding: 20px 16px 12px; } .quick, .post { padding-inline: 14px; } .post { padding-block: 14px; } .post__text { font-size: 15px; } .post-media { height: 160px; border-radius: 10px; } .post-media-grid { gap: 6px; } .empty { margin: 14px; padding: 28px 16px; } .earn { margin: 14px; padding: 20px; } .earn-grid { margin-inline: 14px; } .s-profile-editor__body { padding-inline: 14px; } }
+
+
+/* Final visual calibration: one consistent desktop frame, compact controls, and mobile-safe rhythm. */
+:root {
+  --s-frame-width: 1192px;
+  --s-left-rail-width: 232px;
+  --s-feed-width: 620px;
+  --s-right-rail-width: 300px;
+  --s-frame-gap: 20px;
+}
+.app {
+  width: min(100%, var(--s-frame-width));
+  margin-inline: auto;
+  grid-template-columns: var(--s-left-rail-width) minmax(0, var(--s-feed-width)) var(--s-right-rail-width);
+  gap: var(--s-frame-gap);
+  justify-content: initial;
+}
+.sidebar { padding-top: 22px; padding-bottom: 18px; }
+.brand { padding-bottom: 20px; }
+.nav { min-height: 44px; }
+.create-btn { margin-top: 14px; }
+.main { min-height: 100vh; }
+.top { min-height: 56px; }
+.feed-tabs { min-height: 52px; }
+.feed-tabs button, .tabs3 button, .tabs4 button, .tabs5 button { min-height: 52px; }
+.quick { min-height: 68px; }
+.post { min-width: 0; }
+.post__meta { min-height: 30px; }
+.post__actions { min-height: 42px; }
+.post__actions button { color: var(--muted); }
+.rail { min-width: 0; }
+.rail-card, .card { box-shadow: 0 1px 0 color-mix(in srgb, var(--line) 45%, transparent); }
+.profile .cover { min-height: 176px; }
+.messages { border: 0; border-radius: 0; overflow: hidden; }
+@media (max-width: 1199px) and (min-width: 1101px) {
+  .app { grid-template-columns: 72px minmax(0, 620px); width: min(100%, 692px); }
+}
+@media (max-width: 1100px) and (min-width: 641px) {
+  .app { grid-template-columns: 72px minmax(0, 620px); width: min(100%, 692px); }
+}
+@media (max-width: 640px) {
+  .app { width: 100%; margin: 0; }
+  .main { min-height: 100dvh; }
+  .mobile-head { min-height: 56px; }
+  .top { min-height: 52px; }
+  .feed-tabs { min-height: 48px; }
+  .feed-tabs button, .tabs3 button, .tabs4 button, .tabs5 button { min-height: 48px; }
+  .quick { min-height: 64px; }
+  .post { padding-block: 14px; }
+  .post__actions { min-height: 40px; }
+  .post__actions button { min-width: 40px; }
+  .rail { display: none; }
+}
