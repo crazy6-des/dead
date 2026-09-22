@@ -91,7 +91,7 @@ export async function createPost(request, env) {
   // Publishing must see staged media written by the immediately preceding upload request.
   // Starting this write flow on the primary guarantees read-after-write consistency even
   // when the D1 database has read replication enabled.
-  const db = typeof db.withSession === "function" ? db.withSession("first-primary") : db;
+  const db = typeof env.DB.withSession === "function" ? env.DB.withSession("first-primary") : env.DB;
 
   let body;
   try { body = await request.json(); } catch {
