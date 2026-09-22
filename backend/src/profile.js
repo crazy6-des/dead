@@ -1,4 +1,5 @@
 import { resolveSession } from "./auth.js";
+import { serializePost } from "./posts.js";
 
 const USERNAME_PATTERN = /^[a-z0-9_]{3,30}$/;
 const MAX = { displayName: 60, bio: 160, website: 200, location: 100 };
@@ -30,6 +31,41 @@ export async function getProfile(request, env, username) {
   const user = await env.DB.prepare(`${PROFILE_SELECT} WHERE u.username = ?1 AND u.deleted_at IS NULL LIMIT 1`).bind(normalized).first();
   if (!user) return { error: { code: "NOT_FOUND", status: 404, message: "Profile not found." } };
   return { response: { profile: profilePayload(user) } };
+}
+
+export async function listProfilePosts(request, env, username) {
+  if (!env?.DB) return { error: { code: "SERVICE_UNAVAILABLE", status: 503, message: "Profile service is not configured." } };
+  const normalized = String(username || "").trim().toLowerCase();
+  if (!USERNAME_PATTERN.test(normalized)) return { error: { code: "VALIDATION_ERROR", status: 400, message: "A valid username is required." } };
+  const target = await env.DB.prepare("SELECT id, username FROM users WHERE username = ?1 AND deleted_at IS NULL LIMIT 1").bind(normalized).first();
+  if (!target) return { error: { code: "NOT_FOUND", status: 404, message: "Profile not found." } };
+  const session = await resolveSession(request, env);
+  const ownProfile = session?.user_id === target.id;
+  const url = new URL(request.url);
+  const tab = String(url.searchParams.get("tab") || "posts").toLowerCase();
+  if (!["posts", "replies", "media", "likes"].includes(tab)) return { error: { code: "VALIDATION_ERROR", status: 400, message: "Unsupported profile tab." } };
+
+  const values = [target.id];
+  let where = "p.deleted_at IS NULL AND p.author_id = ?1";
+  if (!ownProfile) where += " AND p.visibility = 'public'";
+  if (tab === "replies") where += " AND p.reply_to_id IS NOT NULL";
+  if (tab === "media") where += " AND EXISTS (SELECT 1 FROM post_media pm WHERE pm.post_id = p.id)";
+  if (tab === "likes") {
+    where = "p.deleted_at IS NULL AND p.visibility = 'public' AND EXISTS (SELECT 1 FROM post_reactions pr WHERE pr.post_id = p.id AND pr.user_id = ?1 AND pr.reaction_type = 'like')";
+  }
+  const rows = await env.DB.prepare(
+    `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.quoted_post_id, p.reply_to_id, p.created_at, p.updated_at,
+      u.username, u.display_name,
+      (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id = p.id ORDER BY m.position) AS media,
+      (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id = p.id AND r.reaction_type = 'like') AS like_count,
+      (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id = p.id AND r.reaction_type = 'repost') AS repost_count,
+      (SELECT COUNT(*) FROM posts rp WHERE rp.reply_to_id = p.id AND rp.deleted_at IS NULL) AS reply_count,
+      (SELECT COUNT(*) FROM bookmarks b WHERE b.post_id = p.id) AS bookmark_count,
+      (SELECT json_object('id',qp.id,'author',json_object('username',qu.username,'displayName',qu.display_name),'text',qp.body) FROM posts qp JOIN users qu ON qu.id = qp.author_id WHERE qp.id = p.quoted_post_id AND qp.deleted_at IS NULL) AS quoted_post
+     FROM posts p JOIN users u ON u.id = p.author_id WHERE ${where}
+     ORDER BY p.created_at DESC, p.id DESC LIMIT 50`
+  ).bind(...values).all();
+  return { response: { items: (rows.results || []).map(serializePost), tab }, error: null };
 }
 
 export async function getMyProfile(request, env) {
