@@ -28,8 +28,6 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, mode = "po
   useEffect(() => {
     if (mode === "quote" || mode === "media") return undefined;
     let active = true;
-    setReplyLoading(true);
-    setReplyError("");
     replyService.list(post.id)
       .then((page) => {
         if (!active) return;
