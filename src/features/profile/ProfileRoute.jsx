@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Check, Link2, MapPin, MoreHorizontal, X } from "lucide-react";
 import PostCard from "../post/PostCard.jsx";
+import { toFeedPostFromCreatedPost } from "../feed/feedPostAdapter.js";
 import { profileService } from "../../services/profileService.js";
 import { hasApiBaseUrl } from "../../services/apiClient.js";
 
@@ -87,7 +88,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
     let active = true;
     profileService.listPosts(profile.username, tab.toLowerCase()).then((result) => {
       if (!active) return;
-      setActivityPosts(Array.isArray(result?.items) ? result.items : []);
+      setActivityPosts(Array.isArray(result?.items) ? result.items.map((item) => toFeedPostFromCreatedPost(item)) : []);
     }).catch((cause) => {
       if (active) setActivityError(cause?.message || "Could not load profile activity.");
     }).finally(() => { if (active) setActivityLoading(false); });
