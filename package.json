@@ -10,7 +10,7 @@
     "test:routes": "node scripts/test-route-contract.mjs",
     "test:navigation": "node scripts/test-navigation-contract.mjs",
     "test:backend": "npm --prefix backend test",
-    "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:api-health && npm run test:routes && npm run test:navigation && npm run test:create && npm run test:feed-create && npm run test:contracts && npm run test:post-vocabulary && npm run test:auth-contract && npm run test:social-communication && npm run test:social-state && npm run test:x-scale-contracts && npm run test:media-contract && npm run test:social-graph-contract && npm run test:backend",
+    "verify:all": "npm run verify:create && npm run verify:boundaries && npm run test:api && npm run test:api-health && npm run test:routes && npm run test:navigation && npm run test:create && npm run test:feed-create && npm run test:contracts && npm run test:post-vocabulary && npm run test:auth-contract && npm run test:social-communication && npm run test:social-state && npm run test:x-scale-contracts && npm run test:media-contract && npm run test:music && npm run test:social-graph-contract && npm run test:backend",
     "test:create": "node scripts/test-create-integration.mjs",
     "test:feed-create": "node scripts/test-feed-create-boundary.mjs",
     "test:contracts": "node scripts/test-feed-contracts.mjs",
@@ -21,7 +21,8 @@
     "test:x-scale-contracts": "node scripts/test-x-scale-contracts.mjs",
     "test:media-contract": "node scripts/test-media-contract.mjs",
     "test:social-graph-contract": "node scripts/test-social-graph-contract.mjs",
-    "test:api-health": "node scripts/test-api-health-contract.mjs"
+    "test:api-health": "node scripts/test-api-health-contract.mjs",
+    "test:music": "node scripts/test-music-service.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
