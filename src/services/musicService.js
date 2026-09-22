@@ -26,6 +26,8 @@ function normalizeTrack(item) {
       type: track.type ?? track.mimeType ?? "audio/mpeg",
       durationMs: Number(track.durationMs ?? (Number(track.duration || 0) * 1000)),
       artworkUrl: track.artworkUrl ?? track.thumbnailUrl ?? track.thumbnails?.md ?? track.thumbnails?.lg ?? track.thumbnails?.sm ?? "",
+      provider: track.provider ?? "Free To Use",
+      licenseUrl: track.licenseUrl ?? "https://api.freetouse.com/license",
     });
   } catch {
     return null;
