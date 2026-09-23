@@ -20,6 +20,13 @@ function formatConversationTime(value) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+function messageDateKey(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+}
+
 function formatMessageDate(value) {
   if (!value) return "";
   const date = new Date(value);
@@ -159,6 +166,18 @@ export function MessagesRoute({ currentUserId = null }) {
   const hasSelectedConversation = Boolean(selectedConversation);
   const selectedName = selectedConversation?.name || "Select a conversation";
   const currentMessages = messages[selected] || [];
+  const orderedMessages = useMemo(() => [...currentMessages].sort((a, b) => {
+    const aTime = Date.parse(a?.createdAt || "") || 0;
+    const bTime = Date.parse(b?.createdAt || "") || 0;
+    if (aTime !== bTime) return aTime - bTime;
+    return String(a?.id || "").localeCompare(String(b?.id || ""));
+  }), [currentMessages]);
+  const orderedConversations = useMemo(() => [...conversations].sort((a, b) => {
+    const aTime = Date.parse(a?.updatedAt || "") || 0;
+    const bTime = Date.parse(b?.updatedAt || "") || 0;
+    if (aTime !== bTime) return bTime - aTime;
+    return String(a?.id || "").localeCompare(String(b?.id || ""));
+  }), [conversations]);
   const renderMessage = (message) => ({ ...message, direction: message.direction || (currentUserId && message.senderId === currentUserId ? "out" : "in") });
 
   const loadOlderMessages = async () => {
@@ -270,8 +289,8 @@ export function MessagesRoute({ currentUserId = null }) {
   };
 
   return <div className="messages">
-    <aside>{conversations.map((conversation) => {
-      const latest = messages[conversation.id]?.at(-1);
+    <aside>{orderedConversations.map((conversation) => {
+      const latest = messages[conversation.id]?.length ? [...messages[conversation.id]].sort((a, b) => (Date.parse(b?.createdAt || "") || 0) - (Date.parse(a?.createdAt || "") || 0))[0] : null;
       const preview = latest?.text || (latest?.media ? "Image" : conversation.lastMessage || "No messages yet");
       const previewTime = latest?.createdAt || conversation.updatedAt;
       const avatarLetter = String(conversation.name || conversation.username || "S").trim().charAt(0).toUpperCase() || "S";
@@ -287,14 +306,19 @@ export function MessagesRoute({ currentUserId = null }) {
         {!loading && !conversationError && currentMessages[0]?.createdAt && <small>{formatMessageDate(currentMessages[0].createdAt)}</small>}
         {!loading && !conversationError && messageCursors[selected] && <button className="outline message-load-older" onClick={loadOlderMessages} disabled={loadingOlder}>{loadingOlder ? "Loading older messages…" : "Load older messages"}</button>}
         {loading ? <div className="empty" role="status"><p>Loading conversation…</p></div> : conversationError ? <div className="empty" role="alert"><h3>Conversation unavailable</h3><p>{conversationError}</p></div> :
-         currentMessages.map((rawMessage) => {
+         orderedMessages.map((rawMessage, index) => {
           const message = renderMessage(rawMessage);
-          return <div className={"bubble " + (message.direction === "out" ? "out" : "in")} key={message.id}>
+          const previous = orderedMessages[index - 1];
+          const showDate = message.createdAt && (!previous || messageDateKey(message.createdAt) !== messageDateKey(previous.createdAt));
+          return <React.Fragment key={message.id}>
+            {showDate && <small className="message-date">{formatMessageDate(message.createdAt)}</small>}
+            <div className={"bubble " + (message.direction === "out" ? "out" : "in")}>
             {message.media?.url && <img className="message-image" src={message.media.url} alt={message.media.name || "Shared image"} />}
             {message.text && <div>{message.text}</div>}
             {message.status === "failed" && <small> · Failed</small>}
             {message.status === "sending" && <small> · Sending</small>}
-          </div>;
+            </div>
+          </React.Fragment>;
         })}
       </div>
       {error && <div className="chat-error" role="alert">{error}</div>}
