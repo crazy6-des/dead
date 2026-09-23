@@ -26,7 +26,6 @@ export function createDevNotificationAdapter(seed = []) {
       const params = createNotificationRequest(request);
       let visible = items;
       if (params.filter === "Mentions") visible = visible.filter((n) => n.type === "mention" || n.type === "reply");
-      if (params.filter === "Verified") visible = visible.filter((n) => n.verified);
       return Promise.resolve({ items: visible, nextCursor: null, hasMore: false });
     },
     markRead(id) {
