@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Bell, Bookmark, Compass, Home as HomeIcon, List, Menu, MessageCircle, Plus, Search, Settings as SettingsIcon, Sparkles, UserRound, X, Zap, Radio as RadioIcon } from "lucide-react";
 import { CreateRoute } from "./features/create/index.js";
 import { toFeedPostFromCreatedPost } from "./features/index.js";
@@ -115,11 +115,62 @@ export default function App() {
     });
     return () => { active = false; };
   }, [feedMode]);
-  const persistPostAction = async (id, action, enabled, rollback) => { if (!hasApiBaseUrl()) return; try { await socialService.setPostAction(id, action, enabled); } catch { rollback(); flash("Could not save that change"); } };
-  const like = (id) => { const current = posts.find((post) => post.id === id); if (!current) return; const enabled = !Boolean(current.liked); setPosts((all) => toggleLike(all, id)); void persistPostAction(id, "like", enabled, () => setPosts((all) => toggleLike(all, id))); };
-  const save = (id) => { const current = posts.find((post) => post.id === id); if (!current) return; const enabled = !Boolean(current.saved); setPosts((all) => toggleSaved(all, id)); void persistPostAction(id, "bookmark", enabled, () => setPosts((all) => toggleSaved(all, id))); };
-  const repost = (id) => { const current = posts.find((post) => post.id === id); if (!current) return; const enabled = !Boolean(current.reposted); setPosts((all) => toggleRepost(all, id)); void persistPostAction(id, "repost", enabled, () => setPosts((all) => toggleRepost(all, id))); };
-  const followUser = async (username) => { const target = normalizeUsername(username); const wasFollowing = followingUsers.has(target); const enabled = !wasFollowing; setPosts((all) => setFollowUser(all, target, enabled)); setFollowingUsers((current) => { const next = new Set(current); if (enabled) next.add(target); else next.delete(target); return next; }); try { await socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled }); } catch { setPosts((all) => setFollowUser(all, target, wasFollowing)); setFollowingUsers((current) => { const next = new Set(current); if (wasFollowing) next.add(target); else next.delete(target); return next; }); flash("Could not update follow status"); } };
+  const persistPostAction = async (id, action, enabled, rollback, reconcile) => {
+    if (!hasApiBaseUrl()) return;
+    const key = id + ":" + action;
+    if (postActionBusyRef.current.has(key)) return;
+    postActionBusyRef.current.add(key);
+    try {
+      const result = await socialService.setPostAction(id, action, enabled);
+      if (typeof reconcile === "function") reconcile(result);
+    } catch (error) {
+      rollback();
+      flash(error?.message || "Could not save that change");
+    } finally {
+      postActionBusyRef.current.delete(key);
+    }
+  };
+  const runPostAction = (id, action, readState, transition, countKey) => {
+    const current = posts.find((post) => post.id === id);
+    if (!current || !hasApiBaseUrl()) return;
+    const key = id + ":" + action;
+    if (postActionBusyRef.current.has(key)) return;
+    const enabled = !Boolean(readState(current));
+    setPosts((all) => transition(all, id));
+    void persistPostAction(
+      id,
+      action,
+      enabled,
+      () => setPosts((all) => transition(all, id)),
+      (result) => {
+        if (!Number.isFinite(Number(result?.count))) return;
+        setPosts((all) => all.map((post) => post.id === id
+          ? { ...post, [countKey]: Number(result.count) }
+          : post));
+      },
+    );
+  };
+  const like = (id) => runPostAction(id, "like", (post) => post.liked, toggleLike, "l");
+  const save = (id) => runPostAction(id, "bookmark", (post) => post.saved, toggleSaved, "b");
+  const repost = (id) => runPostAction(id, "repost", (post) => post.reposted, toggleRepost, "p");
+  const followUser = async (username) => {
+    const target = normalizeUsername(username);
+    if (!target || !hasApiBaseUrl() || followBusyRef.current.has(target)) return;
+    followBusyRef.current.add(target);
+    const wasFollowing = followingUsers.has(target);
+    const enabled = !wasFollowing;
+    setPosts((all) => setFollowUser(all, target, enabled));
+    setFollowingUsers((current) => { const next = new Set(current); if (enabled) next.add(target); else next.delete(target); return next; });
+    try {
+      await socialGraphService.setRelationship({ username: target, relationship: SOCIAL_RELATIONSHIPS.FOLLOW, enabled });
+    } catch (error) {
+      setPosts((all) => setFollowUser(all, target, wasFollowing));
+      setFollowingUsers((current) => { const next = new Set(current); if (wasFollowing) next.add(target); else next.delete(target); return next; });
+      flash(error?.message || "Could not update follow status");
+    } finally {
+      followBusyRef.current.delete(target);
+    }
+  };
   const followPost = (id) => { const post = posts.find((item) => item.id === id); if (post) followUser(String(post.h || "").replace("@", "").toLowerCase()); };
   const publish = async (value) => {
     if (!value?.kind || !value?.id) throw new TypeError("Publishing requires a server-created post response.");
