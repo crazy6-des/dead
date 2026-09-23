@@ -3,7 +3,7 @@ import { Camera, Check, Link2, MapPin, MoreHorizontal, X } from "lucide-react";
 import PostCard from "../post/PostCard.jsx";
 import { toFeedPostFromCreatedPost } from "../feed/feedPostAdapter.js";
 import { profileService } from "../../services/profileService.js";
-import { hasApiBaseUrl } from "../../services/apiClient.js";
+import { apiClient, hasApiBaseUrl } from "../../services/apiClient.js";
 import { settingsService } from "../../services/settingsService.js";
 
 const DEFAULT_PROFILE = Object.freeze({
@@ -39,6 +39,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
   const [error, setError] = useState("");
   const [loadingProfile, setLoadingProfile] = useState(hasApiBaseUrl());
   const [savingProfile, setSavingProfile] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
   const [activityPosts, setActivityPosts] = useState([]);
   const [activityLoading, setActivityLoading] = useState(hasApiBaseUrl());
   const [activityError, setActivityError] = useState("");
@@ -122,6 +123,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
     const nextUrl = URL.createObjectURL(file);
     avatarObjectUrlsRef.current.add(nextUrl);
     if (previous && previous !== profile.avatarUrl) revokeAvatarObjectUrl(previous);
+    setAvatarFile(file);
     updateDraft({ avatarUrl: nextUrl });
   };
 
@@ -139,6 +141,16 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
     setSavingProfile(true);
     try {
       const { privateAccount, ...profilePatch } = next;
+      let uploadedMediaId = null;
+      if (hasApiBaseUrl() && avatarFile) {
+        const form = new FormData();
+        form.append("file", avatarFile, avatarFile.name);
+        const upload = await apiClient.post("/api/media/upload", form);
+        uploadedMediaId = upload?.media?.mediaId || null;
+        const uploadedUrl = upload?.media?.url || "";
+        if (!uploadedMediaId || !uploadedUrl) throw new Error("Profile picture upload did not return a usable media URL.");
+        profilePatch.avatarUrl = uploadedUrl;
+      }
       const result = hasApiBaseUrl() ? await profileService.updateMe(profilePatch) : next;
       if (hasApiBaseUrl()) await settingsService.update({ privateAccount });
       const saved = result?.profile || result || next;
@@ -147,6 +159,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
       if (draft.avatarUrl && draft.avatarUrl !== normalizedSaved.avatarUrl) revokeAvatarObjectUrl(draft.avatarUrl);
       setProfile(normalizedSaved);
       setDraft(normalizedSaved);
+      setAvatarFile(null);
       onProfileUpdate?.(normalizedSaved);
       setEditing(false);
     } catch (cause) {
@@ -221,7 +234,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
               <label className="s-profile-editor__check"><input type="checkbox" checked={draft.privateAccount} onChange={(event) => updateDraft({ privateAccount: event.target.checked })} /> Private account</label>
               {error && <p className="s-create-composer__error" role="alert">{error}</p>}
             </div>
-            <footer><button type="button" className="outline" onClick={() => { if (draft.avatarUrl !== profile.avatarUrl) revokeAvatarObjectUrl(draft.avatarUrl); setEditing(false); }} disabled={savingProfile}>Cancel</button><button className="primary" type="submit" disabled={savingProfile}>{savingProfile ? "Saving…" : hasApiBaseUrl() ? "Save profile" : "Save locally"}</button></footer>
+            <footer><button type="button" className="outline" onClick={() => { if (draft.avatarUrl !== profile.avatarUrl) revokeAvatarObjectUrl(draft.avatarUrl); setAvatarFile(null); setEditing(false); }} disabled={savingProfile}>Cancel</button><button className="primary" type="submit" disabled={savingProfile}>{savingProfile ? "Saving…" : hasApiBaseUrl() ? "Save profile" : "Save locally"}</button></footer>
           </form>
         </div>
       )}
