@@ -35,7 +35,7 @@ export function NotificationsRoute({ onOpen }) {
       setError(err?.message || "Could not mark notification as read.");
       return;
     }
-    onOpen?.(item.target || (item.type === "follow" && item.username ? "/user/" + String(item.username).replace(/^@/, "") : APP_ROUTES.PROFILE));
+    onOpen?.(item.target || (item.type === "follow" && item.username ? "/user/" + encodeURIComponent(String(item.username).replace(/^@/, "")) : APP_ROUTES.PROFILE));
   };
 
   const markAllRead = async () => {
