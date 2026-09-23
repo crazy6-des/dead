@@ -109,7 +109,14 @@ export async function listMessages(request, env, conversationId) {
       media_name: (() => { try { return JSON.parse(media?.metadata_json || "{}")?.name || null; } catch { return null; } })(),
     }, session.user_id);
   }).reverse();
-  const oldest = items[0];  return { response: { items, nextCursor: rows.results.length > limit && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null }, error: null };
+  const oldest = items[0];
+  const debug = request.headers.get("x-e2e-debug") === "1" ? {
+    sessionUserId: session.user_id,
+    rawRowCount: rows.results.length,
+    returnedRowCount: items.length,
+    rawRows: rows.results.map((row) => ({ id: row.id, senderId: row.sender_id, type: row.message_type, text: row.body, deletedAt: row.deleted_at })),
+  } : undefined;
+  return { response: { items, nextCursor: rows.results.length > limit && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null, ...(debug ? { debug } : {}) }, error: null };
 }
 
 export async function sendMessage(request, env) {
