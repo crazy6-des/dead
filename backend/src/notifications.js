@@ -46,7 +46,7 @@ export async function listNotifications(request, env) {
   if (url.searchParams.get("cursor") && !cursor?.createdAt) return failure("INVALID_CURSOR", 400, "Notification cursor is invalid.");
   const values = [session.user_id]; let where = "n.recipient_id = ?1";
   if (filter === "Mentions") where += " AND n.event_type = 'reply'";
-  else if (filter !== "All" && filter !== "Verified") return failure("VALIDATION_ERROR", 400, "Unsupported notification filter.");
+  else if (filter !== "All") return failure("VALIDATION_ERROR", 400, "Unsupported notification filter.");
   if (cursor?.createdAt && cursor?.id) { values.push(cursor.createdAt, cursor.id); where += ` AND (n.created_at < ?${values.length - 1} OR (n.created_at = ?${values.length - 1} AND n.id < ?${values.length}))`; }
   values.push(limit + 1);
   const rows = await env.DB.prepare(`SELECT n.id, n.event_type, n.payload, n.target_type, n.target_id, n.conversation_id, n.read_at, n.created_at, u.username AS actor_username, u.display_name AS actor_display_name, 0 AS actor_verified FROM notifications n LEFT JOIN users u ON u.id = n.actor_id WHERE ${where} ORDER BY n.created_at DESC, n.id DESC LIMIT ?${values.length}`).bind(...values).all();
