@@ -18,7 +18,7 @@ const descriptions = {
   Accessibility: "Reduce motion for a calmer interface.",
 };
 
-export default function SettingsRoute({ onSettingsUpdate, onOpen }) {
+export default function SettingsRoute({ onSettingsUpdate, onOpen, auth }) {
   const [open, setOpen] = useState("Privacy");
   const [settings, setSettings] = useState(settingsService.defaults);
   const [loading, setLoading] = useState(hasApiBaseUrl());
@@ -93,7 +93,7 @@ export default function SettingsRoute({ onSettingsUpdate, onOpen }) {
       })}
     </section>)}
 
-    <section className="settings"><h3>Account access</h3><AuthPanel /></section>
+    <section className="settings"><h3>Account access</h3><AuthPanel auth={auth} /></section>
     <section className="settings"><h3>Account protection</h3><div className="setting-callout"><Shield/><span><b>Privacy is enforced by the server</b><small>Account privacy and messaging choices are stored with your account, not just displayed in the UI.</small></span></div></section>
   </div>;
 }
