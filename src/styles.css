@@ -151,6 +151,7 @@ button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 .chat-image-preview button{border:0;background:transparent;color:var(--muted);width:30px;height:30px;border-radius:8px;display:grid;place-items:center}
 .chat-image-preview button:hover{background:var(--surface);color:var(--text)}
 .message-image{display:block;width:min(280px,100%);max-height:320px;object-fit:cover;border-radius:10px;margin:-2px -3px 7px}
+.message-media-error{display:grid;place-items:center;width:min(280px,100%);min-height:96px;padding:12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:11px;margin:-2px -3px 7px}
 .chat-error{padding:7px 12px;color:var(--danger);font-size:10px;border-top:1px solid var(--line)}
 
 
