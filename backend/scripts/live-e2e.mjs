@@ -197,6 +197,8 @@ const updatedProfile = await request("/api/profile/me", {
 });
 if (updatedProfile.profile?.bio !== "Live E2E") throw new Error("Profile update persistence contract failed.");
 
+const primaryCookie = cookie;
+
 const signup2 = await request("/api/auth/sign-up", {
   method: "POST",
   body: JSON.stringify({ username: username2, email: email2, password: password2, displayName: "Live E2E Partner" }),
@@ -214,7 +216,7 @@ const reportTarget = await request("/api/posts", {
 const reportTargetPostId = reportTarget.post?.id;
 if (!reportTargetPostId) throw new Error("Moderation target post creation failed.");
 
-cookie = partnerCookie;
+cookie = primaryCookie;
 const report = await request("/api/moderation/actions", {
   method: "POST",
   body: JSON.stringify({ action: "report", targetType: "post", targetId: postId, reason: "spam", note: "S live moderation email E2E" }),
