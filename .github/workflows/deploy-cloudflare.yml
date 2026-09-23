@@ -94,7 +94,7 @@ jobs:
       - name: Run live persistence E2E
         env:
           LIVE_API_BASE_URL: https://muddy-tooth-e4be.binancecompany274.workers.dev
-          TEST_ORIGIN: https://sphereis.netlify.app
+          TEST_ORIGIN: https://inghis.netlify.app
           TEST_USERNAME: e2e_${{ github.run_id }}
           TEST_EMAIL: e2e_${{ github.run_id }}@example.invalid
           TEST_PASSWORD: S-live-E2E-${{ github.run_id }}-secure
