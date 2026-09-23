@@ -239,7 +239,7 @@ export async function getPost(request, env, postId) {
     (SELECT COUNT(*) FROM posts rp WHERE rp.reply_to_id=p.id AND rp.deleted_at IS NULL) AS reply_count,
     (SELECT COUNT(*) FROM bookmarks b WHERE b.post_id=p.id) AS bookmark_count,
     (SELECT json_object('id',qp.id,'author',json_object('username',qu.username,'displayName',qu.display_name),'text',qp.body) FROM posts qp JOIN users qu ON qu.id=qp.author_id WHERE qp.id=p.quoted_post_id AND qp.deleted_at IS NULL) AS quoted_post
-    FROM posts p JOIN users u ON u.id=p.author_id WHERE p.id=?2 AND p.deleted_at IS NULL AND u.deleted_at IS NULL AND ${visibility} LIMIT 1`).bind(...values).first();
+    FROM posts p JOIN users u ON u.id=p.author_id WHERE p.id=?2 AND p.deleted_at IS NULL AND u.deleted_at IS NULL AND ${visibility} AND NOT EXISTS (SELECT 1 FROM relationships br WHERE br.relationship_type='block' AND ((br.source_user_id=?1 AND br.target_user_id=p.author_id) OR (br.source_user_id=p.author_id AND br.target_user_id=?1))) LIMIT 1`).bind(...values).first();
   if (!row) return { response: null, error: error("POST_NOT_FOUND",404,"Post was not found or is not available.") };
   return { response: { post: serializePost(row) }, error: null };
 }
@@ -266,7 +266,9 @@ export async function listFeed(request, env) {
     values.push(session.user_id);
     return `?${values.length}`;
   });
-  let where = `p.deleted_at IS NULL AND u.deleted_at IS NULL AND ${visibility}`;
+  let where = `p.deleted_at IS NULL AND u.deleted_at IS NULL AND ${visibility}
+    AND NOT EXISTS (SELECT 1 FROM relationships blocked_rel WHERE blocked_rel.relationship_type = 'block' AND ((blocked_rel.source_user_id = ?1 AND blocked_rel.target_user_id = p.author_id) OR (blocked_rel.source_user_id = p.author_id AND blocked_rel.target_user_id = ?1)))
+    AND NOT EXISTS (SELECT 1 FROM relationships muted_rel WHERE muted_rel.relationship_type = 'mute' AND muted_rel.source_user_id = ?1 AND muted_rel.target_user_id = p.author_id)`;
 
   if (mode === "Following") {
     where += " AND (p.author_id = ?1 OR EXISTS (SELECT 1 FROM relationships f WHERE f.source_user_id = ?1 AND f.target_user_id = p.author_id AND f.relationship_type = 'follow'))";
