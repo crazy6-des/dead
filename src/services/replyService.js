@@ -8,6 +8,8 @@ function assertBackend() {
   }
 }
 
+const pendingReplies = new Set();
+
 export const replyService = Object.freeze({
   async list(postId, { limit = 30, cursor = null } = {}) {
     assertBackend();
@@ -22,9 +24,20 @@ export const replyService = Object.freeze({
 
   async create(postId, text) {
     assertBackend();
-    const result = await apiClient.post(`/api/posts/${encodeURIComponent(postId)}/replies`, {
-      text: String(text || "").trim(),
-    });
-    return result?.reply || null;
+    const normalizedPostId = String(postId || "").trim();
+    const normalizedText = String(text || "").trim();
+    const key = normalizedPostId + ":" + normalizedText;
+    if (pendingReplies.has(key)) {
+      const error = new Error("This reply is already being submitted.");
+      error.code = "REPLY_SUBMISSION_BUSY";
+      throw error;
+    }
+    pendingReplies.add(key);
+    try {
+      const result = await apiClient.post(`/api/posts/${encodeURIComponent(normalizedPostId)}/replies`, { text: normalizedText });
+      return result?.reply || null;
+    } finally {
+      pendingReplies.delete(key);
+    }
   },
 });
