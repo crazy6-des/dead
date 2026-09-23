@@ -111,6 +111,18 @@ jobs:
           TEST_PASSWORD_2: S-live-E2E-partner-${{ github.run_id }}-secure
         run: node backend/scripts/live-e2e.mjs
 
+      - name: Diagnose live message persistence
+        if: always() && env.LIVE_E2E_CONVERSATION_ID != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          LIVE_E2E_CONVERSATION_ID: ${{ env.LIVE_E2E_CONVERSATION_ID }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data '{"sql":"SELECT id, sender_id, message_type, body, created_at, deleted_at, media_id FROM messages WHERE conversation_id = ? ORDER BY created_at ASC, id ASC;","params":["'"$LIVE_E2E_CONVERSATION_ID"'"]}' \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/57064739-5e86-4d4f-b9d7-d223a5b38642/query" | jq .
       - name: Cleanup live E2E data
         if: always()
         working-directory: backend
