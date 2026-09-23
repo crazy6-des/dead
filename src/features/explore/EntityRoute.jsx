@@ -155,10 +155,10 @@ function PostEntityRoute({ postId, initialPost, ...props }) {
 
 function ShareDetail({ post: initialPost, postId, onBack, onShareFollowers }) {
   const [post, setPost] = useState(initialPost || null);
-  const [loading, setLoading] = useState(!initialPost);
+  const [loading, setLoading] = useState(() => !initialPost && Boolean(postId));
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false); const [sharing, setSharing] = useState(false); const [sharedFollowers, setSharedFollowers] = useState(false); useEffect(() => {
-    if (post || !postId) { setLoading(false); return undefined; }
+    if (post || !postId) return undefined;
     let active = true;
     postService.getById(postId).then((result) => {
       if (!active) return;
