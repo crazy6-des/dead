@@ -35,7 +35,7 @@ function BookmarkFoldersRoute({ posts = [], onOpen }) {
       {error && <div className="inline-notice" role="status">{error}</div>}
       {loading ? <div className="empty"><p>Loading folders…</p></div> : folders.map((folder) => <button className="network-row" key={folder.id} onClick={() => onOpen?.("/saved?folder=" + encodeURIComponent(folder.id))}><span className="avatar avatar--small"><Folder size={17}/></span><span><b>{folder.name}</b><small>{folder.description || "Saved posts in this folder"}</small></span><Bookmark size={17}/></button>)}
     </div>
-    {posts.some((post) => post.saved) && <section className="card"><div className="heading"><small>RECENT</small><h3>Saved posts</h3></div>{posts.filter((post) => post.saved).slice(0, 3).map((post) => <button className="topic-post" key={post.id} onClick={() => onOpen?.("/post/" + post.id)}><b>{post.a}</b><p>{post.x}</p></button>)}</section>}
+    {posts.some((post) => post.saved) && <section className="card"><div className="heading"><small>RECENT</small><h3>Saved posts</h3></div>{posts.filter((post) => post.saved).slice(0, 3).map((post) => <button className="topic-post" key={post.id} onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))}><b>{post.a}</b><p>{post.x}</p></button>)}</section>}
   </div>;
 }
 
