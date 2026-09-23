@@ -8,8 +8,9 @@ const BENEFITS = [
   { icon: WalletCards, title: "Earn by choice", text: "S can make room for CPA opportunities. You decide whether to participate; no forced offers, no pretending that earnings are guaranteed." },
 ];
 
-function Field({ label, ...props }) {
-  return <label className="auth-field"><span>{label}</span><input {...props}/></label>;
+function Field({ label, id, hint, ...props }) {
+  const hintId = hint ? id + "-hint" : undefined;
+  return <label className="auth-field" htmlFor={id}><span>{label}</span><input id={id} aria-describedby={hintId} {...props}/>{hint && <small id={hintId}>{hint}</small>}</label>;
 }
 
 function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
@@ -45,19 +46,19 @@ function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
     finally { setBusy(false); }
   };
 
-  return <div className="landing-auth-layer"><button className="landing-auth-backdrop" onClick={onClose} aria-label="Close"/><section className="landing-auth" role="dialog" aria-modal="true">
-    <button className="landing-auth-close" onClick={onClose} aria-label="Close"><X/></button>
-    <div className="landing-auth-brand"><span>S</span><div><b>{mode === "signup" ? "Join S" : mode.startsWith("reset") ? "Reset access" : "Welcome back"}</b><small>{mode === "signup" ? "Build your corner of the community." : mode.startsWith("reset") ? "A secure link will arrive by email." : "Your people, your interests, your space."}</small></div></div>
-    {mode === "reset-confirm" ? <form onSubmit={confirmReset}><Field label="New password" type="password" autoComplete="new-password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} required minLength={10}/><p className="auth-helper">Use 10–128 characters. This secure link expires after 30 minutes.</p><button className="landing-primary" disabled={busy}>{busy ? "Updating…" : "Set new password"} <LockKeyhole size={16}/></button></form> : mode === "reset" ? <form onSubmit={reset}><Field label="Email" type="email" autoComplete="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} required/><p className="auth-helper">We never reveal whether an email has an account.</p><button className="landing-primary" disabled={busy}>{busy ? "Sending…" : "Send reset link"} <Mail size={16}/></button></form> : <form onSubmit={submit}>
-      {mode === "signup" && <><Field label="Display name" value={form.displayName} onChange={e=>setForm({...form,displayName:e.target.value})} required/><Field label="Username" value={form.username} onChange={e=>setForm({...form,username:e.target.value})} required minLength={3}/></>}
-      <Field label={mode === "signin" ? "Email or username" : "Email"} type={mode === "signin" ? "text" : "email"} autoComplete={mode === "signin" ? "username" : "email"} value={mode === "signin" ? (form.email || form.username) : form.email} onChange={e=>setForm({...form,email:e.target.value,username:mode === "signin" ? e.target.value : form.username})} required/>
-      <Field label="Password" type="password" autoComplete={mode === "signup" ? "new-password" : "current-password"} value={form.password} onChange={e=>setForm({...form,password:e.target.value})} required minLength={10}/>
+  return <div className="landing-auth-layer"><button type="button" className="landing-auth-backdrop" onClick={onClose} aria-label="Close authentication dialog"/><section className="landing-auth" role="dialog" aria-modal="true" aria-labelledby="landing-auth-title">
+    <button type="button" className="landing-auth-close" onClick={onClose} aria-label="Close authentication dialog"><X/></button>
+    <div className="landing-auth-brand"><span>S</span><div><b id="landing-auth-title">{mode === "signup" ? "Join S" : mode.startsWith("reset") ? "Reset access" : "Welcome back"}</b><small>{mode === "signup" ? "Build your corner of the community." : mode.startsWith("reset") ? "A secure link will arrive by email." : "Your people, your interests, your space."}</small></div></div>
+    {mode === "reset-confirm" ? <form onSubmit={confirmReset}><Field id="new-password" label="New password" type="password" autoComplete="new-password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} required minLength={10}/><p className="auth-helper">Use 10–128 characters. This secure link expires after 30 minutes.</p><button className="landing-primary" disabled={busy}>{busy ? "Updating…" : "Set new password"} <LockKeyhole size={16}/></button></form> : mode === "reset" ? <form onSubmit={reset}><Field id="reset-email" label="Email" type="email" autoComplete="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} required/><p className="auth-helper">We never reveal whether an email has an account.</p><button className="landing-primary" disabled={busy}>{busy ? "Sending…" : "Send reset link"} <Mail size={16}/></button></form> : <form onSubmit={submit}>
+      {mode === "signup" && <><Field id="display-name" label="Display name" value={form.displayName} onChange={e=>setForm({...form,displayName:e.target.value})} required/><Field id="username" label="Username" value={form.username} onChange={e=>setForm({...form,username:e.target.value})} required minLength={3}/></>}
+      <Field id={mode === "signin" ? "identifier" : "signup-email"} label={mode === "signin" ? "Email or username" : "Email"} type={mode === "signin" ? "text" : "email"} autoComplete={mode === "signin" ? "username" : "email"} value={mode === "signin" ? (form.email || form.username) : form.email} onChange={e=>setForm({...form,email:e.target.value,username:mode === "signin" ? e.target.value : form.username})} required/>
+      <Field id="password" label="Password" type="password" autoComplete={mode === "signup" ? "new-password" : "current-password"} value={form.password} onChange={e=>setForm({...form,password:e.target.value})} required minLength={10}/>
       {mode === "signin" && <button type="button" className="auth-link" onClick={()=>setMode("reset")}>Forgot password?</button>}
       <button className="landing-primary" disabled={busy}>{busy ? "Working…" : mode === "signup" ? "Create my S account" : "Sign in"} <ArrowRight size={16}/></button>
     </form>}
     {error && <div className="auth-error" role="alert">{error}</div>}
     {message && <div className="auth-success">{message}</div>}
-    <div className="auth-switch">{mode.startsWith("reset") ? <button onClick={()=>setMode("signin")}>Back to sign in</button> : <button onClick={()=>setMode(mode === "signup" ? "signin" : "signup")}>{mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}</button>}</div>
+    <div className="auth-switch">{mode.startsWith("reset") ? <button type="button" onClick={()=>setMode("signin")}>Back to sign in</button> : <button type="button" onClick={()=>setMode(mode === "signup" ? "signin" : "signup")}>{mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}</button>}</div>
   </section></div>;
 }
 
