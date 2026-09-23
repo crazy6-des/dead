@@ -9,7 +9,9 @@ const DEFAULT_PRODUCTION_API_BASE_URL = "https://muddy-tooth-e4be.binancecompany
 const API_BASE_URL = String(
   import.meta.env?.VITE_API_BASE_URL || (import.meta.env?.PROD ? DEFAULT_PRODUCTION_API_BASE_URL : ""),
 ).replace(/\/$/, "");
-const DEFAULT_TIMEOUT_MS = 15000;
+const DEFAULT_TIMEOUT_MS = 10000;
+const GET_RETRY_DELAY_MS = 250;
+const GET_RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 export class ApiError extends Error {
   constructor(message, { status = 0, code = "API_ERROR", details = null, cause = null } = {}) {
@@ -84,13 +86,27 @@ export async function apiRequest(path, options = {}) {
   }
 
   try {
-    const response = await fetch(buildUrl(buildQuery(path, query)), {
-      credentials: "include",
-      ...requestOptions,
-      headers: requestHeaders,
-      signal: controller.signal,
-      body: body === undefined || body instanceof FormData || typeof body === "string" ? body : JSON.stringify(body),
-    });
+    const url = buildUrl(buildQuery(path, query));
+    const isGet = String(requestOptions.method || "GET").toUpperCase() === "GET";
+    let response;
+    let lastNetworkError = null;
+    for (let attempt = 0; attempt < (isGet ? 2 : 1); attempt += 1) {
+      try {
+        response = await fetch(url, {
+          credentials: "include",
+          ...requestOptions,
+          headers: requestHeaders,
+          signal: controller.signal,
+          body: body === undefined || body instanceof FormData || typeof body === "string" ? body : JSON.stringify(body),
+        });
+        if (!(isGet && GET_RETRYABLE_STATUSES.has(response.status) && attempt === 0)) break;
+      } catch (networkError) {
+        lastNetworkError = networkError;
+        if (!isGet || attempt !== 0) throw networkError;
+      }
+      await new Promise((resolve) => setTimeout(resolve, GET_RETRY_DELAY_MS));
+    }
+    if (!response && lastNetworkError) throw lastNetworkError;
     const payload = await parseResponse(response);
 
     if (!response.ok) {
