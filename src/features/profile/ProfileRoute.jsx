@@ -140,7 +140,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
     setSavingProfile(true);
     let uploadedMediaId = null;
     try {
-      const profilePatch = { ...next, privateAccount };
+      const profilePatch = { ...next, privateAccount: next.privateAccount };
       if (hasApiBaseUrl() && avatarFile) {
         const form = new FormData();
         form.append("file", avatarFile, avatarFile.name);
