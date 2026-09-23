@@ -146,6 +146,7 @@ export function MessagesRoute({ currentUserId = null }) {
   const [messageCursors, setMessageCursors] = useState({});
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [failedMedia, setFailedMedia] = useState({});
+  const [resolvedMediaUrls, setResolvedMediaUrls] = useState({});
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [messageReport, setMessageReport] = useState(null);
@@ -158,7 +159,11 @@ export function MessagesRoute({ currentUserId = null }) {
 
   useEffect(() => () => {
     if (selectedImage?.url?.startsWith("blob:")) URL.revokeObjectURL(selectedImage.url);
-  }, [selectedImage]);
+    Object.values(resolvedMediaUrls).forEach((url) => {
+      if (String(url).startsWith("blob:")) URL.revokeObjectURL(url);
+    });
+  }, [selectedImage, resolvedMediaUrls]);
+
 
   useEffect(() => {
     const syncConversationFromUrl = () => {
@@ -233,6 +238,34 @@ export function MessagesRoute({ currentUserId = null }) {
     catch (err) { setError(err?.message || "Could not submit the report."); }
     finally { setMessageReportBusy(false); }
   };
+
+  useEffect(() => {
+    let active = true;
+    const mediaMessages = orderedMessages.filter((message) => message.media?.url && !String(message.media.url).startsWith("blob:") && !resolvedMediaUrls[message.id]);
+    if (!mediaMessages.length) return () => { active = false; };
+    Promise.all(mediaMessages.map(async (message) => {
+      try {
+        const response = await fetch(message.media.url, { credentials: "include", cache: "force-cache" });
+        if (!response.ok) throw new Error("Media request failed");
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        return { id: message.id, url };
+      } catch {
+        return { id: message.id, url: null };
+      }
+    })).then((results) => {
+      if (!active) return;
+      setResolvedMediaUrls((current) => {
+        const next = { ...current };
+        results.forEach(({ id, url }) => {
+          if (url) next[id] = url;
+          else setFailedMedia((failed) => ({ ...failed, [id]: true }));
+        });
+        return next;
+      });
+    });
+    return () => { active = false; };
+  }, [orderedMessages, resolvedMediaUrls]);
 
   useEffect(() => {
     if (!selected || loading || conversationError || loadingOlder) return;
@@ -323,9 +356,15 @@ export function MessagesRoute({ currentUserId = null }) {
       }
       const sent = await messagesApi.send({ conversationId: selected, type: image ? "image" : "text", text, mediaId: uploadedMediaId });
       setConversations((current) => current.map((item) => item.id === selected ? { ...item, lastMessage: sent?.text || (sent?.media ? "Image" : ""), updatedAt: sent?.createdAt || item.updatedAt } : item));
-      setMessages((current) => ({ ...current, [selected]: [...(current[selected] || []).filter((item) => item.id !== optimistic.id), { ...sent, direction: "out", status: "sent" }] }));
+      const persistedMessage = { ...sent, direction: "out", status: "sent" };
+      if (image?.url && persistedMessage.media) {
+        persistedMessage.media = { ...persistedMessage.media, url: image.url };
+        setResolvedMediaUrls((current) => ({ ...current, [persistedMessage.id]: image.url }));
+      }
+      setMessages((current) => ({ ...current, [selected]: [...(current[selected] || []).filter((item) => item.id !== optimistic.id), persistedMessage] }));
       setDraft("");
-      clearSelectedImage();
+      setSelectedImage(null);
+      if (imageInputRef.current) imageInputRef.current.value = "";
       setError("");
     } catch (err) {
       if (uploadedMediaId) {
@@ -376,7 +415,7 @@ export function MessagesRoute({ currentUserId = null }) {
           return <React.Fragment key={message.id}>
             {showDate && <small className="message-date">{formatMessageDate(message.createdAt)}</small>}
             <div className={"bubble " + (message.direction === "out" ? "out" : "in")}>
-            {message.media?.url && !failedMedia[message.id] && <img className="message-image" src={message.media.url} alt={message.media.name || "Shared image"} onError={() => setFailedMedia((current) => ({ ...current, [message.id]: true }))} />}
+            {message.media?.url && !failedMedia[message.id] && <img className="message-image" src={resolvedMediaUrls[message.id] || message.media.url} alt={message.media.name || "Shared image"} onError={() => setFailedMedia((current) => ({ ...current, [message.id]: true }))} />}
               {message.media?.url && failedMedia[message.id] && <div className="message-media-error" role="img" aria-label="Image could not be loaded">Image unavailable</div>}
             {message.text && <div>{message.text}</div>}
             {message.status === "failed" && <small> · Failed</small>}
