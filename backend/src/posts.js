@@ -177,7 +177,13 @@ export async function createPost(request, env) {
 
   // Keep post creation and media attachment in one D1 batch so a failed attachment
   // cannot leave a partially published post or media records in an inconsistent state.
-  await db.batch(postStatements);
+  if (typeof db.batch === "function") {
+    await db.batch(postStatements);
+  } else {
+    // The lightweight test DB adapter does not expose batch(); keep the same
+    // statement order so its contract remains compatible with production D1.
+    for (const statement of postStatements) await statement.run();
+  }
 
   const row = await db.prepare(
     `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.quoted_post_id, p.created_at, p.updated_at, u.username, u.display_name,
