@@ -141,7 +141,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
     setSavingProfile(true);
     let uploadedMediaId = null;
     try {
-      const { privateAccount, ...profilePatch } = next;
+      const profilePatch = { ...next, privateAccount };
       if (hasApiBaseUrl() && avatarFile) {
         const form = new FormData();
         form.append("file", avatarFile, avatarFile.name);
@@ -152,7 +152,6 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
         profilePatch.avatarUrl = uploadedUrl;
       }
       const result = hasApiBaseUrl() ? await profileService.updateMe(profilePatch) : next;
-      if (hasApiBaseUrl()) await settingsService.update({ privateAccount });
       const saved = result?.profile || result || next;
       const normalizedSaved = { ...DEFAULT_PROFILE, ...saved, avatarUrl: saved.avatarUrl ? resolveApiUrl(saved.avatarUrl) : "" };
       if (profile.avatarUrl && profile.avatarUrl !== normalizedSaved.avatarUrl) revokeAvatarObjectUrl(profile.avatarUrl);
