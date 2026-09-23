@@ -180,6 +180,7 @@ const postDb = {
             return null;
           },
           async all() {
+            if (query.includes("SELECT option_index, COUNT(*) AS count FROM poll_votes")) return { results: pollVoteCount ? [{ option_index: pollVotedIndex, count: pollVoteCount }] : [] };
             return {
               results: [
                 { id: "post-2", author_id: "user-1", body: "Second post", visibility: "public", reply_policy: "everyone", created_at: "2026-09-20T20:00:00.000Z", updated_at: "2026-09-20T20:00:00.000Z", username: "new_user", display_name: "New User", like_count: 2, repost_count: 1, reply_count: 0, bookmark_count: 1 },
