@@ -75,6 +75,10 @@ export function serializePost(row) {
     replyPolicy: row.reply_policy || "everyone",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    liked: Boolean(row.liked),
+    saved: Boolean(row.saved),
+    reposted: Boolean(row.reposted),
+    following: Boolean(row.following),
     stats: {
       likes: Number(row.like_count || 0),
       reposts: Number(row.repost_count || 0),
@@ -275,6 +279,10 @@ export async function listFeed(request, env) {
       (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id = p.id AND r.reaction_type = 'repost') AS repost_count,
       (SELECT COUNT(*) FROM posts rp WHERE rp.reply_to_id = p.id AND rp.deleted_at IS NULL) AS reply_count,
       (SELECT COUNT(*) FROM bookmarks b WHERE b.post_id = p.id) AS bookmark_count,
+      EXISTS (SELECT 1 FROM post_reactions me_like WHERE me_like.post_id = p.id AND me_like.user_id = ?1 AND me_like.reaction_type = 'like') AS liked,
+      EXISTS (SELECT 1 FROM post_reactions me_repost WHERE me_repost.post_id = p.id AND me_repost.user_id = ?1 AND me_repost.reaction_type = 'repost') AS reposted,
+      EXISTS (SELECT 1 FROM bookmarks me_bookmark WHERE me_bookmark.post_id = p.id AND me_bookmark.user_id = ?1) AS saved,
+      EXISTS (SELECT 1 FROM relationships me_follow WHERE me_follow.source_user_id = ?1 AND me_follow.target_user_id = p.author_id AND me_follow.relationship_type = 'follow') AS following,
       (SELECT json_object('id',qp.id,'author',json_object('username',qu.username,'displayName',qu.display_name),'text',qp.body) FROM posts qp JOIN users qu ON qu.id = qp.author_id WHERE qp.id = p.quoted_post_id AND qp.deleted_at IS NULL) AS quoted_post
      FROM posts p JOIN users u ON u.id = p.author_id
      WHERE ${where}
