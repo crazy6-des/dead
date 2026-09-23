@@ -381,7 +381,7 @@ export function MessagesRoute({ currentUserId = null }) {
               <div className="message-report-reasons">{Object.entries(REPORT_REASONS).map(([key,value]) => <button key={value} type="button" className={messageReport.reason === value ? "active" : ""} onClick={() => setMessageReport((current) => ({ ...current, reason: value }))}>{key.replace("_"," ")}</button>)}</div>
               <textarea value={messageReportNote} onChange={(event) => setMessageReportNote(event.target.value)} maxLength={2000} placeholder="Optional details" aria-label="Additional report details"/>
               <div><button type="button" onClick={() => { setMessageReport(null); setMessageReportNote(""); }}>Cancel</button><button type="button" onClick={submitMessageReport} disabled={!messageReport.reason || messageReportBusy}>{messageReportBusy ? "Submitting…" : "Submit report"}</button></div>
-            </div>
+            </div>}
           </React.Fragment>;
         })}
       </div>
