@@ -7,5 +7,6 @@ import "./ui/alignment.css";
 import "./ui/mobileNavigation.css";
 import "./ui/visualPolish.css";
 import "./features/landing/landing.css";
+import "./ui/matureVisualSystem.css";
 
 createRoot(document.getElementById("root")).render(<App />);
