@@ -201,8 +201,7 @@ export function MessagesRoute({ currentUserId = null }) {
   const selectedConversation = conversations.find((item) => item.id === selected);
   const hasSelectedConversation = Boolean(selectedConversation);
   const selectedName = selectedConversation?.name || "Select a conversation";
-  const currentMessages = messages[selected] || [];
-  const orderedMessages = useMemo(() => [...currentMessages].sort((a, b) => {
+  const orderedMessages = useMemo(() => [...(messages[selected] || [])].sort((a, b) => {
     const aTime = Date.parse(a?.createdAt || "") || 0;
     const bTime = Date.parse(b?.createdAt || "") || 0;
     if (aTime !== bTime) return aTime - bTime;
@@ -220,7 +219,7 @@ export function MessagesRoute({ currentUserId = null }) {
     if (!selected || loading || conversationError || loadingOlder) return;
     const body = chatBodyRef.current;
     if (body) body.scrollTop = body.scrollHeight;
-  }, [selected, loading, conversationError]);
+  }, [selected, loading, conversationError, loadingOlder]);
 
   const loadOlderMessages = async () => {
     const cursor = messageCursors[selected];
