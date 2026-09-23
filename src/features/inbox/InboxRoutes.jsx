@@ -206,7 +206,7 @@ export function MessagesRoute({ currentUserId = null }) {
     const bTime = Date.parse(b?.createdAt || "") || 0;
     if (aTime !== bTime) return aTime - bTime;
     return String(a?.id || "").localeCompare(String(b?.id || ""));
-  }), [currentMessages]);
+  }), [messages, selected]);
   const orderedConversations = useMemo(() => [...conversations].sort((a, b) => {
     const aTime = Date.parse(a?.updatedAt || "") || 0;
     const bTime = Date.parse(b?.updatedAt || "") || 0;
