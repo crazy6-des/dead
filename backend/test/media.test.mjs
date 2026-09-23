@@ -33,7 +33,7 @@ assert.equal(uploaded.response.media.mediaType,"image");
 assert.equal(uploaded.response.media.mimeType,"image/jpeg");
 assert.equal(rows.size,1);
 const mediaId=uploaded.response.media.mediaId;
-const media=await getMedia(new Request("https://example.test/api/media/"+mediaId),env,mediaId);
+const media=await getMedia(new Request("https://example.test/api/media/"+mediaId,{headers:{Cookie:"s_session=session-1"}}),env,mediaId);
 assert.equal(media.error,null);
 assert.equal(media.response.headers.get("content-type"),"image/jpeg");
 console.log("R2 media upload and delivery contracts: PASS");
