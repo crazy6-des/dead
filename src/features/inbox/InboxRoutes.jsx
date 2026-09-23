@@ -162,6 +162,7 @@ export function MessagesRoute({ currentUserId = null }) {
   const [conversationError, setConversationError] = useState("");
   const imageInputRef = useRef(null);
   const chatBodyRef = useRef(null);
+  const loadingOlderRef = useRef(false);
 
   useEffect(() => {
     resolvedMediaUrlsRef.current = resolvedMediaUrls;
@@ -211,7 +212,7 @@ export function MessagesRoute({ currentUserId = null }) {
         return;
       }
       const [messagePage] = await Promise.all([
-        messagesApi.listMessages(selected),
+        messagesApi.listMessages(selected, { limit: 50 }),
         messagesApi.markConversationRead(selected),
       ]);
       if (!active) return;
@@ -232,7 +233,7 @@ export function MessagesRoute({ currentUserId = null }) {
       if (document.visibilityState !== "visible" || loading || sending || loadingOlder) return;
       try {
         const [messagePage, conversationPage] = await Promise.all([
-          messagesApi.listMessages(selected),
+          messagesApi.listMessages(selected, { limit: 50 }),
           messagesApi.listConversations({ limit: 30 }),
         ]);
         if (!active) return;
@@ -317,14 +318,15 @@ export function MessagesRoute({ currentUserId = null }) {
   }, [orderedMessages, resolvedMediaUrls, failedMedia]);
 
   useEffect(() => {
-    if (!selected || loading || conversationError || loadingOlder) return;
+    if (!selected || loading || conversationError) return;
     const body = chatBodyRef.current;
     if (body) body.scrollTop = body.scrollHeight;
-  }, [selected, loading, conversationError, loadingOlder]);
+  }, [selected, loading, conversationError]);
 
   const loadOlderMessages = async () => {
     const cursor = messageCursors[selected];
-    if (!selected || !cursor || loadingOlder) return;
+    if (!selected || !cursor || loadingOlderRef.current) return;
+    loadingOlderRef.current = true;
     setLoadingOlder(true);
     setError("");
     try {
@@ -344,6 +346,7 @@ export function MessagesRoute({ currentUserId = null }) {
     } catch (err) {
       setError(err?.message || "Could not load older messages.");
     } finally {
+      loadingOlderRef.current = false;
       setLoadingOlder(false);
     }
   };
@@ -454,7 +457,7 @@ export function MessagesRoute({ currentUserId = null }) {
     })}</aside>
     <section className="chat">
       <header><span className="avatar avatar--small">{String(selectedName).charAt(0).toUpperCase()}</span><span><b>{selectedName}</b><small>{selectedConversation?.username ? "@" + selectedConversation.username : "Conversation"}</small></span><MoreHorizontal/></header>
-      <div className="chat-body" ref={chatBodyRef}>
+      <div className="chat-body" ref={chatBodyRef} onScroll={(event) => { if (event.currentTarget.scrollTop <= 48) loadOlderMessages(); }}>
         {!loading && !conversationError && messageCursors[selected] && <button className="outline message-load-older" onClick={loadOlderMessages} disabled={loadingOlder}>{loadingOlder ? "Loading older messages…" : "Load older messages"}</button>}
         {loading ? <div className="empty" role="status"><p>Loading conversation…</p></div> : conversationError ? <div className="empty" role="alert"><h3>Conversation unavailable</h3><p>{conversationError}</p></div> :
          orderedMessages.map((rawMessage, index) => {
