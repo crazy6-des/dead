@@ -5,6 +5,7 @@ import { createCatalogMusicAsset, createLocalMediaAsset } from "./mediaContract"
 import { createMusicAdapter, hasMusicCatalog } from "../../services/musicService.js";
 import { POST_MEDIA_LIMITS, validatePostDraft } from "./postValidation";
 import PostMediaPreview from "./PostMediaPreview";
+import PollEditor from "./PollEditor.jsx";
 import "./createComposer.css";
 
 function toFileAsset(file) { return createLocalMediaAsset(file); }
@@ -14,6 +15,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
+  const [pollOpen, setPollOpen] = useState(Boolean(initialDraft?.poll));
   const [musicQuery, setMusicQuery] = useState("");
   const [musicResults, setMusicResults] = useState([]);
   const [isSearchingMusic, setIsSearchingMusic] = useState(false);
@@ -33,6 +35,16 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
     };
   }, []);
   function updateDraft(patch) { setDraft((current) => ({ ...current, ...patch })); setError(""); setStatus(""); }
+  function updatePoll(patch) { updateDraft({ poll: { ...(draft.poll || { question: "", options: ["", ""] }), ...patch } }); }
+  function togglePoll() {
+    if (pollOpen) { updateDraft({ poll: null }); setPollOpen(false); return; }
+    updateDraft({ poll: { question: "", options: ["", ""] } }); setPollOpen(true);
+  }
+  function updatePollOption(index, value) {
+    const options = Array.isArray(draft.poll?.options) ? [...draft.poll.options] : ["", ""];
+    options[index] = value;
+    updatePoll({ options });
+  }
   function handleImageChange(event) {
     const selected = Array.from(event.target.files || []);
     event.target.value = "";
@@ -156,12 +168,12 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
         <input value={musicQuery} onChange={(event) => setMusicQuery(event.target.value)} placeholder="Search music" aria-label="Search music catalog" />
         <button type="button" onClick={handleMusicSearch} disabled={isSearchingMusic || isBrowsingMusic || !musicQuery.trim()}>{isSearchingMusic ? "Searching…" : "Find"}</button><button type="button" onClick={handleMusicBrowse} disabled={isSearchingMusic || isBrowsingMusic}>{isBrowsingMusic ? "Loading…" : "Browse"}</button>
       </div>}
-      <label className="s-create-composer__picker s-create-composer__color-picker" title="Choose background"><Palette size={16} aria-hidden="true" /><span>Background</span><input type="color" value={draft.background?.value || "#151922"} onChange={handleBackgroundChange} aria-label="Post background color" /></label>
+      <button type="button" className="s-create-composer__picker" onClick={togglePoll} aria-pressed={pollOpen}>Poll</button>\n      <label className="s-create-composer__picker s-create-composer__color-picker" title="Choose background"><Palette size={16} aria-hidden="true" /><span>Background</span><input type="color" value={draft.background?.value || "#151922"} onChange={handleBackgroundChange} aria-label="Post background color" /></label>
     </div>
     {hasMusicCatalog() && musicResults.length > 0 && <div className="s-create-composer__music-results" aria-label="Music search results">{musicResults.map((track) => <button type="button" key={track.musicId} className="s-create-composer__music-result" onClick={() => selectCatalogMusic(track)}><span>{track.title}</span><small>{track.artist || "Unknown artist"}{track.album ? ` · ${track.album}` : ""}{track.provider ? ` · ${track.provider}` : ""}</small></button>)}</div>}
     {musicError && <p className="s-create-composer__error" role="alert">{musicError}</p>}
     {hasMusicCatalog() && musicQuery.trim() && !isSearchingMusic && musicResults.length === 0 && !musicError && <p className="s-create-composer__hint">No catalog tracks found.</p>}
-    {!hasMusicCatalog() && <p className="s-create-composer__hint">Local music is ready now. Online music selection becomes available when a catalog API is configured.</p>}
+    {!hasMusicCatalog() && <p className="s-create-composer__hint">Local music is ready now. Online music selection becomes available when a catalog API is configured.</p>}\n    {pollOpen && <PollEditor question={draft.poll?.question || ""} options={draft.poll?.options || ["", ""]} onQuestionChange={(value) => updatePoll({ question: value })} onOptionChange={updatePollOption} onAddOption={() => updatePoll({ options: [...(draft.poll?.options || []), ""] })} />}
     <p className="s-create-composer__hint">Catalog music is provided under its provider license. <a href="https://api.freetouse.com/license" target="_blank" rel="noreferrer">Review Free To Use licensing</a>, especially before commercial use.</p>
     <p className="s-create-composer__hint">Choose any combination — text, image, music, background, or just one of them. Nothing posts until you press Publish.</p>
     <PostMediaPreview media={draft.media} audio={draft.audio} background={draft.background} onRemoveImage={(index) => {
