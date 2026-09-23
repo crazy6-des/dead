@@ -246,7 +246,7 @@ const partnerMessages = await request("/api/messages/conversations/" + encodeURI
 const inboundText = partnerMessages.items?.find((item) => item.text === "S live E2E message");
 const inboundImage = partnerMessages.items?.find((item) => item.media?.mediaId === messageMediaId);
 if (!inboundText || inboundText.direction !== "in" || !inboundImage || inboundImage.direction !== "in") {
-  throw new Error("Live messaging inbound direction/media contract failed.");
+  throw new Error("Live messaging inbound direction/media contract failed: " + JSON.stringify({ inboundText, inboundImage, expectedMediaId: messageMediaId, items: partnerMessages.items }));
 }
 
 const partnerNotifications = await request("/api/notifications");
