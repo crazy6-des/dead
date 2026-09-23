@@ -210,7 +210,10 @@ export default function App() {
     }
   };
   const enterApp = () => auth.refreshSession();
-  if (hasApiBaseUrl() && !isResetRoute && auth.isLoading) {\n    return <div className="app app-auth-loading" aria-busy="true"><main className="main"><div className="empty" role="status" aria-live="polite"><h3>Loading S…</h3><p>Restoring your session.</p></div></main></div>;\n  }\n  if (hasApiBaseUrl() && (auth.isAnonymous || isResetRoute)) {
+  if (hasApiBaseUrl() && !isResetRoute && auth.isLoading) {
+    return <div className="app app-auth-loading" aria-busy="true"><main className="main"><div className="empty" role="status" aria-live="polite"><h3>Loading S…</h3><p>Restoring your session.</p></div></main></div>;
+  }
+  if (hasApiBaseUrl() && (auth.isAnonymous || isResetRoute)) {
     return <LandingRoute initialAuthMode={isResetRoute ? "reset" : null} onAuthenticated={enterApp}/>;
   }
   const open = (path) => go(path);
