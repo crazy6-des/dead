@@ -13,11 +13,12 @@ function encodeCursor(createdAt, id) { return globalThis.btoa(JSON.stringify({ c
 function decodeCursor(value) { if (!value) return null; try { const normalized = String(value).replace(/-/g, "+").replace(/_/g, "/"); return JSON.parse(globalThis.atob(normalized + "=".repeat((4 - normalized.length % 4) % 4))); } catch { return null; } }
 function limitValue(value) { const n = Number(value); return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_LIMIT) : DEFAULT_LIMIT; }
 async function requireSession(request, env) { const session = await resolveSession(request, env); if (!session?.user_id) return { session: null, failure: failure("UNAUTHORIZED", 401, "Authentication is required.") }; if (!env?.DB) return { session: null, failure: failure("SERVICE_UNAVAILABLE", 503, "Messaging service is not configured.") }; return { session, failure: null }; }
-function messagePayload(row) {
+function messagePayload(row, currentUserId = null) {
   return {
     id: row.id,
     conversationId: row.conversation_id,
     senderId: row.sender_id,
+    direction: currentUserId && row.sender_id === currentUserId ? "out" : "in",
     type: row.message_type,
     text: row.body || "",
     media: row.media_id ? { mediaId: row.media_id, url: "/api/media/" + row.media_id, mediaType: row.media_type || "image", mimeType: row.mime_type || null, size: Number(row.media_size || 0), name: row.media_name || null } : null,
@@ -85,7 +86,7 @@ export async function listMessages(request, env, conversationId) {
     FROM messages m
     LEFT JOIN post_media pm ON pm.id = m.media_id
     WHERE ${where} ORDER BY m.created_at DESC, m.id DESC LIMIT ?${values.length}`).bind(...values).all();
-  const items = rows.results.slice(0, limit).map(messagePayload).reverse(); const oldest = items[0];
+  const items = rows.results.slice(0, limit).map((row) => messagePayload(row, session.user_id)).reverse(); const oldest = items[0];
   return { response: { items, nextCursor: rows.results.length > limit && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null }, error: null };
 }
 
@@ -120,7 +121,7 @@ export async function sendMessage(request, env) {
   ]);
   await createNotification(env, { recipientId: recipient.user_id, actorId: session.user_id, eventType: "message", targetType: "message", targetId: id, conversationId, payload: { text: text.slice(0, 120), hasImage: Boolean(mediaId) } });
   const row = await env.DB.prepare("SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.body, m.created_at, m.deleted_at, m.media_id, pm.media_type, pm.mime_type, pm.byte_size AS media_size, json_extract(pm.metadata_json, '$.name') AS media_name FROM messages m LEFT JOIN post_media pm ON pm.id = m.media_id WHERE m.id = ?1 LIMIT 1").bind(id).first();
-  return { response: messagePayload(row), error: null };
+  return { response: messagePayload(row, session.user_id), error: null };
 }
 
 export async function markConversationRead(request, env, conversationId) {
