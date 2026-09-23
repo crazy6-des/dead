@@ -10,7 +10,19 @@ const db = {
       return {
         async first() {
           if (query.startsWith("SELECT s.id")) return values[0] === await sha256Hex("session-1") ? { id:"session-1", user_id:"user-1", username:"alice", display_name:"Alice" } : null;
-          if (query.includes("FROM post_media pm")) { const row = rows.get(values[0]); return row ? { ...row, owner_id:"user-1", post_id:null, post_author_id:null, post_deleted_at:null, message_sender_id:null } : null; }
+          if (query.includes("FROM post_media pm")) {
+            const row = rows.get(values[0]);
+            return row ? {
+              ...row,
+              owner_id: row.owner_id ?? "user-1",
+              post_id: row.post_id ?? null,
+              post_author_id: row.post_author_id ?? null,
+              post_deleted_at: row.post_deleted_at ?? null,
+              post_visibility: row.post_visibility ?? null,
+              post_private_account: row.post_private_account ?? 0,
+              message_sender_id: row.message_sender_id ?? null,
+            } : null;
+          }
           return null;
         },
         async run() {
@@ -36,4 +48,22 @@ const mediaId=uploaded.response.media.mediaId;
 const media=await getMedia(new Request("https://example.test/api/media/"+mediaId,{headers:{Cookie:"s_session=session-1"}}),env,mediaId);
 assert.equal(media.error,null);
 assert.equal(media.response.headers.get("content-type"),"image/jpeg");
-console.log("R2 media upload and delivery contracts: PASS");
+
+rows.set("public-media", {
+  id:"public-media",
+  object_key:"public/photo.jpg",
+  mime_type:"image/jpeg",
+  byte_size:5,
+  owner_id:"user-2",
+  post_id:"post-public",
+  post_author_id:"user-2",
+  post_deleted_at:null,
+  post_visibility:"public",
+  post_private_account:0,
+  message_sender_id:null,
+});
+stored.set("public/photo.jpg", { body:new TextEncoder().encode("hello").buffer, options:{} });
+const publicMedia = await getMedia(new Request("https://example.test/api/media/public-media"),env,"public-media");
+assert.equal(publicMedia.error,null);
+assert.equal(publicMedia.response.headers.get("content-type"),"image/jpeg");
+console.log("R2 media upload, persistence, and public delivery contracts: PASS");
