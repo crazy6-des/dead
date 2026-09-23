@@ -52,11 +52,6 @@ export async function getMedia(request, env, mediaId) {
   `).bind(mediaId).first();
   if (!row) return fail("NOT_FOUND",404,"Media not found.");
 
-  // Public post media may be requested without a session because cross-origin
-  // browser media requests from Netlify cannot depend on the app session cookie.
-  // Keep the private-account decision out of the base media lookup so owner
-  // access to newly uploaded, not-yet-published media has no public-policy
-  // dependency.
   let publicPostAllowed = false;
   if (row.post_id && !row.post_deleted_at && row.post_visibility === "public") {
     const account = await env.DB.prepare(
@@ -69,9 +64,6 @@ export async function getMedia(request, env, mediaId) {
     return fail("UNAUTHORIZED",401,"Authentication is required.");
   }
 
-  // Lightweight/unit-test adapters may only expose the legacy media columns.
-  // Preserve the owner-delivery contract when relational visibility columns
-  // are unavailable; production D1 supplies the full authorization context.
   if (row.owner_id === undefined && row.post_id === undefined && row.message_sender_id === undefined) {
     return new Response(await env.MEDIA_BUCKET.get(row.object_key)?.body || null, { headers: { "content-type": row.mime_type || "application/octet-stream" } });
   }
@@ -106,8 +98,16 @@ export async function getMedia(request, env, mediaId) {
   const headers = new Headers();
   headers.set("content-type", row.mime_type);
   headers.set("content-length", String(row.byte_size));
-  headers.set("cache-control","public, max-age=31536000, immutable");
   headers.set("etag", object.httpEtag);
+  const origin = request.headers.get("Origin");
+  if (origin && env?.FRONTEND_ORIGIN && origin === env.FRONTEND_ORIGIN) {
+    headers.set("access-control-allow-origin", origin);
+    headers.set("access-control-allow-credentials", "true");
+    headers.set("vary", "Origin");
+  }
+  headers.set("cache-control", row.post_id && publicPostAllowed
+    ? "public, max-age=31536000, immutable"
+    : "private, max-age=300");
   return { response:new Response(object.body,{status:200,headers}), error:null };
 }
 
