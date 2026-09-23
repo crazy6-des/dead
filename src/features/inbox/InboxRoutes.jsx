@@ -239,7 +239,10 @@ export function MessagesRoute({ currentUserId = null }) {
     if (aTime !== bTime) return bTime - aTime;
     return String(a?.id || "").localeCompare(String(b?.id || ""));
   }), [conversations]);
-  const renderMessage = (message) => ({ ...message, direction: message.direction || (currentUserId && message.senderId === currentUserId ? "out" : "in") });
+  const renderMessage = (message) => ({
+    ...message,
+    direction: message.direction || (currentUserId && message.senderId === currentUserId ? "out" : "in"),
+  });
   const submitMessageReport = async () => {
     if (!messageReport?.id || !messageReport.reason || messageReportBusy) return;
     setMessageReportBusy(true);
@@ -250,7 +253,7 @@ export function MessagesRoute({ currentUserId = null }) {
 
   useEffect(() => {
     let active = true;
-    const mediaMessages = orderedMessages.filter((message) => message.media?.url && !String(message.media.url).startsWith("blob:") && !resolvedMediaUrls[message.id]);
+    const mediaMessages = orderedMessages.filter((message) => message.media?.url && !String(message.media.url).startsWith("blob:") && !resolvedMediaUrls[message.id] && !failedMedia[message.id]);
     if (!mediaMessages.length) return () => { active = false; };
     Promise.all(mediaMessages.map(async (message) => {
       try {
@@ -274,7 +277,7 @@ export function MessagesRoute({ currentUserId = null }) {
       });
     });
     return () => { active = false; };
-  }, [orderedMessages, resolvedMediaUrls]);
+  }, [orderedMessages, resolvedMediaUrls, failedMedia]);
 
   useEffect(() => {
     if (!selected || loading || conversationError || loadingOlder) return;
@@ -423,15 +426,18 @@ export function MessagesRoute({ currentUserId = null }) {
           const showDate = message.createdAt && (!previous || messageDateKey(message.createdAt) !== messageDateKey(previous.createdAt));
           return <React.Fragment key={message.id}>
             {showDate && <small className="message-date">{formatMessageDate(message.createdAt)}</small>}
-            <div className={"bubble " + (message.direction === "out" ? "out" : "in")}>
-            {message.media?.url && !failedMedia[message.id] && <img className="message-image" src={resolvedMediaUrls[message.id] || message.media.url} alt={message.media.name || "Shared image"} onError={() => setFailedMedia((current) => ({ ...current, [message.id]: true }))} />}
-              {message.media?.url && failedMedia[message.id] && <div className="message-media-error" role="img" aria-label="Image could not be loaded">Image unavailable</div>}
-            {message.text && <div>{message.text}</div>}
-            {message.status === "failed" && <small> · Failed</small>}
-            {message.status === "sending" && <small> · Sending</small>}
-            {message.direction === "in" && !String(message.id).startsWith("optimistic-") && <button type="button" className="message-report-button" onClick={() => { setMessageReport({ id: message.id, reason: null }); setMessageReportNote(""); }}><Flag size={13}/>Report</button>}
+            <div className={"message-row " + (message.direction === "out" ? "out" : "in")}>
+              <div className="bubble">
+                {message.media?.url && failedMedia[message.id] && <div className="message-media-error" role="img" aria-label="Image could not be loaded">Image unavailable</div>}
+                {message.media?.url && !failedMedia[message.id] && (resolvedMediaUrls[message.id] || String(message.media.url).startsWith("blob:")) && <img className="message-image" src={resolvedMediaUrls[message.id] || message.media.url} alt={message.media.name || "Shared image"} onError={() => setFailedMedia((current) => ({ ...current, [message.id]: true }))} />}
+                {message.media?.url && !failedMedia[message.id] && !resolvedMediaUrls[message.id] && !String(message.media.url).startsWith("blob:") && <div className="message-media-loading" role="status">Loading image…</div>}
+                {message.text && <div>{message.text}</div>}
+                {message.status === "failed" && <small> · Failed</small>}
+                {message.status === "sending" && <small> · Sending</small>}
+              </div>
+              {message.direction === "in" && !String(message.id).startsWith("optimistic-") && <button type="button" className="message-report-button" onClick={() => { setMessageReport({ id: message.id, reason: null }); setMessageReportNote(""); }} aria-label="Report message" title="Report message"><Flag size={13}/></button>}
             </div>
-            {messageReport?.id === message.id && <div className="message-report-form" role="dialog" aria-label="Report message">
+            {messageReport?.id === message.id && <div className={"message-report-form " + (message.direction === "out" ? "for-outgoing" : "for-incoming")} role="dialog" aria-label="Report message">
               <strong>Report this message</strong><small>Choose a reason and optionally add context.</small>
               <div className="message-report-reasons">{Object.entries(REPORT_REASONS).map(([key,value]) => <button key={value} type="button" className={messageReport.reason === value ? "active" : ""} onClick={() => setMessageReport((current) => ({ ...current, reason: value }))}>{key.replace("_"," ")}</button>)}</div>
               <textarea value={messageReportNote} onChange={(event) => setMessageReportNote(event.target.value)} maxLength={2000} placeholder="Optional details" aria-label="Additional report details"/>
