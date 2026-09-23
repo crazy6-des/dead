@@ -10,7 +10,7 @@ const db = {
       return {
         async first() {
           if (query.startsWith("SELECT s.id")) return values[0] === await sha256Hex("session-1") ? { id:"session-1", user_id:"user-1", username:"alice", display_name:"Alice" } : null;
-          if (query.startsWith("SELECT id, object_key")) return rows.get(values[0]) || null;
+          if (query.includes("FROM post_media pm")) { const row = rows.get(values[0]); return row ? { ...row, owner_id:"user-1", post_id:null, post_author_id:null, post_deleted_at:null, message_sender_id:null } : null; }
           return null;
         },
         async run() {
