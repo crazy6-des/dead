@@ -74,6 +74,7 @@ export function MessagesRoute() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [conversationError, setConversationError] = useState("");
   const imageInputRef = useRef(null);
 
   useEffect(() => () => {
@@ -88,6 +89,7 @@ export function MessagesRoute() {
       if (!active) return;
       const nextConversations = conversationPage.items || conversationPage || [];
       setConversations(nextConversations);
+      setConversationError("");
       if (!selected) {
         if (nextConversations[0]?.id) {
           setSelected(nextConversations[0].id);
@@ -107,6 +109,7 @@ export function MessagesRoute() {
       ]);
       if (!active) return;
       setMessages((current) => ({ ...current, [selectedConversation.id]: messagePage.items || [] }));
+      setConversations((current) => current.map((item) => item.id === selected ? { ...item, unreadCount: 0 } : item));
       setLoading(false);
     }).catch((err) => {
       if (active) { setError(err?.message || "Could not load conversations."); setLoading(false); }
@@ -174,6 +177,7 @@ export function MessagesRoute() {
         if (!uploadedMediaId) throw new Error("Image upload did not return a media id.");
       }
       const sent = await messagesApi.send({ conversationId: selected, type: image ? "image" : "text", text, mediaId: uploadedMediaId });
+      setConversations((current) => current.map((item) => item.id === selected ? { ...item, lastMessage: sent?.text || (sent?.media ? "Image" : ""), updatedAt: sent?.createdAt || item.updatedAt } : item));
       setMessages((current) => ({ ...current, [selectedName]: [...(current[selectedName] || []).filter((item) => item.id !== optimistic.id), { ...sent, direction: "out", status: "sent" }] }));
       setDraft("");
       clearSelectedImage();
@@ -209,7 +213,7 @@ export function MessagesRoute() {
       <header><span className="avatar avatar--small">{selectedName[0]}</span><span><b>{selectedName}</b><small>Active recently</small></span><MoreHorizontal/></header>
       <div className="chat-body">
         <small>Today</small>
-        {loading ? <div className="empty" role="status"><p>Loading conversation…</p></div> :
+        {loading ? <div className="empty" role="status"><p>Loading conversation…</p></div> : conversationError ? <div className="empty" role="alert"><h3>Conversation unavailable</h3><p>{conversationError}</p></div> :
          currentMessages.map((rawMessage) => {
           const message = renderMessage(rawMessage);
           return <div className={"bubble " + (message.direction === "out" ? "out" : "in")} key={message.id}>
