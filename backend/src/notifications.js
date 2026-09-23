@@ -45,7 +45,7 @@ export async function listNotifications(request, env) {
   const url = new URL(request.url); const limit = limitValue(url.searchParams.get("limit")); const filter = String(url.searchParams.get("filter") || "All"); const cursor = decodeCursor(url.searchParams.get("cursor"));
   if (url.searchParams.get("cursor") && !cursor?.createdAt) return failure("INVALID_CURSOR", 400, "Notification cursor is invalid.");
   const values = [session.user_id]; let where = "n.recipient_id = ?1";
-  if (filter === "Mentions") where += " AND n.event_type = 'reply'";
+  if (filter === "Replies") where += " AND n.event_type = 'reply'";
   else if (filter !== "All") return failure("VALIDATION_ERROR", 400, "Unsupported notification filter.");
   if (cursor?.createdAt && cursor?.id) { values.push(cursor.createdAt, cursor.id); where += ` AND (n.created_at < ?${values.length - 1} OR (n.created_at = ?${values.length - 1} AND n.id < ?${values.length}))`; }
   values.push(limit + 1);
