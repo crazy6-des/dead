@@ -83,14 +83,29 @@ export function MessagesRoute() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    Promise.all([messagesApi.listConversations(), messagesApi.listMessages(selected), messagesApi.markConversationRead(selected)]).then(([conversationPage, messagePage]) => {
+    setError("");
+    messagesApi.listConversations().then(async (conversationPage) => {
       if (!active) return;
-      setConversations(conversationPage.items || conversationPage || []);
-      const selectedName = conversationPage.items?.find((item) => item.id === selected)?.name || selected;
-      setMessages((current) => ({ ...current, [selectedName || selected]: messagePage.items || [] }));
+      const nextConversations = conversationPage.items || conversationPage || [];
+      setConversations(nextConversations);
+      if (!selected) {
+        setLoading(false);
+        return;
+      }
+      const selectedConversation = nextConversations.find((item) => item.id === selected);
+      if (!selectedConversation) {
+        setLoading(false);
+        return;
+      }
+      const [messagePage] = await Promise.all([
+        messagesApi.listMessages(selected),
+        messagesApi.markConversationRead(selected),
+      ]);
+      if (!active) return;
+      setMessages((current) => ({ ...current, [selectedConversation.name || selected]: messagePage.items || [] }));
       setLoading(false);
     }).catch((err) => {
-      if (active) { setError(err?.message || "Could not load this conversation."); setLoading(false); }
+      if (active) { setError(err?.message || "Could not load conversations."); setLoading(false); }
     });
     return () => { active = false; };
   }, [selected, messagesApi]);
