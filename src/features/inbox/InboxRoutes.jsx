@@ -89,6 +89,10 @@ export function MessagesRoute() {
       const nextConversations = conversationPage.items || conversationPage || [];
       setConversations(nextConversations);
       if (!selected) {
+        if (nextConversations[0]?.id) {
+          setSelected(nextConversations[0].id);
+          return;
+        }
         setLoading(false);
         return;
       }
@@ -111,6 +115,7 @@ export function MessagesRoute() {
   }, [selected, messagesApi]);
 
   const selectedConversation = conversations.find((item) => item.id === selected);
+  const hasSelectedConversation = Boolean(selectedConversation);
   const currentUserId = "me";
   const selectedName = selectedConversation?.name || "Select a conversation";
   const currentMessages = messages[selectedName] || [];
@@ -217,13 +222,13 @@ export function MessagesRoute() {
       </div>
       {error && <div className="chat-error" role="alert">{error}</div>}
       <footer>
-        <label className="chat-attach" title="Add image">
+        <label className={"chat-attach" + (!hasSelectedConversation ? " is-disabled" : "")} title={hasSelectedConversation ? "Add image" : "Select a conversation first"}>
           <ImagePlus size={18}/>
-          <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageSelect} />
+          <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageSelect} disabled={!hasSelectedConversation} />
         </label>
         <Paperclip size={18} aria-hidden="true"/>
-        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={"Message " + selectedName + "..."} aria-label={"Message " + selectedName}/>
-        <button onClick={sendMessage} disabled={sending || (!draft.trim() && !selectedImage)} aria-label="Send message">{sending ? "…" : <Send/>}</button>
+        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={hasSelectedConversation ? "Message " + selectedName + "..." : "Select a conversation first"} aria-label={hasSelectedConversation ? "Message " + selectedName : "Select a conversation first"} disabled={!hasSelectedConversation || sending}/>
+        <button onClick={sendMessage} disabled={!hasSelectedConversation || sending || (!draft.trim() && !selectedImage)} aria-label="Send message">{sending ? "…" : <Send/>}</button>
       </footer>
       {selectedImage && <div className="chat-image-preview"><img src={selectedImage.url} alt="Selected image preview"/><div><b>{selectedImage.name}</b><small>Ready to send · nothing is sent until you press Send</small></div><button onClick={clearSelectedImage} aria-label="Remove selected image"><X size={16}/></button></div>}
     </section>
