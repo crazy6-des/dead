@@ -57,7 +57,7 @@ export function NotificationsRoute({ onOpen }) {
       if (silent) setRefreshing(false);
       else setLoading(false);
     }
-  };
+  }, [notifications, tab]);
 
   useEffect(() => {
     let active = true;
