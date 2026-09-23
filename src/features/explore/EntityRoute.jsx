@@ -46,7 +46,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
         if (!active) return;
         setReplies(page.items);
         setReplyCursor(page.nextCursor || null);
-        setReplyCount(Number(post.r ?? page.items.length));
+        setReplyCount(Number(page.replyCount ?? post.r ?? page.items.length));
         setReplyLoading(false);
       })
       .catch((error) => {
