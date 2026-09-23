@@ -142,6 +142,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
     try {
       const { privateAccount, ...profilePatch } = next;
       let uploadedMediaId = null;
+      let profileSaved = false;
       if (hasApiBaseUrl() && avatarFile) {
         const form = new FormData();
         form.append("file", avatarFile, avatarFile.name);
@@ -152,6 +153,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
         profilePatch.avatarUrl = uploadedUrl;
       }
       const result = hasApiBaseUrl() ? await profileService.updateMe(profilePatch) : next;
+      profileSaved = true;
       if (hasApiBaseUrl()) await settingsService.update({ privateAccount });
       const saved = result?.profile || result || next;
       const normalizedSaved = { ...DEFAULT_PROFILE, ...saved, avatarUrl: saved.avatarUrl ? resolveApiUrl(saved.avatarUrl) : "" };
@@ -163,6 +165,9 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
       onProfileUpdate?.(normalizedSaved);
       setEditing(false);
     } catch (cause) {
+      if (uploadedMediaId && !profileSaved) {
+        try { await apiClient.delete(`/api/media/${encodeURIComponent(uploadedMediaId)}`); } catch (cleanupError) { void cleanupError; }
+      }
       setError(cause?.message || "Could not save your profile.");
     } finally {
       setSavingProfile(false);
@@ -199,13 +204,13 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
           {joinedLabel && <span>Joined {joinedLabel}</span>}
         </div>
         <div className="stats">
-          <button onClick={() => onOpen?.(`/following/${profile.username}`)}><b>{followingCount}</b> Following</button>
-          {profile.showFollowerCount && followerCount != null && <button onClick={() => onOpen?.(`/followers/${profile.username}`)}><b>{followerCount}</b> Followers</button>}
+          <button onClick={() => onOpen?.(`/following/${encodeURIComponent(profile.username)}`)}><b>{followingCount}</b> Following</button>
+          {profile.showFollowerCount && followerCount != null && <button onClick={() => onOpen?.(`/followers/${encodeURIComponent(profile.username)}`)}><b>{followerCount}</b> Followers</button>}
         </div>
       </div>
 
       <div className="tabs4">
-        {tabs.map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { if (item === tab) return; setActivityLoading(true); setActivityError(""); setTab(item); }}>{item}</button>)}
+        {tabs.map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { if (item === tab) return; setActivityLoading(true); setActivityError(""); setActivityPosts([]); setTab(item); }}>{item}</button>)}
       </div>
 
       {activityLoading ? <div className="empty" role="status"><p>Loading activity…</p></div> : activityError ? <div className="empty"><h3>Could not load activity</h3><p>{activityError}</p></div> : visiblePosts.length > 0
