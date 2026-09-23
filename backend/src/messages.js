@@ -80,13 +80,29 @@ export async function listMessages(request, env, conversationId) {
   const values = [conversationId]; let where = "m.conversation_id = ?1 AND m.deleted_at IS NULL";
   if (cursor?.createdAt && cursor?.id) { values.push(cursor.createdAt, cursor.id); where += ` AND (m.created_at < ?${values.length - 1} OR (m.created_at = ?${values.length - 1} AND m.id < ?${values.length}))`; }
   values.push(limit + 1);
-  const rows = await env.DB.prepare(`SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.body, m.created_at, m.deleted_at,
-    m.media_id, pm.media_type, pm.mime_type, pm.byte_size AS media_size,
-    json_extract(pm.metadata_json, '$.name') AS media_name
+  const rows = await env.DB.prepare(`SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.body, m.created_at, m.deleted_at, m.media_id
     FROM messages m
-    LEFT JOIN post_media pm ON pm.id = m.media_id
     WHERE ${where} ORDER BY m.created_at DESC, m.id DESC LIMIT ?${values.length}`).bind(...values).all();
-  const items = rows.results.slice(0, limit).map((row) => messagePayload(row, session.user_id)).reverse(); const oldest = items[0];
+  const messageRows = rows.results.slice(0, limit);
+  const mediaIds = [...new Set(messageRows.map((row) => row.media_id).filter(Boolean))];
+  const mediaById = new Map();
+  if (mediaIds.length) {
+    const placeholders = mediaIds.map((_, index) => `?${index + 1}`).join(", ");
+    const mediaRows = await env.DB.prepare(`SELECT id, media_type, mime_type, byte_size, metadata_json FROM post_media WHERE id IN (${placeholders})`).bind(...mediaIds).all();
+    for (const media of mediaRows.results) mediaById.set(media.id, media);
+  }
+  const items = messageRows.map((row) => messagePayload({
+    ...row,
+    ...(mediaById.get(row.media_id) ? {
+      media_type: mediaById.get(row.media_id).media_type,
+      mime_type: mediaById.get(row.media_id).mime_type,
+      media_size: mediaById.get(row.media_id).byte_size,
+      media_name: (() => {
+        try { return JSON.parse(mediaById.get(row.media_id).metadata_json || "{}")?.name || null; } catch { return null; }
+      })(),
+    } : {}),
+  }, session.user_id)).reverse();
+  const oldest = items[0];
   return { response: { items, nextCursor: rows.results.length > limit && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null }, error: null };
 }
 
