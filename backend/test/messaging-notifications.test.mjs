@@ -111,8 +111,8 @@ const listedMessages = await worker.fetch(authRequest(`/api/messages/conversatio
 assert.equal(listedMessages.status, 200);
 const listedBody = await listedMessages.json();
 assert.equal(listedBody.items.length, 2);
-assert.equal(listedBody.items[0].text, "Hello Bob");
-assert.equal(listedBody.items[1].text, "A photo");
+assert.equal(listedBody.items[0].text, "A photo");
+assert.equal(listedBody.items[1].text, "Hello Bob");
 
 const notifications = await worker.fetch(authRequest("/api/notifications"), { DB:db });
 assert.equal(notifications.status, 200);
