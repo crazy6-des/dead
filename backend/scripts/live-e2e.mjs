@@ -214,6 +214,10 @@ const conversationCreated = await request("/api/messages/conversations", {
 });
 const conversationId = conversationCreated.conversation?.id;
 if (!conversationId) throw new Error("Live messaging conversation creation failed.");
+if (process.env.GITHUB_ENV) {
+  const fs = await import("node:fs/promises");
+  await fs.appendFile(process.env.GITHUB_ENV, "LIVE_E2E_CONVERSATION_ID=" + conversationId + "\n");
+}
 
 const sentMessage = await request("/api/messages", {
   method: "POST",
