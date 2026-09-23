@@ -4,7 +4,7 @@ import { replyService } from "../../services/replyService.js";
 import { profileService } from "../../services/profileService.js";
 import PostCard from "../post/PostCard.jsx";
 import { toFeedPostFromCreatedPost } from "../feed/feedPostAdapter.js";
-import { publishQuotePost } from "../../services/postService.js";
+import { postService, publishQuotePost } from "../../services/postService.js";
 import { ArrowLeft, Check, Copy, Heart, Link2, MessageCircle, Repeat2, Send, Users } from "lucide-react";
 
 function BackButton({ onBack }) { return <button className="back-link" onClick={onBack}><ArrowLeft size={17}/>Back</button>; }
@@ -119,7 +119,17 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
     </>}
   </section>{shared && <div className="inline-notice"><Link2 size={16}/>Post link copied/shared.</div>}</div>;
 }
-function ShareDetail({ post, onBack, onShareFollowers }) { const [copied, setCopied] = useState(false); const [sharing, setSharing] = useState(false); const [sharedFollowers, setSharedFollowers] = useState(false); const copy = async () => { try { await navigator.clipboard?.writeText(window.location.origin + "/post/" + post.id); setCopied(true); } catch { setCopied(false); } }; const shareFollowers = async () => { if (sharing || sharedFollowers) return; setSharing(true); try { await onShareFollowers?.(post.id); setSharedFollowers(true); } catch (error) { setSharedFollowers(false); } finally { setSharing(false); } }; return <div className="detail-page"><BackButton onBack={onBack}/><div className="share-sheet"><div className="heading"><small>SHARE</small><h2>Share this post</h2></div><div className="share-preview"><b>{post.a || "User"}</b><p>{post.x}</p></div><div className="share-options"><button onClick={copy}><Copy/>Copy link</button><button onClick={() => window.open("mailto:?subject=Post on S&body=" + encodeURIComponent(window.location.origin + "/post/" + post.id), "_self")}><Send/>Send by email</button><button onClick={shareFollowers} disabled={sharing || sharedFollowers}><Users/>{sharing ? "Sharing…" : sharedFollowers ? "Shared with followers" : "Share with followers"}</button></div>{copied && <p className="inline-notice">Link copied.</p>}</div></div>; }
+function PostEntityRoute({ postId, initialPost, ...props }) {
+  const [post,setPost]=useState(initialPost||null); const [loading,setLoading]=useState(!initialPost); const [error,setError]=useState("");
+  useEffect(()=>{ if(initialPost){setPost(initialPost);setLoading(false);return undefined;} let active=true; setLoading(true); setError("");
+    postService.getById(postId).then((result)=>{if(!active)return;setPost(result||null);if(!result)setError("This post may have been removed or is not available.");}).catch((cause)=>active&&setError(cause?.message||"Post could not be loaded.")).finally(()=>active&&setLoading(false));
+    return()=>{active=false;};
+  },[postId,initialPost]);
+  if(loading)return <div className="detail-page"><BackButton onBack={props.onBack}/><div className="empty" role="status"><h3>Loading post…</h3></div></div>;
+  if(!post)return <div className="detail-page"><BackButton onBack={props.onBack}/><div className="empty"><h3>Post not found</h3><p>{error||"This post may have been removed or is not available."}</p></div></div>;
+  return <PostDetail post={post} {...props}/>;
+}
+\nfunction ShareDetail({ post, onBack, onShareFollowers }) { const [copied, setCopied] = useState(false); const [sharing, setSharing] = useState(false); const [sharedFollowers, setSharedFollowers] = useState(false); const copy = async () => { try { await navigator.clipboard?.writeText(window.location.origin + "/post/" + post.id); setCopied(true); } catch { setCopied(false); } }; const shareFollowers = async () => { if (sharing || sharedFollowers) return; setSharing(true); try { await onShareFollowers?.(post.id); setSharedFollowers(true); } catch (error) { setSharedFollowers(false); } finally { setSharing(false); } }; return <div className="detail-page"><BackButton onBack={onBack}/><div className="share-sheet"><div className="heading"><small>SHARE</small><h2>Share this post</h2></div><div className="share-preview"><b>{post.a || "User"}</b><p>{post.x}</p></div><div className="share-options"><button onClick={copy}><Copy/>Copy link</button><button onClick={() => window.open("mailto:?subject=Post on S&body=" + encodeURIComponent(window.location.origin + "/post/" + post.id), "_self")}><Send/>Send by email</button><button onClick={shareFollowers} disabled={sharing || sharedFollowers}><Users/>{sharing ? "Sharing…" : sharedFollowers ? "Shared with followers" : "Share with followers"}</button></div>{copied && <p className="inline-notice">Link copied.</p>}</div></div>; }
 
 function UserDetail({ username, onBack, onOpen, onLike, onSave, onRepost, onFollowUser, followingUsers = new Set() }) {
   const user = String(username || "user").replace(/^@/, "").toLowerCase();
