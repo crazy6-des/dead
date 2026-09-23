@@ -154,7 +154,7 @@ export function MessagesRoute() {
   const sendMessage = async () => {
     const text = draft.trim();
     const image = selectedImage;
-    if ((!text && !image) || sending) return;
+    if ((!text && !image) || sending || !selectedConversation) return;
     const optimistic = {
       id: "local-" + Date.now(),
       conversationId: selected,
@@ -167,7 +167,7 @@ export function MessagesRoute() {
     };
     setSending(true);
     setError("");
-    setMessages((current) => ({ ...current, [selectedName]: [...(current[selectedName] || []), optimistic] }));
+    setMessages((current) => ({ ...current, [selected]: [...(current[selected] || []), optimistic] }));
     let uploadedMediaId = null;
     try {
       let media = null;
@@ -178,7 +178,7 @@ export function MessagesRoute() {
       }
       const sent = await messagesApi.send({ conversationId: selected, type: image ? "image" : "text", text, mediaId: uploadedMediaId });
       setConversations((current) => current.map((item) => item.id === selected ? { ...item, lastMessage: sent?.text || (sent?.media ? "Image" : ""), updatedAt: sent?.createdAt || item.updatedAt } : item));
-      setMessages((current) => ({ ...current, [selectedName]: [...(current[selectedName] || []).filter((item) => item.id !== optimistic.id), { ...sent, direction: "out", status: "sent" }] }));
+      setMessages((current) => ({ ...current, [selected]: [...(current[selected] || []).filter((item) => item.id !== optimistic.id), { ...sent, direction: "out", status: "sent" }] }));
       setDraft("");
       clearSelectedImage();
       setError("");
