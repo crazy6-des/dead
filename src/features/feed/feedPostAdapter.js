@@ -30,8 +30,8 @@ export function toFeedPostFromCreatedPost(
   const media = normalizeMedia(post.media);
   const audio = post.audio ? sanitizeMediaAsset(post.audio) : normalizeMedia(media).find((item) => item?.mediaType === "audio") || null;
   const author = post.author && typeof post.author === "object" ? post.author : {};
-  const resolvedAuthorName = post.a ?? post.authorName ?? author.displayName ?? authorName;
-  const resolvedAuthorHandle = post.h ?? post.authorHandle ?? (author.username ? `@${author.username}` : authorHandle);
+  const resolvedAuthorName = String(post.a ?? post.authorName ?? author.displayName ?? authorName).trim() || "S";
+  const resolvedAuthorHandle = String(post.h ?? post.authorHandle ?? (author.username ? `@${author.username}` : authorHandle)).trim() || authorHandle;
 
   return {
     id: post.id,
