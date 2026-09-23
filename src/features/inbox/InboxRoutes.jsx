@@ -147,6 +147,7 @@ export function MessagesRoute({ currentUserId = null }) {
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [failedMedia, setFailedMedia] = useState({});
   const [resolvedMediaUrls, setResolvedMediaUrls] = useState({});
+  const resolvedMediaUrlsRef = useRef({});
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [messageReport, setMessageReport] = useState(null);
@@ -157,12 +158,16 @@ export function MessagesRoute({ currentUserId = null }) {
   const imageInputRef = useRef(null);
   const chatBodyRef = useRef(null);
 
+  useEffect(() => {
+    resolvedMediaUrlsRef.current = resolvedMediaUrls;
+  }, [resolvedMediaUrls]);
+
   useEffect(() => () => {
     if (selectedImage?.url?.startsWith("blob:")) URL.revokeObjectURL(selectedImage.url);
-    Object.values(resolvedMediaUrls).forEach((url) => {
+    Object.values(resolvedMediaUrlsRef.current).forEach((url) => {
       if (String(url).startsWith("blob:")) URL.revokeObjectURL(url);
     });
-  }, [selectedImage, resolvedMediaUrls]);
+  }, []);
 
 
   useEffect(() => {
