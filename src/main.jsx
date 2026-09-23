@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import AppErrorBoundary from "./ui/AppErrorBoundary.jsx";
 import "./styles.css";
 import "./ui/designSystem.css";
 import "./ui/alignment.css";
