@@ -106,14 +106,19 @@ export async function updateMyProfile(request, env) {
       if (typeof body.username !== "string" || !USERNAME_PATTERN.test(body.username.trim().toLowerCase())) throw new Error("Invalid username.");
       fields.push(`username = ?${values.length + 1}`); values.push(body.username.trim().toLowerCase());
     }
+    if ("privateAccount" in body && typeof body.privateAccount !== "boolean") throw new Error("Invalid privateAccount.");
   } catch (error) {
     return { error: { code: "VALIDATION_ERROR", status: 400, message: error.message } };
   }
-  if (!fields.length) return { error: { code: "VALIDATION_ERROR", status: 400, message: "No profile fields were provided." } };
+  if (!fields.length && !("privateAccount" in body)) return { error: { code: "VALIDATION_ERROR", status: 400, message: "No profile fields were provided." } };
   fields.push("updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')");
   values.push(session.user_id);
   try {
-    await env.DB.prepare(`UPDATE users SET ${fields.join(", ")} WHERE id = ?${values.length} AND deleted_at IS NULL`).bind(...values).run();
+    if (fields.length > 1) await env.DB.prepare(`UPDATE users SET ${fields.join(", ")} WHERE id = ?${values.length} AND deleted_at IS NULL`).bind(...values).run();
+    if ("privateAccount" in body) {
+      await env.DB.prepare("INSERT OR IGNORE INTO user_settings (user_id) VALUES (?1)").bind(session.user_id).run();
+      await env.DB.prepare("UPDATE user_settings SET private_account = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id = ?2").bind(body.privateAccount ? 1 : 0, session.user_id).run();
+    }
   } catch (error) {
     if (String(error?.message || "").toLowerCase().includes("unique")) return { error: { code: "USERNAME_TAKEN", status: 409, message: "That username is already in use." } };
     throw error;
