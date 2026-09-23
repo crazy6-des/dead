@@ -4,7 +4,6 @@ import PostCard from "../post/PostCard.jsx";
 import { toFeedPostFromCreatedPost } from "../feed/feedPostAdapter.js";
 import { profileService } from "../../services/profileService.js";
 import { apiClient, hasApiBaseUrl, resolveApiUrl } from "../../services/apiClient.js";
-import { settingsService } from "../../services/settingsService.js";
 
 const DEFAULT_PROFILE = Object.freeze({
   displayName: "David",
