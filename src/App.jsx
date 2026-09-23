@@ -60,6 +60,8 @@ export default function App() {
   const [feedLoadingMore,setFeedLoadingMore] = useState(false);
   const [followingUsers,setFollowingUsers] = useState(() => new Set());
   const [searchOpen,setSearchOpen] = useState(false);
+  const postActionBusyRef = useRef(new Set());
+  const followBusyRef = useRef(new Set());
   const isResetRoute = typeof window !== "undefined" && window.location.pathname === "/reset-password";
   useEffect(() => { if (hasApiBaseUrl()) settingsService.get().then(setUserSettings).catch((error) => { void error; }); }, []);
   const flash = (message) => { setToast(message); window.setTimeout(() => setToast(""), 1600); };
