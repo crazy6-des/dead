@@ -20,6 +20,7 @@ import { getMySettings, updateMySettings } from "./settings.js";
 import { browseMusic, searchMusic } from "./music.js";
 import { requestPasswordReset, confirmPasswordReset } from "./passwordReset.js";
 import { votePoll } from "./polls.js";
+import { moderationAction } from "./moderation.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const MAX_BODY_BYTES = 16 * 1024;
@@ -65,6 +66,7 @@ export default { async fetch(request, env) {
     if (request.method === "POST") { if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await createReply(request, env, postId); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 201, request, env); }
     return methodNotAllowed(request, env);
   }
+  if (url.pathname === "/api/moderation/actions") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await moderationAction(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
   if (url.pathname === "/api/social/relationships") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await setRelationship(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
   const postShare = url.pathname.match(/^\/api\/social\/posts\/([^/]+)\/share$/);
   if (postShare) { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await sharePostWithFollowers(request, env, decodeURIComponent(postShare[1])); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
