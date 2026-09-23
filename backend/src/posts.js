@@ -94,6 +94,43 @@ async function requireUser(request, env) {
   const session = await resolveSession(request, env);
   return session?.user_id ? session : null;
 }
+async function hydratePollResults(items, db, userId) {
+  const pollItems = items.filter((item) => item?.poll && item.id);
+  if (!pollItems.length) return items;
+  const pollIds = [...new Set(pollItems.map((item) => item.id))];
+  const placeholders = pollIds.map((_, index) => `?${index + 1}`).join(",");
+  const countRows = await db.prepare(
+    `SELECT poll_id, option_index, COUNT(*) AS count FROM poll_votes WHERE poll_id IN (${placeholders}) GROUP BY poll_id, option_index`
+  ).bind(...pollIds).all();
+  const voteRows = userId
+    ? await db.prepare(
+      `SELECT poll_id, option_index FROM poll_votes WHERE user_id=?1 AND poll_id IN (${pollIds.map((_, index) => `?${index + 2}`).join(",")})`
+    ).bind(userId, ...pollIds).all()
+    : { results: [] };
+  const countsByPoll = new Map();
+  for (const row of countRows.results || []) {
+    const pollId = String(row.poll_id);
+    if (!countsByPoll.has(pollId)) countsByPoll.set(pollId, new Map());
+    countsByPoll.get(pollId).set(Number(row.option_index), Number(row.count || 0));
+  }
+  const votedByPoll = new Map((voteRows.results || []).map((row) => [String(row.poll_id), Number(row.option_index)]));
+  for (const item of pollItems) {
+    const poll = item.poll;
+    const rawOptions = Array.isArray(poll.options) ? poll.options : [];
+    const options = rawOptions.map((option) => typeof option === "object" ? option?.text ?? option?.label ?? option?.title ?? "" : option).map((option) => String(option || "").trim());
+    const counts = countsByPoll.get(String(item.id)) || new Map();
+    const optionVotes = options.map((_, index) => Number(counts.get(index) || 0));
+    item.poll = {
+      ...poll,
+      options,
+      optionVotes,
+      totalVotes: optionVotes.reduce((sum, count) => sum + count, 0),
+      votedOptionIndex: votedByPoll.has(String(item.id)) ? votedByPoll.get(String(item.id)) : null
+    };
+  }
+  return items;
+}
+
 
 export async function createPost(request, env) {
   const session = await requireUser(request, env);
@@ -254,7 +291,9 @@ export async function getPost(request, env, postId) {
     (SELECT json_object('id',qp.id,'author',json_object('username',qu.username,'displayName',qu.display_name),'text',qp.body) FROM posts qp JOIN users qu ON qu.id=qp.author_id WHERE qp.id=p.quoted_post_id AND qp.deleted_at IS NULL) AS quoted_post
     FROM posts p JOIN users u ON u.id=p.author_id WHERE p.id=?2 AND p.deleted_at IS NULL AND u.deleted_at IS NULL AND ${visibility} AND NOT EXISTS (SELECT 1 FROM relationships br WHERE br.relationship_type='block' AND ((br.source_user_id=?1 AND br.target_user_id=p.author_id) OR (br.source_user_id=p.author_id AND br.target_user_id=?1))) LIMIT 1`).bind(...values).first();
   if (!row) return { response: null, error: error("POST_NOT_FOUND",404,"Post was not found or is not available.") };
-  return { response: { post: serializePost(row) }, error: null };
+  const post = serializePost(row);
+  await hydratePollResults([post], env.DB, session.user_id);
+  return { response: { post }, error: null };
 }
 
 export async function listFeed(request, env) {
@@ -313,6 +352,7 @@ export async function listFeed(request, env) {
   ).bind(...values).all();
 
   const items = rows.results.slice(0, limit).map(serializePost);
+  await hydratePollResults(items, env.DB, session.user_id);
   const last = items.at(-1);
   const nextCursor = rows.results.length > limit ? encodeCursor(last.createdAt, last.id) : null;
   return { response: { items, nextCursor }, error: null };
