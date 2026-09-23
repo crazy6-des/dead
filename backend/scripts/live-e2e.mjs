@@ -164,6 +164,49 @@ if (!mixedPostId || mixedCreated.post?.media?.[0]?.id !== mixedMediaId || mixedC
   throw new Error("Mixed rich post persistence contract failed.");
 }
 
+const pollCreated = await request("/api/posts", {
+  method: "POST",
+  body: JSON.stringify({
+    text: "S live poll E2E",
+    kind: "text",
+    media: [],
+    audio: null,
+    background: null,
+    poll: { question: "Which choice persists?", options: ["Alpha", "Beta"] },
+    audience: "public",
+    replyPolicy: "everyone",
+  }),
+});
+const pollPostId = pollCreated.post?.id;
+if (!pollPostId || JSON.stringify(pollCreated.post?.poll?.options) !== JSON.stringify(["Alpha", "Beta"])) {
+  throw new Error("Poll creation persistence contract failed.");
+}
+if (JSON.stringify(pollCreated.post?.poll?.optionVotes) !== JSON.stringify([0, 0])) {
+  throw new Error("Poll initial vote-count contract failed.");
+}
+
+cookie = partnerCookie;
+const partnerPollVote = await request("/api/polls/" + encodeURIComponent(pollPostId) + "/votes", {
+  method: "POST",
+  body: JSON.stringify({ optionIndex: 1 }),
+});
+if (JSON.stringify(partnerPollVote.poll?.options) !== JSON.stringify(["Alpha", "Beta"]) ||
+    JSON.stringify(partnerPollVote.poll?.optionVotes) !== JSON.stringify([0, 1]) ||
+    partnerPollVote.poll?.totalVotes !== 1 ||
+    partnerPollVote.optionIndex !== 1) {
+  throw new Error("Poll vote persistence/count contract failed: " + JSON.stringify(partnerPollVote));
+}
+
+cookie = primaryCookie;
+const pollFeed = await request("/api/feed?mode=Latest&limit=20");
+const persistedPoll = pollFeed.items?.find((item) => item.id === pollPostId);
+if (!persistedPoll?.poll ||
+    JSON.stringify(persistedPoll.poll.options) !== JSON.stringify(["Alpha", "Beta"]) ||
+    JSON.stringify(persistedPoll.poll.optionVotes) !== JSON.stringify([0, 1]) ||
+    persistedPoll.poll.totalVotes !== 1) {
+  throw new Error("Poll cross-session persistence contract failed: " + JSON.stringify(persistedPoll?.poll));
+}
+
 const feed = await request("/api/feed?mode=Latest&limit=20");
 if (!feed.items?.some((item) => item.id === postId)) throw new Error("Feed persistence contract failed.");
 const richFeedPost = feed.items?.find((item) => item.id === richPostId);
