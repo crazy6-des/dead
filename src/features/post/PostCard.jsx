@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { formatFullDateTime } from "../../utils/dateTime.js";
 import { moderationService } from "../../services/moderationService.js";
 import { pollService } from "../../services/pollService.js";
 import { MODERATION_ACTIONS, REPORT_REASONS } from "../moderation/moderationContract.js";
@@ -110,7 +111,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
       <div className="post__meta">
         <button className="post-author" onClick={() => onOpen?.("/user/" + encodeURIComponent(username))}><strong>{author}</strong>{(post.verified || post.a === "S Team") && <span className="verified"><Check size={10}/></span>}</button>
         <span>@{username}</span><span>·</span>
-        <button className="post-time" onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))}>{post.createdAt || post.t || "now"}</button>
+        <button className="post-time" onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))}>{formatFullDateTime(post.createdAt || post.t)}</button>
         <div className="post-menu"><button className="icon-btn" onClick={() => setMenu((v) => !v)} aria-label="More"><MoreHorizontal size={18}/></button>
           {menu && <div className="popover"><button onClick={() => { navigator.clipboard?.writeText(window.location.origin + "/post/" + encodeURIComponent(post.id)); setMenu(false); }}><Copy size={16}/>Copy link</button><button onClick={() => { onRepost?.(post.id); setMenu(false); }}><Repeat2 size={16}/>Repost</button><button onClick={() => { onSave?.(post.id); setMenu(false); }}><Bookmark size={16}/> {post.saved ? "Remove from favourites" : "Add to favourites"}</button><button onClick={() => onOpen?.("/share/" + encodeURIComponent(post.id))}><Send size={16}/>Share</button>{(mediaSources.length > 0 || audioSource?.url) && <button onClick={downloadMedia}><Download size={16}/>Download media</button>}<button onClick={() => runModeration(MODERATION_ACTIONS.MUTE)} disabled={moderationBusy}><Shield size={16}/>Mute author</button><button onClick={() => runModeration(MODERATION_ACTIONS.BLOCK)} disabled={moderationBusy}><X size={16}/>Block author</button><button className="danger" onClick={() => setModeration("report")}><Flag size={16}/>Report post</button></div>}
         </div>
