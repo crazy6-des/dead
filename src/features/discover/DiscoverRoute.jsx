@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Hash, Search, Users } from "lucide-react";
 import PostCard from "../post/PostCard.jsx";
 import { extractHashtags, getSuggestedPeople, matchesDiscoverQuery } from "./discoverUtils.js";
@@ -17,10 +17,9 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
   const filtered = useMemo(() => posts.filter((post) => matchesDiscoverQuery(post, query)), [posts, query]);
   useEffect(() => {
     const type = tab === "People" ? "people" : tab === "Posts" ? "posts" : tab === "Topics" ? "topics" : tab === "Music" ? "music" : "all";
-    if (!query.trim() || tab === "For you") { setRemote(null); setRemoteError(""); setRemoteLoading(false); return undefined; }
+    if (!query.trim() || tab === "For you") return undefined;
     let active = true;
-    setRemoteLoading(true); setRemoteError("");
-    const timer = window.setTimeout(() => searchApi.search(query, type).then((result) => { if (active) setRemote(result); }).catch((error) => { if (active) { setRemote(null); setRemoteError(error?.message || "Discover results could not be loaded."); } }).finally(() => { if (active) setRemoteLoading(false); }), 180);
+    const timer = window.setTimeout(() => { setRemoteLoading(true); setRemoteError(""); setRemote(null); searchApi.search(query, type).then((result) => { if (active) setRemote(result); }).catch((error) => { if (active) { setRemote(null); setRemoteError(error?.message || "Discover results could not be loaded."); } }).finally(() => { if (active) setRemoteLoading(false); }); }, 180);
     return () => { active = false; window.clearTimeout(timer); };
   }, [query, tab, searchApi]);
   const remotePeople = remote?.items?.people || [];
