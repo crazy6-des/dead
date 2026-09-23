@@ -40,7 +40,7 @@ export async function listConversations(request, env) {
     FROM conversations c JOIN conversation_members cm ON cm.conversation_id = c.id AND cm.user_id = ?1
     JOIN conversation_members other_member ON other_member.conversation_id = c.id AND other_member.user_id <> ?1
     JOIN users other ON other.id = other_member.user_id AND other.deleted_at IS NULL
-    WHERE ${where} ORDER BY c.updated_at DESC, c.id DESC LIMIT ?${values.length}`).bind(...values).all();
+    WHERE ${where} AND NOT EXISTS (SELECT 1 FROM relationships br WHERE br.relationship_type='block' AND ((br.source_user_id=?1 AND br.target_user_id=other.id) OR (br.source_user_id=other.id AND br.target_user_id=?1))) ORDER BY c.updated_at DESC, c.id DESC LIMIT ?${values.length}`).bind(...values).all();
   const items = rows.results.slice(0, limit).map(row => ({ id: row.id, name: row.other_display_name || row.other_username, username: row.other_username, avatarUrl: row.other_avatar_url || null, lastMessage: row.last_body || "", updatedAt: row.last_message_at || row.updated_at, unreadCount: Number(row.unread_count || 0) }));
   const last = items.at(-1);
   return { response: { items, nextCursor: rows.results.length > limit && last ? encodeCursor(last.updatedAt, last.id) : null }, error: null };
@@ -56,6 +56,8 @@ export async function createConversation(request, env) {
   if (target.id === session.user_id) return failure("INVALID_CONVERSATION", 400, "You cannot message yourself.");
   const targetSettings = await getUserSettings(env, target.id);
   if (targetSettings && !Boolean(targetSettings.allow_messages)) return failure("MESSAGES_DISABLED", 403, "This user is not accepting messages.");
+  const blocked = await env.DB.prepare("SELECT 1 FROM relationships WHERE relationship_type='block' AND ((source_user_id=?1 AND target_user_id=?2) OR (source_user_id=?2 AND target_user_id=?1)) LIMIT 1").bind(session.user_id, target.id).first();
+  if (blocked) return failure("FORBIDDEN", 403, "Messaging is unavailable between these users.");
   const existing = await env.DB.prepare("SELECT c.id FROM conversations c JOIN conversation_members a ON a.conversation_id = c.id AND a.user_id = ?1 JOIN conversation_members b ON b.conversation_id = c.id AND b.user_id = ?2 WHERE c.deleted_at IS NULL LIMIT 1").bind(session.user_id, target.id).first();
   if (existing) return { response: { conversation: { id: existing.id, username: target.username, name: target.display_name, avatarUrl: target.avatar_url || null } }, error: null };
   const conversationId = crypto.randomUUID();
@@ -102,6 +104,8 @@ export async function sendMessage(request, env) {
   if (!recipient) return failure("INVALID_CONVERSATION", 400, "Conversation must have another member.");
   const recipientSettings = await getUserSettings(env, recipient.user_id);
   if (recipientSettings && !Boolean(recipientSettings.allow_messages)) return failure("MESSAGES_DISABLED", 403, "This user is not accepting messages.");
+  const blocked = await env.DB.prepare("SELECT 1 FROM relationships WHERE relationship_type='block' AND ((source_user_id=?1 AND target_user_id=?2) OR (source_user_id=?2 AND target_user_id=?1)) LIMIT 1").bind(session.user_id, recipient.user_id).first();
+  if (blocked) return failure("FORBIDDEN", 403, "Messaging is unavailable between these users.");
   let media = null;
   if (type === "image") {
     media = await env.DB.prepare("SELECT id, media_type, mime_type, byte_size, metadata_json FROM post_media WHERE id = ?1 AND post_id IS NULL AND owner_id = ?2 LIMIT 1").bind(mediaId, session.user_id).first();
