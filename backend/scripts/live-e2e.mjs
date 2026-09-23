@@ -3,8 +3,11 @@ const origin = String(process.env.TEST_ORIGIN || "");
 const username = String(process.env.TEST_USERNAME || "");
 const email = String(process.env.TEST_EMAIL || "");
 const password = String(process.env.TEST_PASSWORD || "");
+const username2 = String(process.env.TEST_USERNAME_2 || "");
+const email2 = String(process.env.TEST_EMAIL_2 || "");
+const password2 = String(process.env.TEST_PASSWORD_2 || "");
 
-if (!baseUrl || !origin || !username || !email || !password) throw new Error("Live E2E environment is incomplete.");
+if (!baseUrl || !origin || !username || !email || !password || !username2 || !email2 || !password2) throw new Error("Live E2E environment is incomplete.");
 
 let cookie = "";
 
@@ -194,6 +197,32 @@ const updatedProfile = await request("/api/profile/me", {
 });
 if (updatedProfile.profile?.bio !== "Live E2E") throw new Error("Profile update persistence contract failed.");
 
+const signup2 = await request("/api/auth/sign-up", {
+  method: "POST",
+  body: JSON.stringify({ username: username2, email: email2, password: password2, displayName: "Live E2E Partner" }),
+});
+if (!signup2.authenticated || signup2.user?.username !== username2) throw new Error("Moderation target sign-up contract failed.");
+
+const partnerCookie = cookie;
+const reportTarget = await request("/api/posts", {
+  method: "POST",
+  body: JSON.stringify({
+    text: "S live moderation E2E target", kind: "text", media: [], audio: null, background: null,
+    poll: null, audience: "public", replyPolicy: "everyone",
+  }),
+});
+const reportTargetPostId = reportTarget.post?.id;
+if (!reportTargetPostId) throw new Error("Moderation target post creation failed.");
+
+cookie = partnerCookie;
+const report = await request("/api/moderation/actions", {
+  method: "POST",
+  body: JSON.stringify({ action: "report", targetType: "post", targetId: postId, reason: "spam", note: "S live moderation email E2E" }),
+});
+if (!report.ok || !report.submitted || report.emailStatus !== "sent" || !report.reportId) {
+  throw new Error("Production moderation report email contract failed: " + JSON.stringify(report));
+}
+
 await request("/api/auth/sign-out", { method: "POST" });
 const signedOut = await request("/api/auth/session");
 if (signedOut.authenticated) throw new Error("Sign-out persistence contract failed.");
@@ -208,5 +237,7 @@ console.log(JSON.stringify({
   ok: true,
   username,
   postId,
+  reportId: report.reportId,
+  emailStatus: report.emailStatus,
   checks: ["sign-up", "session", "media-upload", "media-delivery", "text-only-post", "image-only-post", "music-only-post", "background-only-post", "mixed-post", "feed", "server-media-feed", "like", "bookmark", "profile-read", "profile-update", "sign-out", "sign-in"],
 }));
