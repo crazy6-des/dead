@@ -283,7 +283,7 @@ const reportTarget = await request("/api/posts", {
 const reportTargetPostId = reportTarget.post?.id;
 if (!reportTargetPostId) throw new Error("Moderation target post creation failed.");
 
-cookie = primaryCookie;
+cookie = partnerCookie;
 const report = await request("/api/moderation/actions", {
   method: "POST",
   body: JSON.stringify({ action: "report", targetType: "post", targetId: reportTargetPostId, reason: "spam", note: "S live moderation email E2E" }),
