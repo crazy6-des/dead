@@ -148,7 +148,7 @@ export async function createPost(request, env) {
   const id = globalThis.crypto.randomUUID();
   const storedMedia = [];
   for (const item of media) {
-    const stored = await db.prepare("SELECT id, source, owner_id FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(item.mediaId).first();
+    const stored = await db.prepare("SELECT id, source, owner_id, object_key FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(item.mediaId).first();
     if (!stored) return { response: null, error: error("MEDIA_NOT_FOUND", 400, "Referenced media was not found or is already attached.") };
     if (stored.source !== "upload" || (stored.owner_id && stored.owner_id !== session.user_id)) {
       return { response: null, error: error("FORBIDDEN", 403, "You can only attach media that you own.") };
@@ -158,7 +158,7 @@ export async function createPost(request, env) {
 
   let storedAudio = null;
   if (audio?.mediaId) {
-    storedAudio = await db.prepare("SELECT id, source, owner_id FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(audio.mediaId).first();
+    storedAudio = await db.prepare("SELECT id, source, owner_id, object_key FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(audio.mediaId).first();
     if (!storedAudio || storedAudio.source !== "upload" || (storedAudio.owner_id && storedAudio.owner_id !== session.user_id)) {
       return { response: null, error: error("AUDIO_NOT_FOUND", 400, "Uploaded music was not found or is not owned by this user.") };
     }
@@ -188,12 +188,25 @@ export async function createPost(request, env) {
 
   // Keep post creation and media attachment in one D1 batch so a failed attachment
   // cannot leave a partially published post or media records in an inconsistent state.
-  if (typeof db.batch === "function") {
-    await db.batch(postStatements);
-  } else {
-    // The lightweight test DB adapter does not expose batch(); keep the same
-    // statement order so its contract remains compatible with production D1.
-    for (const statement of postStatements) await statement.run();
+  try {
+    if (typeof db.batch === "function") {
+      await db.batch(postStatements);
+    } else {
+      // The lightweight test DB adapter does not expose batch(); keep the same
+      // statement order so its contract remains compatible with production D1.
+      for (const statement of postStatements) await statement.run();
+    }
+  } catch (publishError) {
+    const staged = [...storedMedia, ...(storedAudio ? [storedAudio] : [])];
+    for (const item of staged) {
+      if (item.object_key) {
+        try { await env.MEDIA_BUCKET?.delete(item.object_key); } catch (cleanupError) { console.error("POST_MEDIA_R2_CLEANUP_FAILED", cleanupError); }
+      }
+      try {
+        await env.DB.prepare("DELETE FROM post_media WHERE id = ?1 AND post_id IS NULL AND owner_id = ?2").bind(item.id, session.user_id).run();
+      } catch (cleanupError) { console.error("POST_MEDIA_DB_CLEANUP_FAILED", cleanupError); }
+    }
+    throw publishError;
   }
 
   const row = await db.prepare(
