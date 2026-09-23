@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Flag, Heart, ImagePlus, MoreHorizontal, Paperclip, Send, X } from "lucide-react";
+import { Check, Flag, Heart, ImagePlus, MoreHorizontal, Paperclip, Send, X } from "lucide-react";
 import { APP_ROUTES } from "../../app/routes.js";
 import PostCard from "../post/PostCard.jsx";
 import { NOTIFICATION_FILTERS } from "../notifications/notificationContract.js";
@@ -86,9 +86,13 @@ export function NotificationsRoute({ onOpen }) {
     const refreshWhenVisible = () => {
       if (document.visibilityState === "visible") loadNotifications({ silent: true });
     };
+    const poll = window.setInterval(() => {
+      if (document.visibilityState === "visible") loadNotifications({ silent: true });
+    }, 12000);
     window.addEventListener("focus", refreshWhenVisible);
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
+      window.clearInterval(poll);
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
@@ -129,9 +133,9 @@ export function NotificationsRoute({ onOpen }) {
        error ? <div className="empty" role="alert"><h3>Could not load activity</h3><p>{error}</p><button className="outline" onClick={() => loadNotifications()}>Try again</button></div> :
        items.length ? items.map((item) => <button className={"notice " + (item.read ? "is-read" : "is-unread")} key={item.id} onClick={() => openNotification(item)} aria-label={(item.actor || "S") + " " + item.text + (item.read ? "" : ", unread")}>
         <span className="avatar avatar--small">{String(item.actor || "S")[0]}</span>
-        <span><p><b>{item.actor || "S"}</b> {item.text}</p><span>{formatFullInboxTime(item.time)}{!item.read && " · New"}</span></span>
+        <span><p><b>{item.actor || "S"}</b> {item.text}</p><span>{formatFullInboxTime(item.time)}{!item.read ? " · New" : " · Read"}</span></span>
         {!item.read && <span className="notice-unread" aria-hidden="true"/>}
-        <Heart size={16} fill={item.type === "like" ? "currentColor" : "none"} aria-hidden="true"/>
+        {item.read ? <Check className="notice-read-tick" size={15} strokeWidth={2.5} aria-label="Read" /> : <Heart size={16} fill={item.type === "like" ? "currentColor" : "none"} aria-hidden="true"/>}
       </button>) : <div className="empty"><h3>No notifications here yet.</h3><p>New activity will appear in this view.</p></div>}
     </section>
   </div>;
