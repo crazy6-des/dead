@@ -109,7 +109,10 @@ assert.equal(state.notifications.some((n) => n.target_id === "message-test" && n
 
 const listedMessages = await worker.fetch(authRequest(`/api/messages/conversations/${conversationId}`), { DB:db });
 assert.equal(listedMessages.status, 200);
-assert.equal((await listedMessages.json()).items[0].text, "Hello Bob");
+const listedBody = await listedMessages.json();
+assert.equal(listedBody.items.length, 2);
+assert.equal(listedBody.items[0].text, "Hello Bob");
+assert.equal(listedBody.items[1].text, "A photo");
 
 const notifications = await worker.fetch(authRequest("/api/notifications"), { DB:db });
 assert.equal(notifications.status, 200);
