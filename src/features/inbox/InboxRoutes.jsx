@@ -177,7 +177,7 @@ export function MessagesRoute({ currentUserId = null }) {
         return { ...current, [selected]: [...older.filter((item) => !seen.has(item.id)), ...existing] };
       });
       setMessageCursors((current) => ({ ...current, [selected]: page.nextCursor || null }));
-      requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
         if (chatBody) chatBody.scrollTop += chatBody.scrollHeight - previousHeight;
       });
     } catch (err) {
