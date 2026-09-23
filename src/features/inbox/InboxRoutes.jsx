@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Heart, ImagePlus, MoreHorizontal, Paperclip, Send, X } from "lucide-react";
+import { Flag, Heart, ImagePlus, MoreHorizontal, Paperclip, Send, X } from "lucide-react";
 import { APP_ROUTES } from "../../app/routes.js";
 import PostCard from "../post/PostCard.jsx";
 import { NOTIFICATION_FILTERS } from "../notifications/notificationContract.js";
@@ -7,6 +7,8 @@ import { createNotificationAdapter } from "../../services/notificationService.js
 import { createMessageAdapter } from "../../services/messageService.js";
 import { bookmarkService } from "../../services/bookmarkService.js";
 import { MESSAGE_IMAGE_LIMITS } from "../messages/messageContract.js";
+import { moderationService } from "../../services/moderationService.js";
+import { REPORT_REASONS } from "../moderation/moderationContract.js";
 
 function formatConversationTime(value) {
   if (!value) return "";
@@ -139,6 +141,9 @@ export function MessagesRoute({ currentUserId = null }) {
   const [failedMedia, setFailedMedia] = useState({});
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [messageReport, setMessageReport] = useState(null);
+  const [messageReportNote, setMessageReportNote] = useState("");
+  const [messageReportBusy, setMessageReportBusy] = useState(false);
   const [error, setError] = useState("");
   const [conversationError, setConversationError] = useState("");
   const imageInputRef = useRef(null);
@@ -214,6 +219,13 @@ export function MessagesRoute({ currentUserId = null }) {
     return String(a?.id || "").localeCompare(String(b?.id || ""));
   }), [conversations]);
   const renderMessage = (message) => ({ ...message, direction: message.direction || (currentUserId && message.senderId === currentUserId ? "out" : "in") });
+  const submitMessageReport = async () => {
+    if (!messageReport?.id || !messageReport.reason || messageReportBusy) return;
+    setMessageReportBusy(true);
+    try { await moderationService.report({ targetType: "message", targetId: messageReport.id, reason: messageReport.reason, note: messageReportNote }); setMessageReport(null); setMessageReportNote(""); setError(""); }
+    catch (err) { setError(err?.message || "Could not submit the report."); }
+    finally { setMessageReportBusy(false); }
+  };
 
   useEffect(() => {
     if (!selected || loading || conversationError || loadingOlder) return;
@@ -362,6 +374,13 @@ export function MessagesRoute({ currentUserId = null }) {
             {message.text && <div>{message.text}</div>}
             {message.status === "failed" && <small> · Failed</small>}
             {message.status === "sending" && <small> · Sending</small>}
+            {message.direction === "in" && !String(message.id).startsWith("optimistic-") && <button type="button" className="message-report-button" onClick={() => { setMessageReport({ id: message.id, reason: null }); setMessageReportNote(""); }}><Flag size={13}/>Report</button>}
+            </div>
+            {messageReport?.id === message.id && <div className="message-report-form" role="dialog" aria-label="Report message">
+              <strong>Report this message</strong><small>Choose a reason and optionally add context.</small>
+              <div className="message-report-reasons">{Object.entries(REPORT_REASONS).map(([key,value]) => <button key={value} type="button" className={messageReport.reason === value ? "active" : ""} onClick={() => setMessageReport((current) => ({ ...current, reason: value }))}>{key.replace("_"," ")}</button>)}</div>
+              <textarea value={messageReportNote} onChange={(event) => setMessageReportNote(event.target.value)} maxLength={2000} placeholder="Optional details" aria-label="Additional report details"/>
+              <div><button type="button" onClick={() => { setMessageReport(null); setMessageReportNote(""); }}>Cancel</button><button type="button" onClick={submitMessageReport} disabled={!messageReport.reason || messageReportBusy}>{messageReportBusy ? "Submitting…" : "Submit report"}</button></div>
             </div>
           </React.Fragment>;
         })}
