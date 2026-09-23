@@ -164,6 +164,49 @@ if (!mixedPostId || mixedCreated.post?.media?.[0]?.id !== mixedMediaId || mixedC
   throw new Error("Mixed rich post persistence contract failed.");
 }
 
+const feed = await request("/api/feed?mode=Latest&limit=20");
+if (!feed.items?.some((item) => item.id === postId)) throw new Error("Feed persistence contract failed.");
+const richFeedPost = feed.items?.find((item) => item.id === richPostId);
+if (!richFeedPost?.media?.some((item) => item.id === mediaId && String(item.url || "").includes("/api/media/"))) throw new Error("Server-backed media feed rendering contract failed.");
+for (const [label, id] of [["music-only", musicPostId], ["background-only", backgroundPostId], ["mixed", mixedPostId]]) {
+  if (!feed.items?.some((item) => item.id === id)) throw new Error(label + " post feed persistence contract failed.");
+}
+const mixedFeedPost = feed.items?.find((item) => item.id === mixedPostId);
+if (mixedFeedPost?.audio?.musicId !== "e2e-mixed-track" || mixedFeedPost?.background?.value !== "#654321") {
+  throw new Error("Mixed post server-backed fields feed contract failed: music=" + String(mixedFeedPost?.audio?.musicId) + " bg=" + String(mixedFeedPost?.background?.value));
+}
+
+const liked = await request("/api/social/posts/" + encodeURIComponent(postId) + "/like", {
+  method: "POST",
+  body: JSON.stringify({ enabled: true }),
+});
+if (!liked.enabled || liked.count !== 1) throw new Error("Like persistence contract failed.");
+
+const bookmarked = await request("/api/social/posts/" + encodeURIComponent(postId) + "/bookmark", {
+  method: "POST",
+  body: JSON.stringify({ enabled: true }),
+});
+if (!bookmarked.enabled || bookmarked.count !== 1) throw new Error("Bookmark persistence contract failed.");
+
+const profile = await request("/api/profile/me");
+if (profile.profile?.username !== username) throw new Error("Profile read persistence contract failed.");
+
+const updatedProfile = await request("/api/profile/me", {
+  method: "PATCH",
+  body: JSON.stringify({ bio: "Live E2E", website: "https://sphereis.netlify.app", location: "E2E" }),
+});
+if (updatedProfile.profile?.bio !== "Live E2E") throw new Error("Profile update persistence contract failed.");
+
+const primaryCookie = cookie;
+
+const signup2 = await request("/api/auth/sign-up", {
+  method: "POST",
+  body: JSON.stringify({ username: username2, email: email2, password: password2, displayName: "Live E2E Partner" }),
+});
+if (!signup2.authenticated || signup2.user?.username !== username2) throw new Error("Moderation target sign-up contract failed.");
+
+const partnerCookie = cookie;
+
 const pollCreated = await request("/api/posts", {
   method: "POST",
   body: JSON.stringify({
@@ -207,48 +250,6 @@ if (!persistedPoll?.poll ||
   throw new Error("Poll cross-session persistence contract failed: " + JSON.stringify(persistedPoll?.poll));
 }
 
-const feed = await request("/api/feed?mode=Latest&limit=20");
-if (!feed.items?.some((item) => item.id === postId)) throw new Error("Feed persistence contract failed.");
-const richFeedPost = feed.items?.find((item) => item.id === richPostId);
-if (!richFeedPost?.media?.some((item) => item.id === mediaId && String(item.url || "").includes("/api/media/"))) throw new Error("Server-backed media feed rendering contract failed.");
-for (const [label, id] of [["music-only", musicPostId], ["background-only", backgroundPostId], ["mixed", mixedPostId]]) {
-  if (!feed.items?.some((item) => item.id === id)) throw new Error(label + " post feed persistence contract failed.");
-}
-const mixedFeedPost = feed.items?.find((item) => item.id === mixedPostId);
-if (mixedFeedPost?.audio?.musicId !== "e2e-mixed-track" || mixedFeedPost?.background?.value !== "#654321") {
-  throw new Error("Mixed post server-backed fields feed contract failed: music=" + String(mixedFeedPost?.audio?.musicId) + " bg=" + String(mixedFeedPost?.background?.value));
-}
-
-const liked = await request("/api/social/posts/" + encodeURIComponent(postId) + "/like", {
-  method: "POST",
-  body: JSON.stringify({ enabled: true }),
-});
-if (!liked.enabled || liked.count !== 1) throw new Error("Like persistence contract failed.");
-
-const bookmarked = await request("/api/social/posts/" + encodeURIComponent(postId) + "/bookmark", {
-  method: "POST",
-  body: JSON.stringify({ enabled: true }),
-});
-if (!bookmarked.enabled || bookmarked.count !== 1) throw new Error("Bookmark persistence contract failed.");
-
-const profile = await request("/api/profile/me");
-if (profile.profile?.username !== username) throw new Error("Profile read persistence contract failed.");
-
-const updatedProfile = await request("/api/profile/me", {
-  method: "PATCH",
-  body: JSON.stringify({ bio: "Live E2E", website: "https://sphereis.netlify.app", location: "E2E" }),
-});
-if (updatedProfile.profile?.bio !== "Live E2E") throw new Error("Profile update persistence contract failed.");
-
-const primaryCookie = cookie;
-
-const signup2 = await request("/api/auth/sign-up", {
-  method: "POST",
-  body: JSON.stringify({ username: username2, email: email2, password: password2, displayName: "Live E2E Partner" }),
-});
-if (!signup2.authenticated || signup2.user?.username !== username2) throw new Error("Moderation target sign-up contract failed.");
-
-const partnerCookie = cookie;
 
 cookie = primaryCookie;
 const conversationCreated = await request("/api/messages/conversations", {
