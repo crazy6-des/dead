@@ -250,11 +250,11 @@ const partnerConversations = await request("/api/messages/conversations");
 if (!partnerConversations.items?.some((item) => item.id === conversationId)) {
   throw new Error("Live messaging conversation visibility contract failed.");
 }
-const partnerMessages = await request("/api/messages/conversations/" + encodeURIComponent(conversationId), { headers: { "x-e2e-debug": "1" } });
+const partnerMessages = await request("/api/messages/conversations/" + encodeURIComponent(conversationId));
 const inboundText = partnerMessages.items?.find((item) => item.text === "S live E2E message");
 const inboundImage = partnerMessages.items?.find((item) => item.media?.mediaId === messageMediaId);
 if (!inboundText || inboundText.direction !== "in" || !inboundImage || inboundImage.direction !== "in") {
-  throw new Error("Live messaging inbound direction/media contract failed: " + JSON.stringify({ inboundText, inboundImage, expectedMediaId: messageMediaId, items: partnerMessages.items, debug: partnerMessages.debug }));
+  throw new Error("Live messaging inbound direction/media contract failed: " + JSON.stringify({ inboundText, inboundImage, expectedMediaId: messageMediaId, items: partnerMessages.items }));
 }
 
 const partnerNotifications = await request("/api/notifications");
