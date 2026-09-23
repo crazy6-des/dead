@@ -240,6 +240,10 @@ const sentImageMessage = await request("/api/messages", {
 if (sentImageMessage.direction !== "out" || sentImageMessage.type !== "image" || sentImageMessage.media?.mediaId !== messageMediaId) {
   throw new Error("Live messaging image persistence contract failed.");
 }
+const primaryMessagesAfterImage = await request("/api/messages/conversations/" + encodeURIComponent(conversationId) + "?limit=50");
+if (!primaryMessagesAfterImage.items?.some((item) => item.id === sentMessage.id) || !primaryMessagesAfterImage.items?.some((item) => item.id === sentImageMessage.id)) {
+  throw new Error("Live messaging multi-message persistence failed: " + JSON.stringify({ sentMessage, sentImageMessage, items: primaryMessagesAfterImage.items }));
+}
 
 cookie = partnerCookie;
 const partnerConversations = await request("/api/messages/conversations");
