@@ -85,7 +85,7 @@ export function NotificationsRoute({ onOpen }) {
   </div>;
 }
 
-export function MessagesRoute() {
+export function MessagesRoute({ currentUserId = null }) {
   const messagesApi = useMemo(() => createMessageAdapter(), []);
   const [conversations, setConversations] = useState([]);
   const [selected, setSelected] = useState(() => new URLSearchParams(window.location.search).get("conversation") || null);
@@ -153,10 +153,9 @@ export function MessagesRoute() {
 
   const selectedConversation = conversations.find((item) => item.id === selected);
   const hasSelectedConversation = Boolean(selectedConversation);
-  const currentUserId = "me";
   const selectedName = selectedConversation?.name || "Select a conversation";
   const currentMessages = messages[selected] || [];
-  const renderMessage = (message) => ({ ...message, direction: message.direction || (message.senderId === currentUserId ? "out" : "in") });
+  const renderMessage = (message) => ({ ...message, direction: message.direction || (currentUserId && message.senderId === currentUserId ? "out" : "in") });
 
   const clearSelectedImage = () => {
     setSelectedImage((current) => {
