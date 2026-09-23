@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { LogOut } from "lucide-react";
 import { useAuthState } from "./authState.js";
 
 const fieldStyle = { width: "100%", padding: "11px 12px", border: "1px solid var(--line)", borderRadius: 10, background: "var(--surface2)", color: "var(--text)" };
 
-export default function AuthPanel() {
-  const auth = useAuthState();
+export default function AuthPanel({ auth: providedAuth, onSignedOut }) {
+  const fallbackAuth = useAuthState();
+  const auth = providedAuth || fallbackAuth;
   const [mode, setMode] = useState("sign-in");
   const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
@@ -26,12 +28,22 @@ export default function AuthPanel() {
     }
   };
 
+  const logout = async () => {
+    setMessage("");
+    try {
+      await auth.signOut();
+      onSignedOut?.();
+    } catch (error) {
+      setMessage(error?.message || "Could not log out. Please try again.");
+    }
+  };
+
   if (auth.isAuthenticated) {
-    return <div className="setting-callout"><span><b>Signed in as @{auth.user?.username || "user"}</b><small>Your session is managed by the backend.</small></span><button type="button" className="outline" onClick={() => auth.signOut().catch((error) => setMessage(error.message))}>Sign out</button>{message && <small>{message}</small>}</div>;
+    return <div className="setting-callout"><span><b>Signed in as @{auth.user?.username || "user"}</b><small>Your session is active on S.</small></span><button type="button" className="outline" onClick={() => void logout()} disabled={auth.isLoading}><LogOut size={16}/> {auth.isLoading ? "Logging out…" : "Log out"}</button>{message && <small role="status">{message}</small>}</div>;
   }
 
-  return <form onSubmit={submit} style={{ display: "grid", gap: 10, padding: "14px 0" }}>
-    <div style={{ display: "flex", gap: 8 }}>
+  return <form onSubmit={submit} className="account-auth-form">
+    <div className="account-auth-tabs" role="tablist" aria-label="Account access">
       <button type="button" className={mode === "sign-in" ? "primary" : "outline"} onClick={() => setMode("sign-in")}>Sign in</button>
       <button type="button" className={mode === "sign-up" ? "primary" : "outline"} onClick={() => setMode("sign-up")}>Create account</button>
     </div>
