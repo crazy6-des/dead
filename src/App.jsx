@@ -141,7 +141,7 @@ export default function App() {
   };
   const enterApp = () => auth.refreshSession();
   if (hasApiBaseUrl() && (auth.isAnonymous || isResetRoute)) {
-    return <LandingRoute onAuthenticated={enterApp}/>;
+    return <LandingRoute initialAuthMode={isResetRoute ? "reset" : null} onAuthenticated={enterApp}/>;
   }
   const open = (path) => go(path);
   const openSearch = () => setSearchOpen(true);
