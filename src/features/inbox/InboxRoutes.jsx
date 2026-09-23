@@ -224,6 +224,42 @@ export function MessagesRoute({ currentUserId = null }) {
     return () => { active = false; };
   }, [selected, messagesApi]);
 
+  useEffect(() => {
+    if (!selected || !selectedConversation) return undefined;
+    let active = true;
+    const refreshConversation = async () => {
+      if (document.visibilityState !== "visible" || loading || sending || loadingOlder) return;
+      try {
+        const [messagePage, conversationPage] = await Promise.all([
+          messagesApi.listMessages(selected),
+          messagesApi.listConversations({ limit: 30 }),
+        ]);
+        if (!active) return;
+        const nextItems = messagePage.items || [];
+        setMessages((current) => {
+          const existing = current[selected] || [];
+          const same = existing.length === nextItems.length && existing.every((item, index) => item.id === nextItems[index]?.id && item.status === nextItems[index]?.status);
+          return same ? current : { ...current, [selected]: nextItems };
+        });
+        setMessageCursors((current) => ({ ...current, [selected]: messagePage.nextCursor || null }));
+        const nextConversations = conversationPage.items || conversationPage || [];
+        setConversations(nextConversations);
+      } catch (err) {
+        if (active && err?.code !== "REQUEST_ABORTED") setError((current) => current || err?.message || "Connection to messaging was interrupted.");
+      }
+    };
+    const poll = window.setInterval(refreshConversation, 5000);
+    const refresh = () => refreshConversation();
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      active = false;
+      window.clearInterval(poll);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [selected, selectedConversation, messagesApi, loading, sending, loadingOlder]);
+
   const selectedConversation = conversations.find((item) => item.id === selected);
   const hasSelectedConversation = Boolean(selectedConversation);
   const selectedName = selectedConversation?.name || "Select a conversation";
