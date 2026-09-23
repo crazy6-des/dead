@@ -99,6 +99,7 @@ export function MessagesRoute({ currentUserId = null }) {
   const [error, setError] = useState("");
   const [conversationError, setConversationError] = useState("");
   const imageInputRef = useRef(null);
+  const chatBodyRef = useRef(null);
 
   useEffect(() => () => {
     if (selectedImage?.url?.startsWith("blob:")) URL.revokeObjectURL(selectedImage.url);
@@ -168,12 +169,17 @@ export function MessagesRoute({ currentUserId = null }) {
     try {
       const page = await messagesApi.listMessages(selected, { cursor });
       const older = page.items || [];
+      const chatBody = chatBodyRef.current;
+      const previousHeight = chatBody?.scrollHeight || 0;
       setMessages((current) => {
         const existing = current[selected] || [];
         const seen = new Set(existing.map((item) => item.id));
         return { ...current, [selected]: [...older.filter((item) => !seen.has(item.id)), ...existing] };
       });
       setMessageCursors((current) => ({ ...current, [selected]: page.nextCursor || null }));
+      requestAnimationFrame(() => {
+        if (chatBody) chatBody.scrollTop += chatBody.scrollHeight - previousHeight;
+      });
     } catch (err) {
       setError(err?.message || "Could not load older messages.");
     } finally {
@@ -277,7 +283,7 @@ export function MessagesRoute({ currentUserId = null }) {
     })}</aside>
     <section className="chat">
       <header><span className="avatar avatar--small">{String(selectedName).charAt(0).toUpperCase()}</span><span><b>{selectedName}</b><small>{selectedConversation?.username ? "@" + selectedConversation.username : "Conversation"}</small></span><MoreHorizontal/></header>
-      <div className="chat-body">
+      <div className="chat-body" ref={chatBodyRef}>
         {!loading && !conversationError && currentMessages[0]?.createdAt && <small>{formatMessageDate(currentMessages[0].createdAt)}</small>}
         {!loading && !conversationError && messageCursors[selected] && <button className="outline message-load-older" onClick={loadOlderMessages} disabled={loadingOlder}>{loadingOlder ? "Loading older messages…" : "Load older messages"}</button>
         {loading ? <div className="empty" role="status"><p>Loading conversation…</p></div> : conversationError ? <div className="empty" role="alert"><h3>Conversation unavailable</h3><p>{conversationError}</p></div> :
