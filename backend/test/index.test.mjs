@@ -170,6 +170,7 @@ const postDb = {
             if (query.startsWith("SELECT s.id")) {
               if (values[0] === await sha256Hex("post-session")) return { id: "session-1", user_id: "user-1", username: "new_user", display_name: "New User" };
             }
+            if (query.includes("SELECT id, author_id, deleted_at, poll_json")) { return { id: "post-2", author_id: "user-1", deleted_at: null, poll_json: JSON.stringify({ question: "Pick one", options: ["A", "B"], multipleChoice: false, totalVotes: pollVoteCount, votedOptionIndex: pollVotedIndex }) }; }
             if (query.includes("SELECT option_index FROM poll_votes")) {
               return pollVoteCount ? { option_index: pollVotedIndex } : null;
             }
