@@ -241,8 +241,8 @@ if (JSON.stringify(partnerPollVote.poll?.options) !== JSON.stringify(["Alpha", "
 }
 
 cookie = primaryCookie;
-const pollFeed = await request("/api/feed?mode=Latest&limit=20");
-const persistedPoll = pollFeed.items?.find((item) => item.id === pollPostId);
+const persistedPollResponse = await request("/api/posts/" + encodeURIComponent(pollPostId));
+const persistedPoll = persistedPollResponse.post;
 if (!persistedPoll?.poll ||
     JSON.stringify(persistedPoll.poll.options) !== JSON.stringify(["Alpha", "Beta"]) ||
     JSON.stringify(persistedPoll.poll.optionVotes) !== JSON.stringify([0, 1]) ||
