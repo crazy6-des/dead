@@ -3,7 +3,7 @@ import { Image, Music2, Palette, Send } from "lucide-react";
 import { createEmptyDraft } from "./postContract";
 import { createCatalogMusicAsset, createLocalMediaAsset } from "./mediaContract";
 import { createMusicAdapter, hasMusicCatalog } from "../../services/musicService.js";
-import { validatePostDraft } from "./postValidation";
+import { POST_MEDIA_LIMITS, validatePostDraft } from "./postValidation";
 import PostMediaPreview from "./PostMediaPreview";
 import "./createComposer.css";
 
@@ -34,19 +34,44 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
   }, []);
   function updateDraft(patch) { setDraft((current) => ({ ...current, ...patch })); setError(""); setStatus(""); }
   function handleImageChange(event) {
-    const assets = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/")).map(toFileAsset);
-    assets.forEach((asset) => fileUrls.current.add(asset.url));
-    updateDraft({ media: [...draft.media, ...assets] });
+    const selected = Array.from(event.target.files || []);
     event.target.value = "";
+    if (!selected.length) return;
+    const remaining = Math.max(0, POST_MEDIA_LIMITS.MAX_IMAGES - draft.media.length);
+    if (remaining === 0) {
+      setError(`You can add up to ${POST_MEDIA_LIMITS.MAX_IMAGES} images.`);
+      return;
+    }
+    const accepted = selected.slice(0, remaining);
+    if (accepted.some((file) => !POST_MEDIA_LIMITS.IMAGE_TYPES.includes(file.type))) {
+      setError("Choose JPG, PNG, WebP, or GIF images.");
+      return;
+    }
+    if (accepted.some((file) => file.size <= 0 || file.size > POST_MEDIA_LIMITS.MAX_IMAGE_SIZE)) {
+      setError("Each image must be 10 MB or smaller.");
+      return;
+    }
+    const assets = accepted.map(toFileAsset);
+    assets.forEach((asset) => fileUrls.current.add(asset.url));
+    updateDraft((current) => ({ media: [...current.media, ...assets] }));
+    if (selected.length > accepted.length) setError(`Only ${POST_MEDIA_LIMITS.MAX_IMAGES} images can be added to one post.`);
   }
   function handleMusicChange(event) {
     const file = Array.from(event.target.files || [])[0];
-    if (!file || !file.type.startsWith("audio/")) return;
+    event.target.value = "";
+    if (!file) return;
+    if (!POST_MEDIA_LIMITS.AUDIO_TYPES.includes(file.type)) {
+      setError("Choose MP3, MP4/M4A, WAV, OGG, or WebM audio.");
+      return;
+    }
+    if (file.size <= 0 || file.size > POST_MEDIA_LIMITS.MAX_AUDIO_SIZE) {
+      setError("Audio must be 20 MB or smaller.");
+      return;
+    }
     const asset = toFileAsset(file);
     if (draft.audio?.url?.startsWith("blob:")) URL.revokeObjectURL(draft.audio.url);
     fileUrls.current.add(asset.url);
     updateDraft({ audio: asset });
-    event.target.value = "";
   }
   function handleBackgroundChange(event) { updateDraft({ background: { type: "color", value: event.target.value } }); }
 
