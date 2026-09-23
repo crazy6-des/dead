@@ -285,7 +285,7 @@ export function MessagesRoute({ currentUserId = null }) {
       <header><span className="avatar avatar--small">{String(selectedName).charAt(0).toUpperCase()}</span><span><b>{selectedName}</b><small>{selectedConversation?.username ? "@" + selectedConversation.username : "Conversation"}</small></span><MoreHorizontal/></header>
       <div className="chat-body" ref={chatBodyRef}>
         {!loading && !conversationError && currentMessages[0]?.createdAt && <small>{formatMessageDate(currentMessages[0].createdAt)}</small>}
-        {!loading && !conversationError && messageCursors[selected] && <button className="outline message-load-older" onClick={loadOlderMessages} disabled={loadingOlder}>{loadingOlder ? "Loading older messages…" : "Load older messages"}</button>
+        {!loading && !conversationError && messageCursors[selected] && <button className="outline message-load-older" onClick={loadOlderMessages} disabled={loadingOlder}>{loadingOlder ? "Loading older messages…" : "Load older messages"}</button>}
         {loading ? <div className="empty" role="status"><p>Loading conversation…</p></div> : conversationError ? <div className="empty" role="alert"><h3>Conversation unavailable</h3><p>{conversationError}</p></div> :
          currentMessages.map((rawMessage) => {
           const message = renderMessage(rawMessage);
