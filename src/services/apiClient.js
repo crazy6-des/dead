@@ -90,6 +90,7 @@ export async function apiRequest(path, options = {}) {
     const isGet = String(requestOptions.method || "GET").toUpperCase() === "GET";
     let response;
     let lastNetworkError = null;
+
     for (let attempt = 0; attempt < (isGet ? 2 : 1); attempt += 1) {
       try {
         response = await fetch(url, {
@@ -102,10 +103,22 @@ export async function apiRequest(path, options = {}) {
         if (!(isGet && GET_RETRYABLE_STATUSES.has(response.status) && attempt === 0)) break;
       } catch (networkError) {
         lastNetworkError = networkError;
-        if (!isGet || attempt !== 0) throw networkError;
+        if (controller.signal.aborted || !isGet || attempt !== 0) throw networkError;
       }
-      await new Promise((resolve) => setTimeout(resolve, GET_RETRY_DELAY_MS));
+
+      if (controller.signal.aborted) {
+        throw new DOMException("The request was aborted.", "AbortError");
+      }
+
+      await new Promise((resolve, reject) => {
+        const delayId = setTimeout(resolve, GET_RETRY_DELAY_MS);
+        controller.signal.addEventListener("abort", () => {
+          clearTimeout(delayId);
+          reject(new DOMException("The request was aborted.", "AbortError"));
+        }, { once: true });
+      });
     }
+
     if (!response && lastNetworkError) throw lastNetworkError;
     const payload = await parseResponse(response);
 
