@@ -68,8 +68,8 @@ export async function listReplies(request, env, postId) {
   const cursor = decodeCursor(url.searchParams.get("cursor"));
   if (url.searchParams.get("cursor") && !cursor?.createdAt) return failure("INVALID_CURSOR", 400, "Reply cursor is invalid.");
 
-  const values = [postId];
-  let where = "p.reply_to_id = ?1 AND p.deleted_at IS NULL AND u.deleted_at IS NULL";
+  const values = [postId, session.user_id];
+  let where = "p.reply_to_id = ?1 AND p.deleted_at IS NULL AND u.deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM relationships br WHERE br.relationship_type='block' AND ((br.source_user_id=?2 AND br.target_user_id=p.author_id) OR (br.source_user_id=p.author_id AND br.target_user_id=?2))) AND NOT EXISTS (SELECT 1 FROM relationships mr WHERE mr.relationship_type='mute' AND mr.source_user_id=?2 AND mr.target_user_id=p.author_id)";
   if (cursor?.createdAt && cursor?.id) {
     values.push(cursor.createdAt, cursor.id);
     where += " AND (p.created_at < ?2 OR (p.created_at = ?2 AND p.id < ?3))";
