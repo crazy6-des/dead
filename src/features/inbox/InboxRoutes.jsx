@@ -257,6 +257,9 @@ export function MessagesRoute({ currentUserId = null }) {
     setSending(true);
     setError("");
     setMessages((current) => ({ ...current, [selected]: [...(current[selected] || []), optimistic] }));
+    window.requestAnimationFrame(() => {
+      if (chatBodyRef.current) chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+    });
     let uploadedMediaId = null;
     try {
       let media = null;
@@ -288,6 +291,7 @@ export function MessagesRoute({ currentUserId = null }) {
     setDraft("");
     setError("");
     setConversationError("");
+    setFailedMedia({});
     const params = new URLSearchParams(window.location.search);
     params.set("conversation", id);
     const nextUrl = window.location.pathname + "?" + params.toString() + window.location.hash;
