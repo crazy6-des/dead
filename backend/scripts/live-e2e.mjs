@@ -206,6 +206,65 @@ const signup2 = await request("/api/auth/sign-up", {
 if (!signup2.authenticated || signup2.user?.username !== username2) throw new Error("Moderation target sign-up contract failed.");
 
 const partnerCookie = cookie;
+
+cookie = primaryCookie;
+const conversationCreated = await request("/api/messages/conversations", {
+  method: "POST",
+  body: JSON.stringify({ username: username2 }),
+});
+const conversationId = conversationCreated.conversation?.id;
+if (!conversationId) throw new Error("Live messaging conversation creation failed.");
+
+const sentMessage = await request("/api/messages", {
+  method: "POST",
+  body: JSON.stringify({ conversationId, type: "text", text: "S live E2E message" }),
+});
+if (sentMessage.direction !== "out" || sentMessage.text !== "S live E2E message") {
+  throw new Error("Live messaging outbound direction contract failed.");
+}
+
+const messageImageForm = new FormData();
+messageImageForm.append("file", new Blob([imageBytes], { type: "image/png" }), "e2e-message.png");
+const messageMedia = await request("/api/media/upload", { method: "POST", body: messageImageForm });
+const messageMediaId = messageMedia.media?.mediaId;
+if (!messageMediaId) throw new Error("Live messaging image upload failed.");
+
+const sentImageMessage = await request("/api/messages", {
+  method: "POST",
+  body: JSON.stringify({ conversationId, type: "image", text: "S live E2E image", mediaId: messageMediaId }),
+});
+if (sentImageMessage.direction !== "out" || sentImageMessage.type !== "image" || sentImageMessage.media?.mediaId !== messageMediaId) {
+  throw new Error("Live messaging image persistence contract failed.");
+}
+
+cookie = partnerCookie;
+const partnerConversations = await request("/api/messages/conversations");
+if (!partnerConversations.items?.some((item) => item.id === conversationId)) {
+  throw new Error("Live messaging conversation visibility contract failed.");
+}
+const partnerMessages = await request("/api/messages/conversations/" + encodeURIComponent(conversationId));
+const inboundText = partnerMessages.items?.find((item) => item.text === "S live E2E message");
+const inboundImage = partnerMessages.items?.find((item) => item.media?.mediaId === messageMediaId);
+if (!inboundText || inboundText.direction !== "in" || !inboundImage || inboundImage.direction !== "in") {
+  throw new Error("Live messaging inbound direction/media contract failed.");
+}
+
+const partnerNotifications = await request("/api/notifications");
+const messageNotification = partnerNotifications.items?.find((item) => item.type === "system" && item.target === "/messages?conversation=" + encodeURIComponent(conversationId));
+if (!messageNotification || messageNotification.read) throw new Error("Live personal message notification contract failed.");
+await request("/api/notifications/read", {
+  method: "POST",
+  body: JSON.stringify({ id: messageNotification.id }),
+});
+const notificationsAfterRead = await request("/api/notifications");
+const readMessageNotification = notificationsAfterRead.items?.find((item) => item.id === messageNotification.id);
+if (!readMessageNotification?.read) throw new Error("Live notification read-state persistence contract failed.");
+
+cookie = primaryCookie;
+const primaryMessagesAfterPartnerRead = await request("/api/messages/conversations/" + encodeURIComponent(conversationId));
+if (!primaryMessagesAfterPartnerRead.items?.some((item) => item.text === "S live E2E message" && item.direction === "out")) {
+  throw new Error("Live messaging sender direction persistence contract failed.");
+}
 const reportTarget = await request("/api/posts", {
   method: "POST",
   body: JSON.stringify({
@@ -241,5 +300,5 @@ console.log(JSON.stringify({
   postId,
   reportId: report.reportId,
   emailStatus: report.emailStatus,
-  checks: ["sign-up", "session", "media-upload", "media-delivery", "text-only-post", "image-only-post", "music-only-post", "background-only-post", "mixed-post", "feed", "server-media-feed", "like", "bookmark", "profile-read", "profile-update", "sign-out", "sign-in"],
+  checks: ["sign-up", "session", "media-upload", "media-delivery", "text-only-post", "image-only-post", "music-only-post", "background-only-post", "mixed-post", "feed", "server-media-feed", "like", "bookmark", "profile-read", "profile-update", "messages", "message-image", "message-direction", "personal-notification", "notification-read", "sign-out", "sign-in"],
 }));
