@@ -196,13 +196,34 @@ const postResponse = await worker.fetch(new Request("https://example.test/api/po
 assert.equal(postResponse.status, 201);
 assert.equal((await postResponse.json()).status, "created");
 
-const unsupportedPost = await worker.fetch(new Request("https://example.test/api/posts", {
+const pollPost = await worker.fetch(new Request("https://example.test/api/posts", {
   method: "POST",
   headers: { "content-type": "application/json", Cookie: "s_session=post-session" },
   body: JSON.stringify({ text: "Poll attempt", kind: "text", media: [], audio: null, background: null, poll: { question: "Pick one", options: ["A", "B"] }, audience: "public", replyPolicy: "everyone" }),
 }), { DB: postDb });
-assert.equal(unsupportedPost.status, 400);
-assert.equal((await unsupportedPost.json()).error.code, "UNSUPPORTED_POST_CONTENT");
+assert.equal(pollPost.status, 201);
+const pollPayload = await pollPost.json();
+assert.equal(pollPayload.status, "created");
+assert.equal(pollPayload.post.poll.question, "Pick one");
+assert.equal(pollPayload.post.poll.options.length, 2);
+
+const voteResponse = await worker.fetch(new Request("https://example.test/api/polls/" + encodeURIComponent(pollPayload.post.id) + "/votes", {
+  method: "POST",
+  headers: { "content-type": "application/json", Cookie: "s_session=post-session" },
+  body: JSON.stringify({ optionIndex: 1 }),
+}), { DB: postDb });
+assert.equal(voteResponse.status, 200);
+const votePayload = await voteResponse.json();
+assert.equal(votePayload.poll.totalVotes, 1);
+assert.equal(votePayload.poll.votedOptionIndex, 1);
+
+const duplicateVote = await worker.fetch(new Request("https://example.test/api/polls/" + encodeURIComponent(pollPayload.post.id) + "/votes", {
+  method: "POST",
+  headers: { "content-type": "application/json", Cookie: "s_session=post-session" },
+  body: JSON.stringify({ optionIndex: 0 }),
+}), { DB: postDb });
+assert.equal(duplicateVote.status, 200);
+assert.equal((await duplicateVote.json()).alreadyVoted, true);
 
 const feedResponse = await worker.fetch(new Request("https://example.test/api/feed?mode=Latest&limit=1", {
   headers: { Cookie: "s_session=post-session" },
