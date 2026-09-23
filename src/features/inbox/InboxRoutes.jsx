@@ -50,7 +50,7 @@ export function NotificationsRoute({ onOpen }) {
 
   return <div className="page">
     <div className="heading"><small>INBOX</small><h2>Notifications {unreadCount > 0 && <span className="badge">{unreadCount}</span>}</h2><p>Every interaction, follow and mention in one place.</p></div>
-    <div className="tabs3">{[NOTIFICATION_FILTERS.ALL, NOTIFICATION_FILTERS.MENTIONS].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { setLoading(true); setTab(item); }}>{item}</button>)}</div>
+    <div className="tabs3">{[NOTIFICATION_FILTERS.ALL, NOTIFICATION_FILTERS.REPLIES].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { setLoading(true); setTab(item); }}>{item}</button>)}</div>
     {unreadCount > 0 && <div className="page-actions"><button className="outline" onClick={markAllRead}>Mark all as read</button></div>}
     <section className="card">
       {loading ? <div className="empty" role="status"><h3>Loading activity…</h3></div> :
