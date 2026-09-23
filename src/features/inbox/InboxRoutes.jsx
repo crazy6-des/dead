@@ -193,6 +193,7 @@ export function MessagesRoute({ currentUserId = null }) {
       conversationId: selected,
       direction: "out",
       senderId: currentUserId,
+      direction: "out",
       type: image ? "image" : "text",
       text,
       media: image ? { url: image.url, mediaType: "image", name: image.name, mimeType: image.type, size: image.size } : null,
