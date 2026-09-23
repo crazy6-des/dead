@@ -165,9 +165,6 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
       onProfileUpdate?.(normalizedSaved);
       setEditing(false);
     } catch (cause) {
-      if (uploadedMediaId && !profileSaved) {
-        try { await apiClient.delete(`/api/media/${encodeURIComponent(uploadedMediaId)}`); } catch (cleanupError) { void cleanupError; }
-      }
       setError(cause?.message || "Could not save your profile.");
     } finally {
       setSavingProfile(false);
