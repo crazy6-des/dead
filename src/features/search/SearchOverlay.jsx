@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Clock3, Hash, Music2, Search, UserRound, X } from "lucide-react";
 import { PRODUCT_IDENTITY } from "../../app/productIdentity.js";
 import { createSearchAdapter } from "../../services/searchService.js";
+import { toFeedPostFromCreatedPost } from "../feed/feedPostAdapter.js";
 export default function SearchOverlay({ posts = [], onOpen, onClose }) {
   const [query, setQuery] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -46,7 +47,7 @@ export default function SearchOverlay({ posts = [], onOpen, onClose }) {
     {!q && history.length > 0 && <section className="search-section"><header><h3>Recent searches</h3></header>{history.map((item) => <button className="search-history" key={item} onClick={() => { setQuery(item); commitSearch(item); }}><Clock3 size={16}/>{item}</button>)}</section>}
     <div className="search-results">
       <section className="search-section"><header><h3>People</h3></header>{(remote ? (remote.items?.people || []).map((p) => [p.name,p.username]) : people).map(([name,username]) => <button className="search-result" key={username} onClick={() => onOpen?.("/user/"+encodeURIComponent(username))}><span className="avatar avatar--small">{name[0]}</span><span><b>{name}</b><small>@{username}</small></span><UserRound size={16}/></button>)}</section>
-      <section className="search-section"><header><h3>Posts</h3></header>{(remote ? (remote.items?.posts || []) : postResults).map((post) => <button className="search-result" key={post.id} onClick={() => onOpen?.("/post/"+encodeURIComponent(post.id))}><span className="avatar avatar--small">{(post.a || "S")[0]}</span><span><b>{post.a}</b><small>{post.x}</small></span></button>)}</section>
+      <section className="search-section"><header><h3>Posts</h3></header>{(remote ? (remote.items?.posts || []).map((post) => toFeedPostFromCreatedPost(post)) : postResults).map((post) => <button className="search-result" key={post.id} onClick={() => onOpen?.("/post/"+encodeURIComponent(post.id))}><span className="avatar avatar--small">{(post.a || "S")[0]}</span><span><b>{post.a}</b><small>{post.x}</small></span></button>)}</section>
       <section className="search-section"><header><h3>Topics</h3></header>{topics.map((topic) => <button className="search-result" key={topic} onClick={() => onOpen?.("/topic/"+encodeURIComponent(topic))}><Hash size={18}/><span><b>{topic}</b><small>Explore conversation</small></span></button>)}</section>
       <section className="search-section"><header><h3>Music</h3></header>{music.map((item) => <button className="search-result" key={item.id || item.title || item}><Music2 size={18}/><span><b>{item.title || item}</b><small>{item.artist || "Music"}</small></span></button>)}</section>
     </div>
