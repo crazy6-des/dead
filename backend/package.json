@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node scripts/verify-migrations.mjs && node test/index.test.mjs && node test/social.test.mjs && node test/messaging-notifications.test.mjs && node test/replies.test.mjs && node test/media.test.mjs && node test/profile.test.mjs && node test/settings.test.mjs && node --check scripts/live-e2e.mjs",
+    "test": "node scripts/verify-migrations.mjs && node test/index.test.mjs && node test/social.test.mjs && node test/messaging-notifications.test.mjs && node test/polls.test.mjs && node test/replies.test.mjs && node test/media.test.mjs && node test/profile.test.mjs && node test/settings.test.mjs && node --check scripts/live-e2e.mjs",
     "verify:migrations": "node scripts/verify-migrations.mjs"
   }
 }
