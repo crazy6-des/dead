@@ -225,7 +225,7 @@ export function MessagesRoute({ currentUserId = null }) {
   }, [selected, messagesApi]);
 
   useEffect(() => {
-    if (!selected || !selectedConversation) return undefined;
+    if (!selected) return undefined;
     let active = true;
     const refreshConversation = async () => {
       if (document.visibilityState !== "visible" || loading || sending || loadingOlder) return;
@@ -258,7 +258,7 @@ export function MessagesRoute({ currentUserId = null }) {
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [selected, selectedConversation, messagesApi, loading, sending, loadingOlder]);
+  }, [selected, messagesApi, loading, sending, loadingOlder]);
 
   const selectedConversation = conversations.find((item) => item.id === selected);
   const hasSelectedConversation = Boolean(selectedConversation);
