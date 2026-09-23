@@ -191,7 +191,6 @@ export function MessagesRoute({ currentUserId = null }) {
     const optimistic = {
       id: "local-" + Date.now(),
       conversationId: selected,
-      direction: "out",
       senderId: currentUserId,
       direction: "out",
       type: image ? "image" : "text",
