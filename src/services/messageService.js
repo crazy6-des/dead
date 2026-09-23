@@ -4,6 +4,7 @@ import { createConversationRequest, createMessageRequest, normalizeMessage } fro
 export function createApiMessageAdapter(client = apiClient) {
   return {
     listConversations(request = {}) { return client.get("/api/messages/conversations", { query: createConversationRequest(request) }); },
+    createConversation(username) { return client.post("/api/messages/conversations", { username: String(username || "").replace(/^@/, "").trim().toLowerCase() }); },
     listMessages(conversationId, request = {}) { return client.get("/api/messages/conversations/" + encodeURIComponent(conversationId), { query: createConversationRequest(request) }).then((page) => ({ ...page, items:(page?.items || []).map(normalizeMessage) })); },
     markConversationRead(conversationId) { return client.post("/api/messages/conversations/" + encodeURIComponent(conversationId) + "/read"); },
     uploadImage(file) {
@@ -21,6 +22,7 @@ export function createApiMessageAdapter(client = apiClient) {
 
 export function createDevMessageAdapter(seed = {}) {
   return {
+    createConversation(username) { const normalized = String(username || "").replace(/^@/, "").trim().toLowerCase(); return Promise.resolve({ conversation: { id: normalized, username: normalized, name: normalized } }); },
     listConversations() { return Promise.resolve({ items: Object.keys(seed).map((name) => ({ id:name.toLowerCase().replace(/\s+/g,"-"), name })) }); },
     listMessages(conversationId) { const name = Object.keys(seed).find((key) => key.toLowerCase().replace(/\s+/g,"-") === conversationId); return Promise.resolve({ items:(seed[name] || []).map((item) => normalizeMessage({ ...item, conversationId })) }); },
     markConversationRead() { return Promise.resolve({ ok:true }); },
