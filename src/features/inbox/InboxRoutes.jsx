@@ -92,6 +92,8 @@ export function MessagesRoute({ currentUserId = null }) {
   const [draft, setDraft] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [messages, setMessages] = useState({});
+  const [messageCursors, setMessageCursors] = useState({});
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -143,6 +145,7 @@ export function MessagesRoute({ currentUserId = null }) {
       ]);
       if (!active) return;
       setMessages((current) => ({ ...current, [selectedConversation.id]: messagePage.items || [] }));
+      setMessageCursors((current) => ({ ...current, [selectedConversation.id]: messagePage.nextCursor || null }));
       setConversations((current) => current.map((item) => item.id === selected ? { ...item, unreadCount: 0 } : item));
       setLoading(false);
     }).catch((err) => {
@@ -156,6 +159,27 @@ export function MessagesRoute({ currentUserId = null }) {
   const selectedName = selectedConversation?.name || "Select a conversation";
   const currentMessages = messages[selected] || [];
   const renderMessage = (message) => ({ ...message, direction: message.direction || (currentUserId && message.senderId === currentUserId ? "out" : "in") });
+
+  const loadOlderMessages = async () => {
+    const cursor = messageCursors[selected];
+    if (!selected || !cursor || loadingOlder) return;
+    setLoadingOlder(true);
+    setError("");
+    try {
+      const page = await messagesApi.listMessages(selected, { cursor });
+      const older = page.items || [];
+      setMessages((current) => {
+        const existing = current[selected] || [];
+        const seen = new Set(existing.map((item) => item.id));
+        return { ...current, [selected]: [...older.filter((item) => !seen.has(item.id)), ...existing] };
+      });
+      setMessageCursors((current) => ({ ...current, [selected]: page.nextCursor || null }));
+    } catch (err) {
+      setError(err?.message || "Could not load older messages.");
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
 
   const clearSelectedImage = () => {
     setSelectedImage((current) => {
@@ -254,7 +278,8 @@ export function MessagesRoute({ currentUserId = null }) {
     <section className="chat">
       <header><span className="avatar avatar--small">{String(selectedName).charAt(0).toUpperCase()}</span><span><b>{selectedName}</b><small>{selectedConversation?.username ? "@" + selectedConversation.username : "Conversation"}</small></span><MoreHorizontal/></header>
       <div className="chat-body">
-        <small>Today</small>
+        {!loading && !conversationError && currentMessages[0]?.createdAt && <small>{formatMessageDate(currentMessages[0].createdAt)}</small>}
+        {!loading && !conversationError && messageCursors[selected] && <button className="outline message-load-older" onClick={loadOlderMessages} disabled={loadingOlder}>{loadingOlder ? "Loading older messages…" : "Load older messages"}</button>
         {loading ? <div className="empty" role="status"><p>Loading conversation…</p></div> : conversationError ? <div className="empty" role="alert"><h3>Conversation unavailable</h3><p>{conversationError}</p></div> :
          currentMessages.map((rawMessage) => {
           const message = renderMessage(rawMessage);
