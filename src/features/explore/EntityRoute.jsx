@@ -31,6 +31,9 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
   const [replyCount, setReplyCount] = useState(Number(post.r ?? 0));
   const [replyLoading, setReplyLoading] = useState(mode !== "quote" && mode !== "media");
   const [replySubmitting, setReplySubmitting] = useState(false);
+  const [replyTarget, setReplyTarget] = useState(null);
+  const [replyCursor, setReplyCursor] = useState(null);
+  const [replyLoadingMore, setReplyLoadingMore] = useState(false);
   const [replyError, setReplyError] = useState("");
   const [shared, setShared] = useState(false);
   const [quoteSubmitting, setQuoteSubmitting] = useState(false);
@@ -42,6 +45,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
       .then((page) => {
         if (!active) return;
         setReplies(page.items);
+        setReplyCursor(page.nextCursor || null);
         setReplyCount(Number(post.r ?? page.items.length));
         setReplyLoading(false);
       })
@@ -59,15 +63,32 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
     setReplySubmitting(true);
     setReplyError("");
     try {
-      const created = await replyService.create(post.id, text);
+      const parentId = replyTarget?.id || post.id;
+      const created = await replyService.create(parentId, text);
       if (!created) throw new Error("The reply was not returned by the server.");
       setReplies((items) => [...items, created]);
       setReplyCount((count) => count + 1);
       setReply("");
+      setReplyTarget(null);
     } catch (error) {
       setReplyError(error?.message || "Your reply could not be posted.");
     } finally {
       setReplySubmitting(false);
+    }
+  };
+
+  const loadOlderReplies = async () => {
+    if (!replyCursor || replyLoadingMore) return;
+    setReplyLoadingMore(true);
+    setReplyError("");
+    try {
+      const page = await replyService.list(post.id, { cursor: replyCursor });
+      setReplies((items) => [...(page.items || []).filter((older) => !items.some((item) => item.id === older.id)), ...items]);
+      setReplyCursor(page.nextCursor || null);
+    } catch (error) {
+      setReplyError(error?.message || "Older replies could not be loaded.");
+    } finally {
+      setReplyLoadingMore(false);
     }
   };
 
@@ -115,9 +136,9 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
       {music?.url && <audio controls preload="metadata" src={music.url} />}
       {(!post.media?.length && !music?.url) && <div className="empty"><h3>No media available</h3><p>The post does not contain a deliverable media attachment.</p></div>}
     </div>}
-    {mode !== "media" && <><div className="reply-composer"><div className="avatar avatar--small">D</div><div className="reply-composer__body"><textarea id="reply-box" value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Reply to this post…" maxLength={5000} disabled={replySubmitting}/><div><span>{reply.length}/5000</span><button className="primary" disabled={!reply.trim() || replySubmitting} onClick={submitReply}>{replySubmitting ? "Replying…" : "Reply"}</button></div></div></div>
+    {mode !== "media" && <><div className="reply-composer"><div className="avatar avatar--small">D</div><div className="reply-composer__body">{replyTarget && <div className="reply-target" role="status">Replying to @{replyTarget.author?.username || "user"} <button type="button" onClick={() => setReplyTarget(null)}>Cancel</button></div>}<textarea id="reply-box" value={reply} onChange={(e) => setReply(e.target.value)} placeholder={replyTarget ? "Reply to this reply…" : "Reply to this post…"} maxLength={5000} disabled={replySubmitting}/><div><span>{reply.length}/5000</span><button className="primary" disabled={!reply.trim() || replySubmitting} onClick={submitReply}>{replySubmitting ? "Replying…" : "Reply"}</button></div></div></div>
       {replyError && <div className="inline-notice" role="alert">{replyError}</div>}
-      {replyLoading ? <div className="empty" role="status"><h3>Loading replies…</h3></div> : replies.length === 0 ? <div className="empty"><h3>No replies yet</h3><p>Be the first to reply.</p></div> : <div className="reply-list">{replies.map((item) => <article className="reply-row" key={item.id}><div className="avatar avatar--small">{String(item.author?.displayName || item.author?.username || "U")[0]}</div><div><div className="post__meta"><strong>{item.author?.displayName || item.author?.username || "User"}</strong><span className="muted">@{item.author?.username || "user"}</span></div><p>{item.text}</p></div></article>)}</div>}
+      {replyLoading ? <div className="empty" role="status"><h3>Loading replies…</h3></div> : replies.length === 0 ? <div className="empty"><h3>No replies yet</h3><p>Be the first to reply.</p></div> : <div className="reply-list">{replyCursor && <button className="outline" type="button" onClick={loadOlderReplies} disabled={replyLoadingMore}>{replyLoadingMore ? "Loading older replies…" : "Load older replies"}</button>}{replies.map((item) => <article className="reply-row" key={item.id}><div className="avatar avatar--small">{String(item.author?.displayName || item.author?.username || "U")[0]}</div><div><div className="post__meta"><strong>{item.author?.displayName || item.author?.username || "User"}</strong><span className="muted">@{item.author?.username || "user"}</span></div><p>{item.text}</p><button className="reply-inline" type="button" onClick={() => { setReplyTarget(item); document.getElementById("reply-box")?.focus(); }}>Reply</button></div></article>)}</div>}
     </>}
   </section>{shared && <div className="inline-notice"><Link2 size={16}/>Post link copied/shared.</div>}</div>;
 }
@@ -129,7 +150,7 @@ function PostEntityRoute({ postId, initialPost, ...props }) {
   },[postId,initialPost]);
   if(loading)return <div className="detail-page"><BackButton onBack={props.onBack}/><div className="empty" role="status"><h3>Loading post…</h3></div></div>;
   if(!post)return <div className="detail-page"><BackButton onBack={props.onBack}/><div className="empty"><h3>Post not found</h3><p>{error||"This post may have been removed or is not available."}</p></div></div>;
-  return <PostDetail post={post} {...props}/>;
+  return <PostDetail post={toFeedPostFromCreatedPost(post)} {...props}/>;
 }
 
 function ShareDetail({ post, onBack, onShareFollowers }) { const [copied, setCopied] = useState(false); const [sharing, setSharing] = useState(false); const [sharedFollowers, setSharedFollowers] = useState(false); const copy = async () => { try { await navigator.clipboard?.writeText(window.location.origin + "/post/" + post.id); setCopied(true); } catch { setCopied(false); } }; const shareFollowers = async () => { if (sharing || sharedFollowers) return; setSharing(true); try { await onShareFollowers?.(post.id); setSharedFollowers(true); } catch (error) { setSharedFollowers(false); } finally { setSharing(false); } }; return <div className="detail-page"><BackButton onBack={onBack}/><div className="share-sheet"><div className="heading"><small>SHARE</small><h2>Share this post</h2></div><div className="share-preview"><b>{post.a || "User"}</b><p>{post.x}</p></div><div className="share-options"><button onClick={copy}><Copy/>Copy link</button><button onClick={() => window.open("mailto:?subject=Post on S&body=" + encodeURIComponent(window.location.origin + "/post/" + post.id), "_self")}><Send/>Send by email</button><button onClick={shareFollowers} disabled={sharing || sharedFollowers}><Users/>{sharing ? "Sharing…" : sharedFollowers ? "Shared with followers" : "Share with followers"}</button></div>{copied && <p className="inline-notice">Link copied.</p>}</div></div>; }
