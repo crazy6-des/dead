@@ -145,7 +145,7 @@ export function MessagesRoute({ currentUserId = null }) {
   const [conversations, setConversations] = useState([]);
   const [selected, setSelected] = useState(() => new URLSearchParams(window.location.search).get("conversation") || null);
   const [draft, setDraft] = useState("");
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);\n  const selectedImageRef = useRef(null);
   const [messages, setMessages] = useState({});
   const [messageCursors, setMessageCursors] = useState({});
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -167,7 +167,7 @@ export function MessagesRoute({ currentUserId = null }) {
   }, [resolvedMediaUrls]);
 
   useEffect(() => () => {
-    if (selectedImage?.url?.startsWith("blob:")) URL.revokeObjectURL(selectedImage.url);
+    if (selectedImageRef.current?.url?.startsWith("blob:")) URL.revokeObjectURL(selectedImageRef.current.url);
     Object.values(resolvedMediaUrlsRef.current).forEach((url) => {
       if (String(url).startsWith("blob:")) URL.revokeObjectURL(url);
     });
