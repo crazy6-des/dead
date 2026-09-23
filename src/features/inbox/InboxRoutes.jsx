@@ -100,6 +100,7 @@ export function MessagesRoute() {
       }
       const selectedConversation = nextConversations.find((item) => item.id === selected);
       if (!selectedConversation) {
+        setConversationError("Conversation not found.");
         setLoading(false);
         return;
       }
