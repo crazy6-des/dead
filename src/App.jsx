@@ -114,8 +114,9 @@ export default function App() {
     flash(PRODUCT_IDENTITY.postedMessage);
     await refreshFeed(feedMode);
   };
+  const enterApp = () => auth.refreshSession();
   if (hasApiBaseUrl() && (auth.isAnonymous || isResetRoute)) {
-    return <LandingRoute onAuthenticated={() => auth.refreshSession()}/>;
+    return <LandingRoute onAuthenticated={enterApp}/>;
   }
   const open = (path) => go(path);
   const openSearch = () => setSearchOpen(true);
