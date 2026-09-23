@@ -38,9 +38,35 @@ export async function uploadMedia(request, env) {
 }
 
 export async function getMedia(request, env, mediaId) {
+  const session = await resolveSession(request, env);
+  if (!session?.user_id) return fail("UNAUTHORIZED",401,"Authentication is required.");
   if (!env?.DB || !env?.MEDIA_BUCKET) return fail("SERVICE_UNAVAILABLE",503,"Media service is not configured.");
-  const row = await env.DB.prepare("SELECT id, object_key, mime_type, byte_size FROM post_media WHERE id = ?1 LIMIT 1").bind(mediaId).first();
+  const row = await env.DB.prepare(`
+    SELECT pm.id, pm.object_key, pm.mime_type, pm.byte_size, pm.owner_id, pm.post_id,
+      p.author_id AS post_author_id, p.deleted_at AS post_deleted_at,
+      m.sender_id AS message_sender_id
+    FROM post_media pm
+    LEFT JOIN posts p ON p.id = pm.post_id
+    LEFT JOIN messages m ON m.media_id = pm.id AND m.deleted_at IS NULL
+    WHERE pm.id = ?1
+    LIMIT 1
+  `).bind(mediaId).first();
   if (!row) return fail("NOT_FOUND",404,"Media not found.");
+  const ownerAllowed = row.owner_id === session.user_id;
+  let postAllowed = false;
+  if (row.post_id && !row.post_deleted_at) {
+    if (row.post_author_id === session.user_id) {
+      postAllowed = true;
+    } else {
+      const visible = await env.DB.prepare("SELECT 1 FROM posts p WHERE p.id = ?1 AND p.visibility = 'public' AND p.deleted_at IS NULL AND EXISTS (SELECT 1 FROM user_settings us WHERE us.user_id = p.author_id AND us.private_account = 0) LIMIT 1").bind(row.post_id).first();
+      const followed = await env.DB.prepare("SELECT 1 FROM relationships WHERE source_user_id = ?1 AND target_user_id = ?2 AND relationship_type = 'follow' LIMIT 1").bind(session.user_id, row.post_author_id).first();
+      const blocked = await env.DB.prepare("SELECT 1 FROM relationships WHERE relationship_type = 'block' AND ((source_user_id = ?1 AND target_user_id = ?2) OR (source_user_id = ?2 AND target_user_id = ?1)) LIMIT 1").bind(session.user_id, row.post_author_id).first();
+      const post = await env.DB.prepare("SELECT visibility FROM posts WHERE id = ?1 AND deleted_at IS NULL LIMIT 1").bind(row.post_id).first();
+      postAllowed = !blocked && Boolean(visible || (post?.visibility === "followers" && followed));
+    }
+  }
+  const messageAllowed = Boolean(await env.DB.prepare("SELECT 1 FROM conversation_members cm JOIN messages m2 ON m2.conversation_id = cm.conversation_id WHERE m2.media_id = ?1 AND m2.deleted_at IS NULL AND cm.user_id = ?2 LIMIT 1").bind(mediaId, session.user_id).first());
+  if (!ownerAllowed && !postAllowed && !messageAllowed) return fail("FORBIDDEN",403,"You do not have access to this media.");
   const object = await env.MEDIA_BUCKET.get(row.object_key);
   if (!object) return fail("NOT_FOUND",404,"Media not found.");
   const headers = new Headers();
