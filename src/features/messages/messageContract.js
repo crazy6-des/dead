@@ -27,6 +27,7 @@ export function normalizeMessage(value = {}) {
     id: String(value.id ?? ""),
     conversationId: String(value.conversationId ?? ""),
     senderId: String(value.senderId ?? ""),
+    direction: value.direction === "out" || value.direction === "in" ? value.direction : null,
     type: value.type || MESSAGE_TYPES.TEXT,
     text: String(value.text || ""),
     media,
