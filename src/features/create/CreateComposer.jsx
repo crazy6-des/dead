@@ -34,7 +34,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
       musicSearchController.current?.abort();
     };
   }, []);
-  function updateDraft(patch) { setDraft((current) => ({ ...current, ...patch })); setError(""); setStatus(""); }
+  function updateDraft(patch) { setDraft((current) => ({ ...current, ...(typeof patch === "function" ? patch(current) : patch) })); setError(""); setStatus(""); }
   function updatePoll(patch) { updateDraft({ poll: { ...(draft.poll || { question: "", options: ["", ""] }), ...patch } }); }
   function togglePoll() {
     if (pollOpen) { updateDraft({ poll: null }); setPollOpen(false); return; }
