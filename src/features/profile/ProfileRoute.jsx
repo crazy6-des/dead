@@ -139,10 +139,9 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
     if (next.website.length > MAX_LENGTHS.website) return setError("Website must be 200 characters or fewer.");
 
     setSavingProfile(true);
+    let uploadedMediaId = null;
     try {
       const { privateAccount, ...profilePatch } = next;
-      let uploadedMediaId = null;
-      let profileSaved = false;
       if (hasApiBaseUrl() && avatarFile) {
         const form = new FormData();
         form.append("file", avatarFile, avatarFile.name);
@@ -153,7 +152,6 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
         profilePatch.avatarUrl = uploadedUrl;
       }
       const result = hasApiBaseUrl() ? await profileService.updateMe(profilePatch) : next;
-      profileSaved = true;
       if (hasApiBaseUrl()) await settingsService.update({ privateAccount });
       const saved = result?.profile || result || next;
       const normalizedSaved = { ...DEFAULT_PROFILE, ...saved, avatarUrl: saved.avatarUrl ? resolveApiUrl(saved.avatarUrl) : "" };
@@ -165,6 +163,13 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
       onProfileUpdate?.(normalizedSaved);
       setEditing(false);
     } catch (cause) {
+      if (hasApiBaseUrl() && uploadedMediaId) {
+        try {
+          await apiClient.delete(`/api/media/${encodeURIComponent(uploadedMediaId)}`);
+        } catch {
+          // Preserve the original profile-save error; cleanup is best-effort.
+        }
+      }
       setError(cause?.message || "Could not save your profile.");
     } finally {
       setSavingProfile(false);
