@@ -11,7 +11,7 @@ const IMAGE_MEDIA_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "ima
 function failure(code, status, message) { return { response: null, error: { code, status, message } }; }
 function encodeCursor(createdAt, id) { return globalThis.btoa(JSON.stringify({ createdAt, id })).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"); }
 function decodeCursor(value) { if (!value) return null; try { const normalized = String(value).replace(/-/g, "+").replace(/_/g, "/"); return JSON.parse(globalThis.atob(normalized + "=".repeat((4 - normalized.length % 4) % 4))); } catch { return null; } }
-function limitValue(value) { const n = Number(value); return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_LIMIT) : DEFAULT_LIMIT; }
+function limitValue(value) { if (value === null || value === undefined || String(value).trim() === "") return DEFAULT_LIMIT; const n = Number(value); return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_LIMIT) : DEFAULT_LIMIT; }
 async function requireSession(request, env) { const session = await resolveSession(request, env); if (!session?.user_id) return { session: null, failure: failure("UNAUTHORIZED", 401, "Authentication is required.") }; if (!env?.DB) return { session: null, failure: failure("SERVICE_UNAVAILABLE", 503, "Messaging service is not configured.") }; return { session, failure: null }; }
 function messagePayload(row, currentUserId = null) {
   return {
@@ -79,44 +79,15 @@ export async function listMessages(request, env, conversationId) {
   if (url.searchParams.get("cursor") && !cursor?.createdAt) return failure("INVALID_CURSOR", 400, "Message cursor is invalid.");
   const values = [conversationId]; let where = "m.conversation_id = ?1 AND m.deleted_at IS NULL";
   if (cursor?.createdAt && cursor?.id) { values.push(cursor.createdAt, cursor.id); where += ` AND (m.created_at < ?${values.length - 1} OR (m.created_at = ?${values.length - 1} AND m.id < ?${values.length}))`; }
-  const rows = await env.DB.prepare(`SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.body, m.created_at, m.deleted_at, m.media_id
+  values.push(limit + 1);
+  const rows = await env.DB.prepare(`SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.body, m.created_at, m.deleted_at,
+    m.media_id, pm.media_type, pm.mime_type, pm.byte_size AS media_size,
+    json_extract(pm.metadata_json, '$.name') AS media_name
     FROM messages m
-    WHERE ${where}
-    ORDER BY m.created_at DESC, m.id DESC`).bind(...values).all();
-  let messageRows = rows.results;
-  if (cursor?.createdAt && cursor?.id) {
-    messageRows = messageRows.filter((row) =>
-      row.created_at < cursor.createdAt ||
-      (row.created_at === cursor.createdAt && row.id < cursor.id)
-    );
-  }
-  const hasMore = messageRows.length > limit;
-  messageRows = messageRows.slice(0, limit);
-  const mediaIds = [...new Set(messageRows.map((row) => row.media_id).filter(Boolean))];
-  const mediaById = new Map();
-  if (mediaIds.length) {
-    const placeholders = mediaIds.map((_, index) => `?${index + 1}`).join(", ");
-    const mediaRows = await env.DB.prepare(`SELECT id, media_type, mime_type, byte_size, metadata_json FROM post_media WHERE id IN (${placeholders})`).bind(...mediaIds).all();
-    for (const media of mediaRows.results) mediaById.set(media.id, media);
-  }
-  const items = messageRows.map((row) => {
-    const media = mediaById.get(row.media_id);
-    return messagePayload({
-      ...row,
-      media_type: media?.media_type,
-      mime_type: media?.mime_type,
-      media_size: media?.byte_size,
-      media_name: (() => { try { return JSON.parse(media?.metadata_json || "{}")?.name || null; } catch { return null; } })(),
-    }, session.user_id);
-  }).reverse();
-  const oldest = items[0];
-  const debug = request.headers.get("x-e2e-debug") === "1" ? {
-    sessionUserId: session.user_id,
-    rawRowCount: rows.results.length,
-    returnedRowCount: items.length,
-    rawRows: rows.results.map((row) => ({ id: row.id, senderId: row.sender_id, type: row.message_type, text: row.body, deletedAt: row.deleted_at })),
-  } : undefined;
-  return { response: { items, nextCursor: rows.results.length > limit && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null, ...(debug ? { debug } : {}) }, error: null };
+    LEFT JOIN post_media pm ON pm.id = m.media_id
+    WHERE ${where} ORDER BY m.created_at DESC, m.id DESC LIMIT ?${values.length}`).bind(...values).all();
+  const items = rows.results.slice(0, limit).map((row) => messagePayload(row, session.user_id)).reverse(); const oldest = items[0];
+  return { response: { items, nextCursor: rows.results.length > limit && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null }, error: null };
 }
 
 export async function sendMessage(request, env) {
