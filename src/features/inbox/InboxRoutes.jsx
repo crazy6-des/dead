@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Heart, ImagePlus, MoreHorizontal, Paperclip, Send, X } from "lucide-react";
 import { APP_ROUTES } from "../../app/routes.js";
 import PostCard from "../post/PostCard.jsx";
@@ -44,7 +44,7 @@ export function NotificationsRoute({ onOpen }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const loadNotifications = async ({ silent = false } = {}) => {
+  const loadNotifications = useCallback(async ({ silent = false } = {}) => {
     if (silent) setRefreshing(true);
     else setLoading(true);
     try {
@@ -112,7 +112,7 @@ export function NotificationsRoute({ onOpen }) {
 
   return <div className="page">
     <div className="heading"><small>INBOX</small><h2>Notifications {unreadCount > 0 && <span className="badge">{unreadCount}</span>}</h2><p>Likes, follows, replies, reposts and other activity.</p></div>
-    <div className="tabs3">{[NOTIFICATION_FILTERS.ALL, NOTIFICATION_FILTERS.REPLIES].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { setLoading(true); setTab(item); }} aria-pressed={tab === item}>{item}</button>)}</div>
+    <div className="tabs3">{[NOTIFICATION_FILTERS.ALL, NOTIFICATION_FILTERS.REPLIES].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { setError(""); setLoading(true); setTab(item); }} aria-pressed={tab === item}>{item}</button>)}</div>
     <div className="page-actions">
       {unreadCount > 0 && <button className="outline" onClick={markAllRead}>Mark all as read</button>}
       <button className="outline" onClick={() => loadNotifications()} disabled={loading || refreshing} aria-label="Refresh notifications">{refreshing ? "Refreshing…" : "Refresh"}</button>
