@@ -106,7 +106,7 @@ export function MessagesRoute() {
         messagesApi.markConversationRead(selected),
       ]);
       if (!active) return;
-      setMessages((current) => ({ ...current, [selectedConversation.name || selected]: messagePage.items || [] }));
+      setMessages((current) => ({ ...current, [selectedConversation.id]: messagePage.items || [] }));
       setLoading(false);
     }).catch((err) => {
       if (active) { setError(err?.message || "Could not load conversations."); setLoading(false); }
@@ -118,7 +118,7 @@ export function MessagesRoute() {
   const hasSelectedConversation = Boolean(selectedConversation);
   const currentUserId = "me";
   const selectedName = selectedConversation?.name || "Select a conversation";
-  const currentMessages = messages[selectedName] || [];
+  const currentMessages = messages[selected] || [];
   const renderMessage = (message) => ({ ...message, direction: message.direction || (message.senderId === currentUserId ? "out" : "in") });
 
   const clearSelectedImage = () => {
@@ -198,7 +198,7 @@ export function MessagesRoute() {
 
   return <div className="messages">
     <aside>{conversations.map((conversation) => {
-      const latest = messages[conversation.name]?.at(-1);
+      const latest = messages[conversation.id]?.at(-1);
       return <button key={conversation.id} className={"conversation " + (selected === conversation.id ? "active" : "")} onClick={() => selectConversation(conversation.id)}>
         <span className="avatar avatar--small">{conversation.name[0]}</span>
         <span><b>{conversation.name}</b><small>{latest?.text || (latest?.media ? "Image" : "Start a conversation")}</small></span>
@@ -209,7 +209,7 @@ export function MessagesRoute() {
       <header><span className="avatar avatar--small">{selectedName[0]}</span><span><b>{selectedName}</b><small>Active recently</small></span><MoreHorizontal/></header>
       <div className="chat-body">
         <small>Today</small>
-        {loading ? <div className="empty"><p>Loading conversation…</p></div> :
+        {loading ? <div className="empty" role="status"><p>Loading conversation…</p></div> :
          currentMessages.map((rawMessage) => {
           const message = renderMessage(rawMessage);
           return <div className={"bubble " + (message.direction === "out" ? "out" : "in")} key={message.id}>
