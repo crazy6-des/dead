@@ -62,8 +62,8 @@ function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
   </section></div>;
 }
 
-export default function LandingRoute({ onAuthenticated }) {
-  const [authMode, setAuthMode] = useState(null);
+export default function LandingRoute({ initialAuthMode = null, onAuthenticated }) {
+  const [authMode, setAuthMode] = useState(initialAuthMode);
   const steps = useMemo(() => ["Open your browser menu", "Tap Add to Home screen / Add to Home page", "Open S from your home screen"], []);
   return <div className="landing">
     <header className="landing-nav"><button className="landing-logo" onClick={()=>window.scrollTo({top:0,behavior:"smooth"})}><span>S</span><b>S</b></button><nav><a href="#why">Why S</a><a href="#community">Community</a><a href="#home-screen">Home screen</a></nav><div className="landing-nav-actions"><button className="landing-ghost" onClick={()=>setAuthMode("signin")}>Sign in</button><button className="landing-primary landing-primary--small" onClick={()=>setAuthMode("signup")}>Join S <ArrowRight size={15}/></button></div></header>
