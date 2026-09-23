@@ -157,3 +157,12 @@ export async function publishQuotePost({ postId, text = "" } = {}) {
     replyPolicy: "everyone",
   }));
 }
+
+
+export const postService = Object.freeze({
+  getById(postId, options = {}) {
+    const id = String(postId || "").trim();
+    if (!id) return Promise.reject(new TypeError("Post id is required."));
+    return apiClient.get(`/api/posts/${encodeURIComponent(id)}`, options).then((result) => result?.post || null);
+  },
+});
