@@ -159,6 +159,8 @@ assert.deepEqual(await signOut.json(), { ok: true });
 assert.equal(signOut.headers.get("set-cookie"), clearSessionCookie());
 
 
+let pollVoteCount = 0;
+let pollVotedIndex = null;
 const postDb = {
   prepare(query) {
     return {
@@ -168,8 +170,11 @@ const postDb = {
             if (query.startsWith("SELECT s.id")) {
               if (values[0] === await sha256Hex("post-session")) return { id: "session-1", user_id: "user-1", username: "new_user", display_name: "New User" };
             }
-            if (query.startsWith("SELECT p.id, p.author_id, p.body")) {
-              return { id: "post-2", author_id: "user-1", body: "Hello backend", visibility: "public", reply_policy: "everyone", created_at: "2026-09-20T20:00:00.000Z", updated_at: "2026-09-20T20:00:00.000Z", username: "new_user", display_name: "New User", like_count: 2, repost_count: 1, reply_count: 0, bookmark_count: 1 };
+            if (query.includes("SELECT option_index FROM poll_votes")) {
+              return pollVoteCount ? { option_index: pollVotedIndex } : null;
+            }
+            if (query.includes("SELECT p.id, p.author_id, p.body")) {
+              return { id: "post-2", author_id: "user-1", body: "Hello backend", visibility: "public", reply_policy: "everyone", created_at: "2026-09-20T20:00:00.000Z", updated_at: "2026-09-20T20:00:00.000Z", username: "new_user", display_name: "New User", like_count: 2, repost_count: 1, reply_count: 0, bookmark_count: 1, poll_json: query.includes("poll_json") ? JSON.stringify({ question: "Pick one", options: ["A", "B"], multipleChoice: false, totalVotes: pollVoteCount, votedOptionIndex: pollVotedIndex }) : null };
             }
             return null;
           },
@@ -181,7 +186,7 @@ const postDb = {
               ],
             };
           },
-          async run() { return { success: true }; },
+          async run() { if (query.includes("INSERT OR IGNORE INTO poll_votes")) { pollVoteCount += 1; pollVotedIndex = Number(values[2]); return { success: true, meta: { changes: 1 } }; } return { success: true, meta: { changes: 1 } }; },
         };
       },
     };
