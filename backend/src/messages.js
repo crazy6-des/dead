@@ -79,11 +79,19 @@ export async function listMessages(request, env, conversationId) {
   if (url.searchParams.get("cursor") && !cursor?.createdAt) return failure("INVALID_CURSOR", 400, "Message cursor is invalid.");
   const values = [conversationId]; let where = "m.conversation_id = ?1 AND m.deleted_at IS NULL";
   if (cursor?.createdAt && cursor?.id) { values.push(cursor.createdAt, cursor.id); where += ` AND (m.created_at < ?${values.length - 1} OR (m.created_at = ?${values.length - 1} AND m.id < ?${values.length}))`; }
-  const queryLimit = limit + 1;
   const rows = await env.DB.prepare(`SELECT m.id, m.conversation_id, m.sender_id, m.message_type, m.body, m.created_at, m.deleted_at, m.media_id
     FROM messages m
-    WHERE ${where} ORDER BY m.created_at DESC, m.id DESC LIMIT ${queryLimit}`).bind(...values).all();
-  const messageRows = rows.results.slice(0, limit);
+    WHERE ${where}
+    ORDER BY m.created_at DESC, m.id DESC`).bind(...values).all();
+  let messageRows = rows.results;
+  if (cursor?.createdAt && cursor?.id) {
+    messageRows = messageRows.filter((row) =>
+      row.created_at < cursor.createdAt ||
+      (row.created_at === cursor.createdAt && row.id < cursor.id)
+    );
+  }
+  const hasMore = messageRows.length > limit;
+  messageRows = messageRows.slice(0, limit);
   const mediaIds = [...new Set(messageRows.map((row) => row.media_id).filter(Boolean))];
   const mediaById = new Map();
   if (mediaIds.length) {
@@ -101,8 +109,7 @@ export async function listMessages(request, env, conversationId) {
       media_name: (() => { try { return JSON.parse(media?.metadata_json || "{}")?.name || null; } catch { return null; } })(),
     }, session.user_id);
   }).reverse();
-  const oldest = items[0];
-  return { response: { items, nextCursor: rows.results.length > limit && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null }, error: null };
+  const oldest = items[0];  return { response: { items, nextCursor: rows.results.length > limit && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null }, error: null };
 }
 
 export async function sendMessage(request, env) {
