@@ -53,8 +53,8 @@ export function NotificationsRoute({ onOpen }) {
     <div className="tabs3">{[NOTIFICATION_FILTERS.ALL, NOTIFICATION_FILTERS.MENTIONS].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { setLoading(true); setTab(item); }}>{item}</button>)}</div>
     {unreadCount > 0 && <div className="page-actions"><button className="outline" onClick={markAllRead}>Mark all as read</button></div>}
     <section className="card">
-      {loading ? <div className="empty"><h3>Loading activity…</h3></div> :
-       error ? <div className="empty"><h3>Could not load activity</h3><p>{error}</p></div> :
+      {loading ? <div className="empty" role="status"><h3>Loading activity…</h3></div> :
+       error ? <div className="empty" role="alert"><h3>Could not load activity</h3><p>{error}</p></div> :
        items.length ? items.map((item) => <button className={"notice " + (item.read ? "is-read" : "")} key={item.id} onClick={() => openNotification(item)}>
         <span className="avatar avatar--small">{String(item.actor || "S")[0]}</span>
         <span><p><b>{item.actor || "S"}</b> {item.text}</p><span>{item.time}{!item.read && " · New"}</span></span>
@@ -67,7 +67,7 @@ export function NotificationsRoute({ onOpen }) {
 export function MessagesRoute() {
   const messagesApi = useMemo(() => createMessageAdapter(), []);
   const [conversations, setConversations] = useState([]);
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(() => new URLSearchParams(window.location.search).get("conversation") || null);
   const [draft, setDraft] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [messages, setMessages] = useState({});
