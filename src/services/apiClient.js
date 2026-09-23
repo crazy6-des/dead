@@ -13,6 +13,12 @@ const DEFAULT_TIMEOUT_MS = 10000;
 const GET_RETRY_DELAY_MS = 250;
 const GET_RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
+function createAbortError() {
+  const error = new Error("The request was aborted.");
+  error.name = "AbortError";
+  return error;
+}
+
 export class ApiError extends Error {
   constructor(message, { status = 0, code = "API_ERROR", details = null, cause = null } = {}) {
     super(message);
@@ -107,14 +113,14 @@ export async function apiRequest(path, options = {}) {
       }
 
       if (controller.signal.aborted) {
-        throw new DOMException("The request was aborted.", "AbortError");
+        throw createAbortError();
       }
 
       await new Promise((resolve, reject) => {
         const delayId = setTimeout(resolve, GET_RETRY_DELAY_MS);
         controller.signal.addEventListener("abort", () => {
           clearTimeout(delayId);
-          reject(new DOMException("The request was aborted.", "AbortError"));
+          reject(createAbortError());
         }, { once: true });
       });
     }
