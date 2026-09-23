@@ -9,6 +9,7 @@ import { bookmarkService } from "../../services/bookmarkService.js";
 import { MESSAGE_IMAGE_LIMITS } from "../messages/messageContract.js";
 import { moderationService } from "../../services/moderationService.js";
 import { REPORT_REASONS } from "../moderation/moderationContract.js";
+import { formatFullDateTime } from "../../utils/dateTime.js";
 
 function formatConversationTime(value) {
   if (!value) return "";
@@ -27,6 +28,12 @@ function messageDateKey(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+}
+
+function formatFullInboxTime(value) {
+  if (!value) return "";
+  const formatted = formatFullDateTime(value);
+  return formatted === "now" ? new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" }) : formatted;
 }
 
 function formatMessageDate(value) {
@@ -122,7 +129,7 @@ export function NotificationsRoute({ onOpen }) {
        error ? <div className="empty" role="alert"><h3>Could not load activity</h3><p>{error}</p><button className="outline" onClick={() => loadNotifications()}>Try again</button></div> :
        items.length ? items.map((item) => <button className={"notice " + (item.read ? "is-read" : "is-unread")} key={item.id} onClick={() => openNotification(item)} aria-label={(item.actor || "S") + " " + item.text + (item.read ? "" : ", unread")}>
         <span className="avatar avatar--small">{String(item.actor || "S")[0]}</span>
-        <span><p><b>{item.actor || "S"}</b> {item.text}</p><span>{item.time}{!item.read && " · New"}</span></span>
+        <span><p><b>{item.actor || "S"}</b> {item.text}</p><span>{formatFullInboxTime(item.time)}{!item.read && " · New"}</span></span>
         {!item.read && <span className="notice-unread" aria-hidden="true"/>}
         <Heart size={16} fill={item.type === "like" ? "currentColor" : "none"} aria-hidden="true"/>
       </button>) : <div className="empty"><h3>No notifications here yet.</h3><p>New activity will appear in this view.</p></div>}
@@ -346,7 +353,7 @@ export function MessagesRoute({ currentUserId = null }) {
   };
 
   return <div className="messages">
-    <aside>{orderedConversations.map((conversation) => {
+    <aside>{orderedConversations.length === 0 && !loading && !error && <div className="empty messages-empty"><h3>No conversations yet</h3><p>This is expected when you have not started a conversation. Open someone’s profile and choose Message to create the first conversation.</p></div>}{orderedConversations.map((conversation) => {
       const latest = messages[conversation.id]?.length ? [...messages[conversation.id]].sort((a, b) => (Date.parse(b?.createdAt || "") || 0) - (Date.parse(a?.createdAt || "") || 0))[0] : null;
       const preview = latest?.text || (latest?.media ? "Image" : conversation.lastMessage || "No messages yet");
       const previewTime = latest?.createdAt || conversation.updatedAt;
