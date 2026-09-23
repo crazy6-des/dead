@@ -51,7 +51,14 @@ export function validatePostDraft(draft) {
     const audioErrors = validateAudioAsset(payload.audio);
     if (audioErrors.length) errors.audio = audioErrors[0];
   }
-  if (payload.poll) {\n    const question = String(payload.poll.question || "").trim();\n    const options = Array.isArray(payload.poll.options) ? payload.poll.options.map((value) => String(value || "").trim()).filter(Boolean) : [];\n    if (!question || question.length > 280) errors.poll = "Poll question must contain 1-280 characters.";\n    else if (options.length < 2 || options.length > 4) errors.poll = "A poll needs 2-4 options.";\n    else if (new Set(options).size !== options.length) errors.poll = "Poll options must be unique.";\n    else if (options.some((value) => value.length > 100)) errors.poll = "Poll options must contain 100 characters or fewer.";\n  }
+  if (payload.poll) {
+    const question = String(payload.poll.question || "").trim();
+    const options = Array.isArray(payload.poll.options) ? payload.poll.options.map((value) => String(value || "").trim()).filter(Boolean) : [];
+    if (!question || question.length > 280) errors.poll = "Poll question must contain 1-280 characters.";
+    else if (options.length < 2 || options.length > 4) errors.poll = "A poll needs 2-4 options.";
+    else if (new Set(options).size !== options.length) errors.poll = "Poll options must be unique.";
+    else if (options.some((value) => value.length > 100)) errors.poll = "Poll options must contain 100 characters or fewer.";
+  }
   if (payload.background !== null) {
     if (typeof payload.background !== "object" || payload.background.type !== "color" || typeof payload.background.value !== "string" || !/^#[0-9a-fA-F]{6}$/.test(payload.background.value)) {
       errors.background = "Background must be a valid color.";
