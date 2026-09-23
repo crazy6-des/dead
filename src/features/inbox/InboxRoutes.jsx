@@ -41,16 +41,50 @@ export function NotificationsRoute({ onOpen }) {
   const [tab, setTab] = useState(NOTIFICATION_FILTERS.ALL);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+
+  const loadNotifications = async ({ silent = false } = {}) => {
+    if (silent) setRefreshing(true);
+    else setLoading(true);
+    try {
+      const page = await notifications.list({ filter: tab });
+      setItems(page.items || []);
+      setError("");
+    } catch (err) {
+      setError(err?.message || "Could not load notifications.");
+    } finally {
+      if (silent) setRefreshing(false);
+      else setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setError("");
     notifications.list({ filter: tab }).then((page) => {
-      if (active) { setItems(page.items || []); setError(""); setLoading(false); }
+      if (!active) return;
+      setItems(page.items || []);
+      setLoading(false);
     }).catch((err) => {
-      if (active) { setError(err?.message || "Could not load notifications."); setLoading(false); }
+      if (!active) return;
+      setError(err?.message || "Could not load notifications.");
+      setLoading(false);
     });
     return () => { active = false; };
+  }, [tab, notifications]);
+
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") loadNotifications({ silent: true });
+    };
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [tab, notifications]);
 
   const unreadCount = items.filter((item) => !item.read).length;
@@ -77,21 +111,24 @@ export function NotificationsRoute({ onOpen }) {
   };
 
   return <div className="page">
-    <div className="heading"><small>INBOX</small><h2>Notifications {unreadCount > 0 && <span className="badge">{unreadCount}</span>}</h2><p>Every interaction, follow and mention in one place.</p></div>
-    <div className="tabs3">{[NOTIFICATION_FILTERS.ALL, NOTIFICATION_FILTERS.REPLIES].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { setLoading(true); setTab(item); }}>{item}</button>)}</div>
-    {unreadCount > 0 && <div className="page-actions"><button className="outline" onClick={markAllRead}>Mark all as read</button></div>}
-    <section className="card">
+    <div className="heading"><small>INBOX</small><h2>Notifications {unreadCount > 0 && <span className="badge">{unreadCount}</span>}</h2><p>Likes, follows, replies, reposts and other activity.</p></div>
+    <div className="tabs3">{[NOTIFICATION_FILTERS.ALL, NOTIFICATION_FILTERS.REPLIES].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { setLoading(true); setTab(item); }} aria-pressed={tab === item}>{item}</button>)}</div>
+    <div className="page-actions">
+      {unreadCount > 0 && <button className="outline" onClick={markAllRead}>Mark all as read</button>}
+      <button className="outline" onClick={() => loadNotifications()} disabled={loading || refreshing} aria-label="Refresh notifications">{refreshing ? "Refreshing…" : "Refresh"}</button>
+    </div>
+    <section className="card" aria-busy={loading || refreshing}>
       {loading ? <div className="empty" role="status"><h3>Loading activity…</h3></div> :
-       error ? <div className="empty" role="alert"><h3>Could not load activity</h3><p>{error}</p></div> :
-       items.length ? items.map((item) => <button className={"notice " + (item.read ? "is-read" : "")} key={item.id} onClick={() => openNotification(item)}>
+       error ? <div className="empty" role="alert"><h3>Could not load activity</h3><p>{error}</p><button className="outline" onClick={() => loadNotifications()}>Try again</button></div> :
+       items.length ? items.map((item) => <button className={"notice " + (item.read ? "is-read" : "is-unread")} key={item.id} onClick={() => openNotification(item)} aria-label={(item.actor || "S") + " " + item.text + (item.read ? "" : ", unread")}>
         <span className="avatar avatar--small">{String(item.actor || "S")[0]}</span>
         <span><p><b>{item.actor || "S"}</b> {item.text}</p><span>{item.time}{!item.read && " · New"}</span></span>
-        <Heart size={16} fill={item.type === "like" ? "currentColor" : "none"}/>
+        {!item.read && <span className="notice-unread" aria-hidden="true"/>}
+        <Heart size={16} fill={item.type === "like" ? "currentColor" : "none"} aria-hidden="true"/>
       </button>) : <div className="empty"><h3>No notifications here yet.</h3><p>New activity will appear in this view.</p></div>}
     </section>
   </div>;
 }
-
 export function MessagesRoute({ currentUserId = null }) {
   const messagesApi = useMemo(() => createMessageAdapter(), []);
   const [conversations, setConversations] = useState([]);
