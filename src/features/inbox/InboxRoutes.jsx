@@ -8,6 +8,27 @@ import { createMessageAdapter } from "../../services/messageService.js";
 import { bookmarkService } from "../../services/bookmarkService.js";
 import { MESSAGE_IMAGE_LIMITS } from "../messages/messageContract.js";
 
+function formatConversationTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const diff = Date.now() - date.getTime();
+  if (diff < 60 * 1000) return "now";
+  if (diff < 60 * 60 * 1000) return Math.floor(diff / (60 * 1000)) + "m";
+  if (diff < 24 * 60 * 60 * 1000) return Math.floor(diff / (60 * 60 * 1000)) + "h";
+  if (diff < 7 * 24 * 60 * 60 * 1000) return Math.floor(diff / (24 * 60 * 60 * 1000)) + "d";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function formatMessageDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const now = new Date();
+  if (date.toDateString() === now.toDateString()) return "Today";
+  return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
 export function NotificationsRoute({ onOpen }) {
   const notifications = useMemo(() => createNotificationAdapter(), []);
   const [tab, setTab] = useState(NOTIFICATION_FILTERS.ALL);
@@ -204,14 +225,17 @@ export function MessagesRoute() {
   return <div className="messages">
     <aside>{conversations.map((conversation) => {
       const latest = messages[conversation.id]?.at(-1);
+      const preview = latest?.text || (latest?.media ? "Image" : conversation.lastMessage || "No messages yet");
+      const previewTime = latest?.createdAt || conversation.updatedAt;
+      const avatarLetter = String(conversation.name || conversation.username || "S").trim().charAt(0).toUpperCase() || "S";
       return <button key={conversation.id} className={"conversation " + (selected === conversation.id ? "active" : "")} onClick={() => selectConversation(conversation.id)}>
-        <span className="avatar avatar--small">{conversation.name[0]}</span>
-        <span><b>{conversation.name}</b><small>{latest?.text || (latest?.media ? "Image" : "Start a conversation")}</small></span>
-        <small>{selected === conversation.id ? "now" : "1m"}</small>
+        <span className="avatar avatar--small">{avatarLetter}</span>
+        <span><b>{conversation.name || conversation.username || "Conversation"}</b><small>{preview}</small></span>
+        <small>{formatConversationTime(previewTime)}</small>
       </button>;
     })}</aside>
     <section className="chat">
-      <header><span className="avatar avatar--small">{selectedName[0]}</span><span><b>{selectedName}</b><small>Active recently</small></span><MoreHorizontal/></header>
+      <header><span className="avatar avatar--small">{String(selectedName).charAt(0).toUpperCase()}</span><span><b>{selectedName}</b><small>{selectedConversation?.username ? "@" + selectedConversation.username : "Conversation"}</small></span><MoreHorizontal/></header>
       <div className="chat-body">
         <small>Today</small>
         {loading ? <div className="empty" role="status"><p>Loading conversation…</p></div> : conversationError ? <div className="empty" role="alert"><h3>Conversation unavailable</h3><p>{conversationError}</p></div> :
