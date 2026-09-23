@@ -207,6 +207,7 @@ if (!signup2.authenticated || signup2.user?.username !== username2) throw new Er
 
 const partnerCookie = cookie;
 
+cookie = primaryCookie;
 const pollCreated = await request("/api/posts", {
   method: "POST",
   body: JSON.stringify({
