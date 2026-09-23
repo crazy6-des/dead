@@ -81,5 +81,6 @@ export async function listReplies(request, env, postId) {
     ORDER BY p.created_at DESC, p.id DESC LIMIT ?${values.length}`).bind(...values).all();
   const items = rows.results.slice(0, limit).map(serializeReply).reverse();
   const oldest = items[0];
-  return { response: { items, nextCursor: rows.results.length > limit && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null }, error: null };
+  const countRow = await env.DB.prepare("SELECT COUNT(*) AS count FROM posts WHERE reply_to_id = ?1 AND deleted_at IS NULL").bind(postId).first();
+  return { response: { items, replyCount: Number(countRow?.count || 0), nextCursor: rows.results.length > limit && oldest ? encodeCursor(oldest.createdAt, oldest.id) : null }, error: null };
 }
