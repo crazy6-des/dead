@@ -197,7 +197,7 @@ export async function createPost(request, env) {
   }
 
   const row = await db.prepare(
-    `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.quoted_post_id, p.created_at, p.updated_at, u.username, u.display_name,
+    `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.quoted_post_id, p.poll_json, p.created_at, p.updated_at, u.username, u.display_name,
       (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id = p.id ORDER BY m.position) AS media,
       0 AS like_count, 0 AS repost_count, 0 AS reply_count, 0 AS bookmark_count,
       (SELECT json_object('id',qp.id,'author',json_object('username',qu.username,'displayName',qu.display_name),'text',qp.body) FROM posts qp JOIN users qu ON qu.id = qp.author_id WHERE qp.id = p.quoted_post_id AND qp.deleted_at IS NULL) AS quoted_post
