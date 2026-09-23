@@ -196,6 +196,26 @@ function visibilitySql(alias = "p") {
   )`;
 }
 
+export async function getPost(request, env, postId) {
+  const session = await requireUser(request, env);
+  if (!session) return { response: null, error: error("UNAUTHORIZED", 401, "Authentication is required.") };
+  if (!env?.DB) return { response: null, error: error("SERVICE_UNAVAILABLE", 503, "Post service is not configured.") };
+  const normalizedId = String(postId || "").trim();
+  if (!normalizedId) return { response: null, error: error("VALIDATION_ERROR", 400, "A post id is required.") };
+  const values = [session.user_id, normalizedId];
+  const visibility = visibilitySql("p").replace(/\?USER\?/g, () => { values.push(session.user_id); return `?${values.length}`; });
+  const row = await env.DB.prepare(`SELECT p.id,p.author_id,p.body,p.visibility,p.reply_policy,p.post_kind,p.background_json,p.quoted_post_id,p.created_at,p.updated_at,u.username,u.display_name,
+    (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id=p.id ORDER BY m.position) AS media,
+    (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id=p.id AND r.reaction_type='like') AS like_count,
+    (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id=p.id AND r.reaction_type='repost') AS repost_count,
+    (SELECT COUNT(*) FROM posts rp WHERE rp.reply_to_id=p.id AND rp.deleted_at IS NULL) AS reply_count,
+    (SELECT COUNT(*) FROM bookmarks b WHERE b.post_id=p.id) AS bookmark_count,
+    (SELECT json_object('id',qp.id,'author',json_object('username',qu.username,'displayName',qu.display_name),'text',qp.body) FROM posts qp JOIN users qu ON qu.id=qp.author_id WHERE qp.id=p.quoted_post_id AND qp.deleted_at IS NULL) AS quoted_post
+    FROM posts p JOIN users u ON u.id=p.author_id WHERE p.id=?2 AND p.deleted_at IS NULL AND u.deleted_at IS NULL AND ${visibility} LIMIT 1`).bind(...values).first();
+  if (!row) return { response: null, error: error("POST_NOT_FOUND",404,"Post was not found or is not available.") };
+  return { response: { post: serializePost(row) }, error: null };
+}
+
 export async function listFeed(request, env) {
   const session = await requireUser(request, env);
   if (!session) return { response: null, error: error("UNAUTHORIZED", 401, "Authentication is required.") };
