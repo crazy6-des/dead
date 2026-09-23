@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 const baseUrl = String(process.env.LIVE_API_BASE_URL || "").replace(/\/$/, "");
 const origin = String(process.env.TEST_ORIGIN || "");
 const username = String(process.env.TEST_USERNAME || "");
@@ -255,13 +254,7 @@ const partnerMessages = await request("/api/messages/conversations/" + encodeURI
 const inboundText = partnerMessages.items?.find((item) => item.text === "S live E2E message");
 const inboundImage = partnerMessages.items?.find((item) => item.media?.mediaId === messageMediaId);
 if (!inboundText || inboundText.direction !== "in" || !inboundImage || inboundImage.direction !== "in") {
-  let rawMessages = "unavailable";
-  try {
-    rawMessages = execFileSync("npx", ["--yes", "wrangler", "d1", "execute", "sss", "--remote", "--command", "SELECT id, sender_id, message_type, body, created_at, deleted_at, media_id FROM messages WHERE conversation_id = '" + conversationId + "' ORDER BY created_at ASC, id ASC;", "--json"], { encoding: "utf8" }).trim();
-  } catch (error) {
-    rawMessages = "diagnostic query failed: " + String(error?.message || error);
-  }
-  throw new Error("Live messaging inbound direction/media contract failed: " + JSON.stringify({ inboundText, inboundImage, expectedMediaId: messageMediaId, items: partnerMessages.items, rawMessages }));
+  throw new Error("Live messaging inbound direction/media contract failed: " + JSON.stringify({ inboundText, inboundImage, expectedMediaId: messageMediaId, items: partnerMessages.items }));
 }
 
 const partnerNotifications = await request("/api/notifications");
