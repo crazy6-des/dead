@@ -101,6 +101,7 @@ export function MessagesRoute({ currentUserId = null }) {
   const [messages, setMessages] = useState({});
   const [messageCursors, setMessageCursors] = useState({});
   const [loadingOlder, setLoadingOlder] = useState(false);
+  const [failedMedia, setFailedMedia] = useState({});
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -179,6 +180,12 @@ export function MessagesRoute({ currentUserId = null }) {
     return String(a?.id || "").localeCompare(String(b?.id || ""));
   }), [conversations]);
   const renderMessage = (message) => ({ ...message, direction: message.direction || (currentUserId && message.senderId === currentUserId ? "out" : "in") });
+
+  useEffect(() => {
+    if (!selected || loading || conversationError || loadingOlder) return;
+    const body = chatBodyRef.current;
+    if (body) body.scrollTop = body.scrollHeight;
+  }, [selected, loading, conversationError]);
 
   const loadOlderMessages = async () => {
     const cursor = messageCursors[selected];
@@ -303,7 +310,6 @@ export function MessagesRoute({ currentUserId = null }) {
     <section className="chat">
       <header><span className="avatar avatar--small">{String(selectedName).charAt(0).toUpperCase()}</span><span><b>{selectedName}</b><small>{selectedConversation?.username ? "@" + selectedConversation.username : "Conversation"}</small></span><MoreHorizontal/></header>
       <div className="chat-body" ref={chatBodyRef}>
-        {!loading && !conversationError && currentMessages[0]?.createdAt && <small>{formatMessageDate(currentMessages[0].createdAt)}</small>}
         {!loading && !conversationError && messageCursors[selected] && <button className="outline message-load-older" onClick={loadOlderMessages} disabled={loadingOlder}>{loadingOlder ? "Loading older messages…" : "Load older messages"}</button>}
         {loading ? <div className="empty" role="status"><p>Loading conversation…</p></div> : conversationError ? <div className="empty" role="alert"><h3>Conversation unavailable</h3><p>{conversationError}</p></div> :
          orderedMessages.map((rawMessage, index) => {
@@ -313,7 +319,8 @@ export function MessagesRoute({ currentUserId = null }) {
           return <React.Fragment key={message.id}>
             {showDate && <small className="message-date">{formatMessageDate(message.createdAt)}</small>}
             <div className={"bubble " + (message.direction === "out" ? "out" : "in")}>
-            {message.media?.url && <img className="message-image" src={message.media.url} alt={message.media.name || "Shared image"} />}
+            {message.media?.url && !failedMedia[message.id] && <img className="message-image" src={message.media.url} alt={message.media.name || "Shared image"} onError={() => setFailedMedia((current) => ({ ...current, [message.id]: true }))} />}
+              {message.media?.url && failedMedia[message.id] && <div className="message-media-error" role="img" aria-label="Image could not be loaded">Image unavailable</div>}
             {message.text && <div>{message.text}</div>}
             {message.status === "failed" && <small> · Failed</small>}
             {message.status === "sending" && <small> · Sending</small>}
