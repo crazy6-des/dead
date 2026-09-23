@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import PostCard from "../post/PostCard.jsx";
 import { PRODUCT_IDENTITY } from "../../app/productIdentity.js";
+import { getUserPresentation } from "../auth/userPresentation.js";
 
 const TABS = ["For You", "Following", "Latest"];
 
-export default function HomeRoute({ posts, onLike, onSave, onFollow, onRepost, onCreate, onOpen, onModeChange, loading = false, loadingMore = false, hasMore = false, error = "", onRetry, onLoadMore }) {
+export default function HomeRoute({ currentUser, posts, onLike, onSave, onFollow, onRepost, onCreate, onOpen, onModeChange, loading = false, loadingMore = false, hasMore = false, error = "", onRetry, onLoadMore }) {
   const [tab, setTab] = useState("For You");
   const visible = Array.isArray(posts) ? posts : [];
+  const presentation = getUserPresentation(currentUser);
   let timeline;
   if (loading) {
     timeline = <div className="empty" role="status" aria-live="polite"><h3>Loading your timeline…</h3><p>Fetching the latest posts from S.</p></div>;
@@ -29,7 +31,7 @@ export default function HomeRoute({ posts, onLike, onSave, onFollow, onRepost, o
       {TABS.map((name) => <button key={name} type="button" role="tab" aria-selected={tab === name} className={tab === name ? "selected" : ""} onClick={() => { setTab(name); onModeChange?.(name); }}>{name}</button>)}
     </div>
     <button className="quick" type="button" onClick={onCreate}>
-      <span className="avatar">D</span>
+      <span className="avatar">{presentation.avatarInitial}</span>
       <span><b>{PRODUCT_IDENTITY.composerPrompt}</b><small>{PRODUCT_IDENTITY.composerHint}</small></span>
       <Plus size={19} aria-hidden="true" />
     </button>
