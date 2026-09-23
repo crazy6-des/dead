@@ -93,7 +93,7 @@ export default function SettingsRoute({ onSettingsUpdate, onOpen, auth }) {
       })}
     </section>)}
 
-    <section className="settings"><h3>Account access</h3><AuthPanel auth={auth} /></section>
+    <section className="settings"><h3>Account access</h3><AuthPanel auth={auth} onSignedOut={() => onOpen?.("/")} /></section>
     <section className="settings"><h3>Account protection</h3><div className="setting-callout"><Shield/><span><b>Privacy is enforced by the server</b><small>Account privacy and messaging choices are stored with your account, not just displayed in the UI.</small></span></div></section>
   </div>;
 }
