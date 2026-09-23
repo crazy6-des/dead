@@ -102,12 +102,10 @@ export default function App() {
   };
   useEffect(() => {
     let active = true;
-    setFeedLoading(true);
-    setFeedError("");
-    setFeedCursor(null);
     const feed = createFeedAdapter({ seedPosts: [] });
     feed.list({ mode: feedMode, cursor: null }).then((page) => {
       if (!active) return;
+      setFeedError("");
       if (Array.isArray(page?.items)) setPosts(page.items);
       setFeedCursor(page?.nextCursor || null);
     }).catch((error) => {
