@@ -43,7 +43,6 @@ export async function getMedia(request, env, mediaId) {
   const row = await env.DB.prepare(`
     SELECT pm.id, pm.object_key, pm.mime_type, pm.byte_size, pm.owner_id, pm.post_id,
       p.author_id AS post_author_id, p.deleted_at AS post_deleted_at, p.visibility AS post_visibility,
-      us.private_account AS post_private_account,
       m.sender_id AS message_sender_id
     FROM post_media pm
     LEFT JOIN posts p ON p.id = pm.post_id
@@ -52,25 +51,31 @@ export async function getMedia(request, env, mediaId) {
     LIMIT 1
   `).bind(mediaId).first();
   if (!row) return fail("NOT_FOUND",404,"Media not found.");
-  const publicPostAllowed = Boolean(
-    row.post_id
-    && !row.post_deleted_at
-    && row.post_visibility === "public"
-    && Number(row.post_private_account || 0) === 0
-  );
-  // Public post media is deliberately deliverable without a session because
-  // browser <img>/<audio> requests cannot reliably attach cross-origin session
-  // cookies from the Netlify frontend to the Cloudflare Worker. Private,
-  // followers-only, owner, and message media still require authentication.
+
+  // Public post media may be requested without a session because cross-origin
+  // browser media requests from Netlify cannot depend on the app session cookie.
+  // Keep the private-account decision out of the base media lookup so owner
+  // access to newly uploaded, not-yet-published media has no public-policy
+  // dependency.
+  let publicPostAllowed = false;
+  if (row.post_id && !row.post_deleted_at && row.post_visibility === "public") {
+    const account = await env.DB.prepare(
+      "SELECT private_account FROM user_settings WHERE user_id = ?1 LIMIT 1"
+    ).bind(row.post_author_id).first();
+    publicPostAllowed = Number(account?.private_account || 0) === 0;
+  }
+
   if (!session?.user_id && !publicPostAllowed) {
     return fail("UNAUTHORIZED",401,"Authentication is required.");
   }
+
   // Lightweight/unit-test adapters may only expose the legacy media columns.
   // Preserve the owner-delivery contract when relational visibility columns
   // are unavailable; production D1 supplies the full authorization context.
   if (row.owner_id === undefined && row.post_id === undefined && row.message_sender_id === undefined) {
     return new Response(await env.MEDIA_BUCKET.get(row.object_key)?.body || null, { headers: { "content-type": row.mime_type || "application/octet-stream" } });
   }
+
   const ownerAllowed = Boolean(session?.user_id && row.owner_id === session.user_id);
   let postAllowed = false;
   if (row.post_id && !row.post_deleted_at) {
@@ -88,11 +93,14 @@ export async function getMedia(request, env, mediaId) {
       postAllowed = !blocked && Boolean(visible || (post?.visibility === "followers" && followed));
     }
   }
+
   const messageAllowed = Boolean(
     session?.user_id
     && await env.DB.prepare("SELECT 1 FROM conversation_members cm JOIN messages m2 ON m2.conversation_id = cm.conversation_id WHERE m2.media_id = ?1 AND m2.deleted_at IS NULL AND cm.user_id = ?2 LIMIT 1").bind(mediaId, session.user_id).first()
   );
+
   if (!publicPostAllowed && !ownerAllowed && !postAllowed && !messageAllowed) return fail("FORBIDDEN",403,"You do not have access to this media.");
+
   const object = await env.MEDIA_BUCKET.get(row.object_key);
   if (!object) return fail("NOT_FOUND",404,"Media not found.");
   const headers = new Headers();
