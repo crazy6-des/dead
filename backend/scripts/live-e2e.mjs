@@ -222,6 +222,10 @@ const sentMessage = await request("/api/messages", {
 if (sentMessage.direction !== "out" || sentMessage.text !== "S live E2E message") {
   throw new Error("Live messaging outbound direction contract failed.");
 }
+const primaryMessagesAfterText = await request("/api/messages/conversations/" + encodeURIComponent(conversationId));
+if (!primaryMessagesAfterText.items?.some((item) => item.id === sentMessage.id && item.text === "S live E2E message" && item.direction === "out")) {
+  throw new Error("Live messaging text persistence failed before image send: " + JSON.stringify({ sentMessage, items: primaryMessagesAfterText.items }));
+}
 
 const messageImageForm = new FormData();
 messageImageForm.append("file", new Blob([imageBytes], { type: "image/png" }), "e2e-message.png");
