@@ -4,6 +4,7 @@ import PostCard from "../post/PostCard.jsx";
 import { toFeedPostFromCreatedPost } from "../feed/feedPostAdapter.js";
 import { profileService } from "../../services/profileService.js";
 import { hasApiBaseUrl } from "../../services/apiClient.js";
+import { settingsService } from "../../services/settingsService.js";
 
 const DEFAULT_PROFILE = Object.freeze({
   displayName: "David",
@@ -137,7 +138,9 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
 
     setSavingProfile(true);
     try {
-      const result = hasApiBaseUrl() ? await profileService.updateMe(next) : next;
+      const { privateAccount, ...profilePatch } = next;
+      const result = hasApiBaseUrl() ? await profileService.updateMe(profilePatch) : next;
+      if (hasApiBaseUrl()) await settingsService.update({ privateAccount });
       const saved = result?.profile || result || next;
       const normalizedSaved = { ...DEFAULT_PROFILE, ...saved };
       if (profile.avatarUrl && profile.avatarUrl !== normalizedSaved.avatarUrl) revokeAvatarObjectUrl(profile.avatarUrl);
