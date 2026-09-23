@@ -74,7 +74,7 @@ export async function getMedia(request, env, mediaId) {
   const ownerAllowed = Boolean(session?.user_id && row.owner_id === session.user_id);
   let postAllowed = false;
   if (row.post_id && !row.post_deleted_at) {
-    if (row.post_author_id === session.user_id) {
+    if (session?.user_id && row.post_author_id === session.user_id) {
       postAllowed = true;
     } else {
       const visible = await env.DB.prepare("SELECT 1 FROM posts p WHERE p.id = ?1 AND p.visibility = 'public' AND p.deleted_at IS NULL AND EXISTS (SELECT 1 FROM user_settings us WHERE us.user_id = p.author_id AND us.private_account = 0) LIMIT 1").bind(row.post_id).first();
