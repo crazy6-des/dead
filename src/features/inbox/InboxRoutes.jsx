@@ -103,6 +103,18 @@ export function MessagesRoute() {
   }, [selectedImage]);
 
   useEffect(() => {
+    const syncConversationFromUrl = () => {
+      const conversationId = new URLSearchParams(window.location.search).get("conversation") || null;
+      setSelected(conversationId);
+      setDraft("");
+      setError("");
+      setConversationError("");
+    };
+    window.addEventListener("popstate", syncConversationFromUrl);
+    return () => window.removeEventListener("popstate", syncConversationFromUrl);
+  }, []);
+
+  useEffect(() => {
     let active = true;
     setLoading(true);
     setError("");
@@ -220,6 +232,12 @@ export function MessagesRoute() {
     setSelected(id);
     setDraft("");
     setError("");
+    setConversationError("");
+    const params = new URLSearchParams(window.location.search);
+    params.set("conversation", id);
+    const nextUrl = window.location.pathname + "?" + params.toString() + window.location.hash;
+    const currentUrl = window.location.pathname + window.location.search + window.location.hash;
+    if (nextUrl !== currentUrl) window.history.pushState({}, "", nextUrl);
   };
 
   return <div className="messages">
