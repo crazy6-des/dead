@@ -61,8 +61,6 @@ export function NotificationsRoute({ onOpen }) {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError("");
     notifications.list({ filter: tab }).then((page) => {
       if (!active) return;
       setItems(page.items || []);
@@ -85,7 +83,7 @@ export function NotificationsRoute({ onOpen }) {
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
-  }, [tab, notifications]);
+  }, [loadNotifications]);
 
   const unreadCount = items.filter((item) => !item.read).length;
 
