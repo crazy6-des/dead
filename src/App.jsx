@@ -132,8 +132,9 @@ export default function App() {
   };
   const runPostAction = (id, action, readState, transition, countKey) => {
     const current = posts.find((post) => post.id === id);
-    if (!current || !hasApiBaseUrl()) return;
+    if (!current) return;
     const key = id + ":" + action;
+    if (!hasApiBaseUrl()) { setPosts((all) => transition(all, id)); return; }
     if (postActionBusyRef.current.has(key)) return;
     const enabled = !Boolean(readState(current));
     setPosts((all) => transition(all, id));
