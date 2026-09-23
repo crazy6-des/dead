@@ -5,7 +5,7 @@ export function createApiMessageAdapter(client = apiClient) {
   return {
     listConversations(request = {}) { return client.get("/api/messages/conversations", { query: createConversationRequest(request) }); },
     createConversation(username) { return client.post("/api/messages/conversations", { username: String(username || "").replace(/^@/, "").trim().toLowerCase() }); },
-    listMessages(conversationId, request = {}) { return client.get("/api/messages/conversations/" + encodeURIComponent(conversationId), { query: createConversationRequest(request) }).then((page) => ({ ...page, items:(page?.items || []).map(normalizeMessage) })); },
+    listMessages(conversationId, request = {}) { return client.get("/api/messages/conversations/" + encodeURIComponent(conversationId), { query: createConversationRequest(request) }).then((page) => ({ ...page, items:(page?.items || []).map((item) => { const normalized = normalizeMessage(item); return normalized.media ? { ...normalized, media: { ...normalized.media, url: resolveApiUrl(normalized.media.url) } } : normalized; }) })); },
     markConversationRead(conversationId) { return client.post("/api/messages/conversations/" + encodeURIComponent(conversationId) + "/read"); },
     uploadImage(file) {
       const form = new FormData();
