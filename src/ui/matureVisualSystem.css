@@ -954,3 +954,42 @@ select:focus-visible {
     max-height:440px;
   }
 }
+
+
+/* Account access: compact, standard settings treatment. */
+.account-auth-form{
+  display:grid;
+  gap:12px;
+  padding:14px 0 4px;
+  max-width:460px;
+}
+.account-auth-tabs{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.account-auth-tabs button,
+.account-auth-form > button{
+  min-height:40px;
+}
+.account-auth-form input{
+  box-sizing:border-box;
+  min-height:44px;
+  font:inherit;
+  outline:none;
+}
+.account-auth-form input:focus{
+  border-color:var(--s-accent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--s-accent) 14%,transparent);
+}
+.setting-callout button{
+  flex:0 0 auto;
+}
+@media(max-width:560px){
+  .account-auth-form{
+    max-width:none;
+  }
+  .setting-callout{
+    align-items:flex-start;
+  }
+}
