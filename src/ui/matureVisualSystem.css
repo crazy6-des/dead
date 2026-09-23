@@ -504,14 +504,15 @@ select:focus-visible {
   line-height: 1.45;
 }
 
-.in {
+.bubble.in {
   background: var(--s-surface-soft);
   color: var(--s-text);
 }
 
-.out {
-  background: var(--s-accent);
-  color: #fff;
+.bubble.out {
+  background: var(--s-surface-soft);
+  color: var(--s-text);
+  border: 1px solid var(--s-border);
 }
 
 .chat > footer input {
