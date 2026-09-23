@@ -121,7 +121,7 @@ function PostDetail({ post, onBack, onLike, onSave, onRepost, onOpen, onFollowUs
 }
 function PostEntityRoute({ postId, initialPost, ...props }) {
   const [post,setPost]=useState(initialPost||null); const [loading,setLoading]=useState(!initialPost); const [error,setError]=useState("");
-  useEffect(()=>{ if(initialPost) return undefined; let active=true; setError("");
+  useEffect(()=>{ if(initialPost) return undefined; let active=true;
     postService.getById(postId).then((result)=>{if(!active)return;setPost(result||null);if(!result)setError("This post may have been removed or is not available.");}).catch((cause)=>active&&setError(cause?.message||"Post could not be loaded.")).finally(()=>active&&setLoading(false));
     return()=>{active=false;};
   },[postId,initialPost]);
