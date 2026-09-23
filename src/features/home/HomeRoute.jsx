@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import PostCard from "../post/PostCard.jsx";
+import AppErrorBoundary from "../../ui/AppErrorBoundary.jsx";
 import { PRODUCT_IDENTITY } from "../../app/productIdentity.js";
 import { getUserPresentation } from "../auth/userPresentation.js";
 
@@ -17,7 +18,7 @@ export default function HomeRoute({ currentUser, posts, onLike, onSave, onFollow
     timeline = <div className="empty" role="alert"><h3>We couldn’t load this timeline</h3><p>{error}</p>{onRetry && <button className="primary" type="button" onClick={onRetry}>Try again</button>}</div>;
   } else if (visible.length > 0) {
     timeline = <div className="feed-list">
-      {visible.map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onFollow={onFollow} onRepost={onRepost} onOpen={onOpen} />)}
+      {visible.map((post, index) => <AppErrorBoundary key={post.id || `feed-${index}`}><PostCard post={post} onLike={onLike} onSave={onSave} onFollow={onFollow} onRepost={onRepost} onOpen={onOpen} /></AppErrorBoundary>)}
       {hasMore && <div className="feed-more"><button className="outline" type="button" onClick={onLoadMore} disabled={loadingMore}>{loadingMore ? "Loading…" : "Load more"}</button></div>}
     </div>;
   } else {
