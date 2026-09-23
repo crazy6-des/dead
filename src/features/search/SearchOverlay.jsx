@@ -12,6 +12,7 @@ export default function SearchOverlay({ posts = [], onOpen, onClose }) {
     return new URLSearchParams(window.location.search).get("q") || "";
   });
   const [remote, setRemote] = useState(null);
+  const [searchError, setSearchError] = useState("");
   const [history, setHistory] = useState(() => { try { return JSON.parse(window.localStorage.getItem("s.searchHistory") || "[]").filter((item) => typeof item === "string").slice(0, 8); } catch (error) { void error; return []; } });
   const q = query.trim().toLowerCase();
   const people = useMemo(() => [...new Map(posts.map((post) => [post.u || post.username, [post.a || post.displayName || post.username, post.u || post.username]]).filter(([username]) => username)).values()].filter(([name, username]) => !q || (name + " " + username).toLowerCase().includes(q)).slice(0, 8), [posts, q]);
@@ -43,9 +44,9 @@ export default function SearchOverlay({ posts = [], onOpen, onClose }) {
     });
   };
   return <div className="search-overlay" role="dialog" aria-modal="true" aria-label="Search S">
-    <div className="search-overlay__bar"><button onClick={onClose} aria-label="Close search"><ArrowLeft/></button><Search/><input autoFocus value={query} onChange={(e) => { setRemote(null); setQuery(e.target.value); }} onKeyDown={(e) => { if (e.key === "Enter") commitSearch(e.currentTarget.value); }} placeholder={PRODUCT_IDENTITY.searchPlaceholder}/><button onClick={() => setQuery("")} aria-label="Clear search"><X/></button></div>
+    <div className="search-overlay__bar"><button onClick={onClose} aria-label="Close search"><ArrowLeft/></button><Search/><input autoFocus value={query} onChange={(e) => { setRemote(null); setSearchError(""); setQuery(e.target.value); const value = e.target.value.trim(); const nextPath = value ? "/search/" + encodeURIComponent(value) : "/search"; if (window.location.pathname !== nextPath) window.history.replaceState({}, "", nextPath); }} onKeyDown={(e) => { if (e.key === "Enter") commitSearch(e.currentTarget.value); }} placeholder={PRODUCT_IDENTITY.searchPlaceholder}/><button onClick={() => setQuery("")} aria-label="Clear search"><X/></button></div>
     {!q && history.length > 0 && <section className="search-section"><header><h3>Recent searches</h3></header>{history.map((item) => <button className="search-history" key={item} onClick={() => { setQuery(item); commitSearch(item); }}><Clock3 size={16}/>{item}</button>)}</section>}
-    <div className="search-results">
+    <div className="search-results">{searchError && <div className="inline-notice" role="alert">{searchError}</div>}{q && !remote && !searchError && <div className="empty" role="status"><p>Searching…</p></div>}
       <section className="search-section"><header><h3>People</h3></header>{(remote ? (remote.items?.people || []).map((p) => [p.name,p.username]) : people).map(([name,username]) => <button className="search-result" key={username} onClick={() => onOpen?.("/user/"+encodeURIComponent(username))}><span className="avatar avatar--small">{name[0]}</span><span><b>{name}</b><small>@{username}</small></span><UserRound size={16}/></button>)}</section>
       <section className="search-section"><header><h3>Posts</h3></header>{(remote ? (remote.items?.posts || []).map((post) => toFeedPostFromCreatedPost(post)) : postResults).map((post) => <button className="search-result" key={post.id} onClick={() => onOpen?.("/post/"+encodeURIComponent(post.id))}><span className="avatar avatar--small">{(post.a || "S")[0]}</span><span><b>{post.a}</b><small>{post.x}</small></span></button>)}</section>
       <section className="search-section"><header><h3>Topics</h3></header>{topics.map((topic) => <button className="search-result" key={topic} onClick={() => onOpen?.("/topic/"+encodeURIComponent(topic))}><Hash size={18}/><span><b>{topic}</b><small>Explore conversation</small></span></button>)}</section>
