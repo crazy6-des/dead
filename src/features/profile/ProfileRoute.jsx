@@ -195,7 +195,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
 
       {loadingProfile ? <div className="empty" role="status"><p>Loading profile…</p></div> : null}
       <div className="profile-info">
-        <h2>{profile.displayName} <span className="verified"><Check size={10} /></span></h2>
+        <h2>{profile.displayName}{profile.verified ? <span className="verified"><Check size={10} /></span> : null}</h2>
         <span>@{profile.username}</span>
         <p>{profile.bio || "No bio yet."}</p>
         <div className="links">
