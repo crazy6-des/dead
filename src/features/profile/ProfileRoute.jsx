@@ -3,7 +3,7 @@ import { Camera, Check, Link2, MapPin, MoreHorizontal, X } from "lucide-react";
 import PostCard from "../post/PostCard.jsx";
 import { toFeedPostFromCreatedPost } from "../feed/feedPostAdapter.js";
 import { profileService } from "../../services/profileService.js";
-import { apiClient, hasApiBaseUrl } from "../../services/apiClient.js";
+import { apiClient, hasApiBaseUrl, resolveApiUrl } from "../../services/apiClient.js";
 import { settingsService } from "../../services/settingsService.js";
 
 const DEFAULT_PROFILE = Object.freeze({
@@ -64,7 +64,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
     profileService.getMe().then((result) => {
       const next = result?.profile || result;
       if (!active || !next?.username) return;
-      const normalized = { ...DEFAULT_PROFILE, ...next, privateAccount: Boolean(next.privacy?.privateAccount), showFollowerCount: next.privacy?.showFollowerCount !== false };
+      const normalized = { ...DEFAULT_PROFILE, ...next, avatarUrl: next.avatarUrl ? resolveApiUrl(next.avatarUrl) : "", privateAccount: Boolean(next.privacy?.privateAccount), showFollowerCount: next.privacy?.showFollowerCount !== false };
       setProfile(normalized);
       setDraft(normalized);
       setError("");
@@ -154,7 +154,7 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
       const result = hasApiBaseUrl() ? await profileService.updateMe(profilePatch) : next;
       if (hasApiBaseUrl()) await settingsService.update({ privateAccount });
       const saved = result?.profile || result || next;
-      const normalizedSaved = { ...DEFAULT_PROFILE, ...saved };
+      const normalizedSaved = { ...DEFAULT_PROFILE, ...saved, avatarUrl: saved.avatarUrl ? resolveApiUrl(saved.avatarUrl) : "" };
       if (profile.avatarUrl && profile.avatarUrl !== normalizedSaved.avatarUrl) revokeAvatarObjectUrl(profile.avatarUrl);
       if (draft.avatarUrl && draft.avatarUrl !== normalizedSaved.avatarUrl) revokeAvatarObjectUrl(draft.avatarUrl);
       setProfile(normalizedSaved);
