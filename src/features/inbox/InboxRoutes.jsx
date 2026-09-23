@@ -186,7 +186,7 @@ export function MessagesRoute() {
       if (uploadedMediaId) {
         try { await messagesApi.deleteMedia(uploadedMediaId); } catch (cleanupError) { setError((current) => current || cleanupError?.message || "Could not clean up the uploaded image."); }
       }
-      setMessages((current) => ({ ...current, [selectedName]: (current[selectedName] || []).map((item) => item.id === optimistic.id ? { ...item, status: "failed" } : item) }));
+      setMessages((current) => ({ ...current, [selected]: (current[selected] || []).map((item) => item.id === optimistic.id ? { ...item, status: "failed" } : item) }));
       setError(err?.message || "Could not send this message.");
     } finally {
       setSending(false);
