@@ -219,7 +219,7 @@ if (!reportTargetPostId) throw new Error("Moderation target post creation failed
 cookie = primaryCookie;
 const report = await request("/api/moderation/actions", {
   method: "POST",
-  body: JSON.stringify({ action: "report", targetType: "post", targetId: postId, reason: "spam", note: "S live moderation email E2E" }),
+  body: JSON.stringify({ action: "report", targetType: "post", targetId: reportTargetPostId, reason: "spam", note: "S live moderation email E2E" }),
 });
 if (!report.ok || !report.submitted || report.emailStatus !== "sent" || !report.reportId) {
   throw new Error("Production moderation report email contract failed: " + JSON.stringify(report));
