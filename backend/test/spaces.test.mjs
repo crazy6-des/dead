@@ -5,12 +5,12 @@ import { sha256Hex } from "../src/auth.js";
 const normalizeSql = value => value.replace(/\s+/g," ").trim().toLowerCase();
 const state={users:[{id:"u1",username:"alice",display_name:"Alice",avatar_url:null,deleted_at:null},{id:"u2",username:"bob",display_name:"Bob",avatar_url:null,deleted_at:null}],spaces:[],members:[],messages:[]};
 const now="2026-09-24T10:00:00.000Z";
-let lastSpaceLookup=null;
+let lastSpaceLookups=[];
 const db={
  prepare(query){const sql=normalizeSql(query);return {bind(...v){return {
   async first(){
    if(sql.startsWith("select s.id")) return v[0]===await sha256Hex("session-1")?{id:"sess",user_id:"u1",username:"alice",display_name:"Alice"}:null;
-   if(sql.includes("from spaces s join users u") && sql.includes("where s.id=?1")){lastSpaceLookup={sql,values:v};const spaceId=v[0];const s=state.spaces.find(x=>String(x.id)===String(spaceId));const u=state.users.find(x=>x.id===s?.host_id);return s?{...s,host_username:u.username,host_display_name:u.display_name,host_avatar_url:u.avatar_url}:null;}
+   if(sql.includes("from spaces s join users u") && sql.includes("where s.id=?1")){const spaceId=v[0];const s=state.spaces.find(x=>String(x.id)===String(spaceId));const u=state.users.find(x=>x.id===s?.host_id);lastSpaceLookups.push({spaceId,found:!!s,hostFound:!!u});return s?{...s,host_username:u.username,host_display_name:u.display_name,host_avatar_url:u.avatar_url}:null;}
    if(sql.startsWith("select space_id,user_id,role")) return state.members.find(x=>x.space_id===v[0]&&x.user_id===v[1])||null;
    if(sql.startsWith("select count(*) as count from space_members")) return {count:state.members.filter(x=>x.space_id===v[0]&&!x.left_at).length};
    if(sql.startsWith("select 1 from relationships")) return null;
@@ -43,8 +43,8 @@ let result=await createSpace(req("/api/spaces",{method:"POST",body:JSON.stringif
 assert.equal(result.error,null); assert.equal(result.response.space.host,"Alice"); assert.equal(state.spaces.length,1);
 const id=result.response.space.id; assert.ok(id); assert.equal(state.spaces[0].id,id);
 result=await listSpaces(req("/api/spaces"),{DB:db}); assert.equal(result.response.items[0].participantCount,1);
-console.log("SPACES_DEBUG",JSON.stringify({id,stateSpaces:state.spaces,lastSpaceLookup}));
-result=await joinSpace(req("/api/spaces/"+id+"/join",{method:"POST"}),{DB:db}); assert.equal(result.error,null); assert.equal(result.response.space.role,"host");
+console.log("SPACES_DEBUG",JSON.stringify({id,stateSpaces:state.spaces,lastSpaceLookups}));
+result=await joinSpace(req("/api/spaces/"+id+"/join",{method:"POST"}),{DB:db}); console.log("SPACES_AFTER_JOIN",JSON.stringify({result,stateSpaces:state.spaces,lastSpaceLookups})); assert.equal(result.error,null); assert.equal(result.response.space.role,"host");
 const db2={...db,prepare(query){const base=db.prepare(query);return {bind(...v){const b=base.bind(...v);return {first:async()=>{if(sql.startsWith("select s.id"))return v[0]===await sha256Hex("session-2")?{id:"sess2",user_id:"u2",username:"bob",display_name:"Bob"}:null;return b.first()},all:()=>b.all(),run:()=>b.run()}}}}};
 result=await joinSpace(req("/api/spaces/"+id+"/join",{method:"POST",headers:{Cookie:"s_session=session-2"}}),{DB:db2}); assert.equal(result.error,null);
 result=await createSpaceMessage(req("/api/spaces/"+id+"/messages",{method:"POST",body:JSON.stringify({text:"Hello Space"})}),{DB:db2}); assert.equal(result.error,null); assert.equal(result.response.message.text,"Hello Space");
