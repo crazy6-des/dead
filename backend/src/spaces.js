@@ -21,6 +21,7 @@ function participantQuery() {
 export async function listSpaces(request, env) {
   const user = await session(request, env);
   if (!user) return failure("UNAUTHORIZED", 401, "Authentication is required.");
+  await advanceDueSpaces(env);
   const url = new URL(request.url);
   const q = String(url.searchParams.get("q") || "").trim().slice(0, 80);
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 20), 1), 50);
@@ -49,7 +50,12 @@ function spaceRow(row) {
   };
 }
 
+async function advanceDueSpaces(env) {
+  const timestamp = now();
+  await env.DB.prepare("UPDATE spaces SET status='live',started_at=COALESCE(started_at,scheduled_at),updated_at=?1 WHERE status='scheduled' AND scheduled_at IS NOT NULL AND scheduled_at <= ?1").bind(timestamp).run();
+}
 async function getSpace(env, id) {
+  await advanceDueSpaces(env);
   return env.DB.prepare("SELECT s.*,u.username AS host_username,u.display_name AS host_display_name,u.avatar_url AS host_avatar_url FROM spaces s JOIN users u ON u.id=s.host_id WHERE s.id=?1 AND s.deleted_at IS NULL LIMIT 1").bind(id).first();
 }
 
@@ -63,8 +69,13 @@ export async function createSpace(request, env) {
   let body; try { body = await request.json(); } catch { return failure("INVALID_JSON",400,"Request body must be valid JSON."); }
   const title = cleanTitle(body?.title);
   if (title.length < 1) return failure("VALIDATION_ERROR",400,"A Space title is required.");
-  const scheduledAt = body?.scheduledAt ? new Date(body.scheduledAt).toISOString() : null;
-  if (scheduledAt && Number.isNaN(Date.parse(scheduledAt))) return failure("VALIDATION_ERROR",400,"scheduledAt must be a valid date.");
+  let scheduledAt = null;
+  if (body?.scheduledAt) {
+    const parsed = new Date(body.scheduledAt);
+    if (Number.isNaN(parsed.getTime())) return failure("VALIDATION_ERROR",400,"scheduledAt must be a valid date.");
+    if (parsed.getTime() <= Date.now()) return failure("VALIDATION_ERROR",400,"scheduledAt must be in the future.");
+    scheduledAt = parsed.toISOString();
+  }
   const id = crypto.randomUUID(), createdAt = now(), status = scheduledAt && Date.parse(scheduledAt) > Date.now() ? "scheduled" : "live";
   const startedAt = status === "live" ? createdAt : null;
   await env.DB.batch([
