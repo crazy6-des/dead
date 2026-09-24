@@ -80,7 +80,7 @@ function SpaceRoom({ space, onBack, onRefresh }) {
       }catch(err){if(!cancelled)setError(err?.message||"Could not load this Space.");}
     };
     void loadSpace();
-    const timer=globalThis.setInterval(()=>spaceService.heartbeat(space.id).catch(()=>{}),20000);
+    const timer=globalThis.setInterval(()=>spaceService.heartbeat(space.id).catch(() => undefined),20000);
     return()=>{cancelled=true;globalThis.clearInterval(timer);};
   },[space.id]);
   const send=async()=>{const value=text.trim();if(!value)return;const sent=audioRef.current?.sendChat(value);if(!sent){setError("Live connection is not ready. Try again in a moment.");return;}setText("");};
