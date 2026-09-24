@@ -121,3 +121,5 @@ export default { async fetch(request, env) {
   if (url.pathname === "/api/auth/sign-out") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); await revokeSession(request, env); return json({ ok: true }, 200, request, env, { "set-cookie": clearSessionCookie() }); }
   return errorResponse("NOT_FOUND", 404, "Route not found.", request, env);
 } };
+
+export { SpaceRoom } from "./spaceRealtime.js";
