@@ -64,7 +64,7 @@ const LiveAudio = forwardRef(function LiveAudio({ space, userRole, onRoleChange,
     {userRole==="host" || userRole==="speaker" ? <button className={mic?"primary":"outline"} onClick={mic?disableMic:enableMic}>{mic?<MicOff size={15}/>:<Mic size={15}/>} {mic?"Mute":"Speak"}</button> : <span className="space-listener-note"><Headphones size={14}/> Listening</span>}
     {error && <span className="space-live-error">{error}</span>}
   </div>;
-}
+});
 
 function SpaceRoom({ space, onBack, onRefresh }) {
   const [detail,setDetail]=useState(space), [members,setMembers]=useState([]), [messages,setMessages]=useState([]), [text,setText]=useState(""), [error,setError]=useState("");
