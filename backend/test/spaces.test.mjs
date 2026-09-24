@@ -8,7 +8,7 @@ const db={
  prepare(query){return {bind(...v){return {
   async first(){
    if(query.startsWith("SELECT s.id")) return v[0]===await sha256Hex("session-1")?{id:"sess",user_id:"u1",username:"alice",display_name:"Alice"}:null;
-   if(/FROM\s+spaces\s+s\s+JOIN\s+users\s+u/i.test(query)){const spaceId=v.find(value=>state.spaces.some(x=>String(x.id)===String(value)));const s=state.spaces.find(x=>String(x.id)===String(spaceId));const u=state.users.find(x=>x.id===s?.host_id);return s?{...s,host_username:u.username,host_display_name:u.display_name,host_avatar_url:u.avatar_url}:null;}
+   if(query.includes("FROM spaces s JOIN users u") && query.includes("SELECT s.*")){const spaceId=v[0];const s=state.spaces.find(x=>String(x.id)===String(spaceId));const u=state.users.find(x=>x.id===s?.host_id);return s?{...s,host_username:u.username,host_display_name:u.display_name,host_avatar_url:u.avatar_url}:null;}
    if(query.startsWith("SELECT space_id,user_id,role")) return state.members.find(x=>x.space_id===v[0]&&x.user_id===v[1])||null;
    if(query.startsWith("SELECT COUNT(*) AS count FROM space_members")) return {count:state.members.filter(x=>x.space_id===v[0]&&!x.left_at).length};
    if(query.startsWith("SELECT 1 FROM relationships")) return null;
