@@ -138,6 +138,12 @@ export async function endSpace(request,env,id) {
     env.DB.prepare("UPDATE spaces SET status='ended',ended_at=?2,updated_at=?2 WHERE id=?1").bind(id,ended),
     env.DB.prepare("UPDATE space_members SET left_at=?2 WHERE space_id=?1 AND left_at IS NULL").bind(id,ended),
   ]);
+  if (env.SPACE_ROOM) {
+    try {
+      const stub = env.SPACE_ROOM.get(env.SPACE_ROOM.idFromName(id));
+      await stub.fetch(new Request("https://space.internal/control/end", { method:"POST", headers:{"X-S-Space-Control":"end"} }));
+    } catch (error) { console.error("SPACE_END_REALTIME_CLEANUP_FAILED", error); }
+  }
   return {response:{ok:true,endedAt:ended},error:null};
 }
 
