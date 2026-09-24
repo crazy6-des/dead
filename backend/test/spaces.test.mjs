@@ -9,7 +9,7 @@ const db={
  prepare(query){const sql=normalizeSql(query);return {bind(...v){return {
   async first(){
    if(sql.startsWith("select s.id")) return v[0]===await sha256Hex("session-1")?{id:"sess",user_id:"u1",username:"alice",display_name:"Alice"}:null;
-   if(sql.startsWith("select s.*,u.username as host_username") && sql.includes("from spaces s join users u")){const spaceId=v[0];const s=state.spaces.find(x=>String(x.id)===String(spaceId));const u=state.users.find(x=>x.id===s?.host_id);return s?{...s,host_username:u.username,host_display_name:u.display_name,host_avatar_url:u.avatar_url}:null;}
+   if(sql.includes("from spaces s join users u") && sql.includes("where s.id=?1")){const spaceId=v[0];const s=state.spaces.find(x=>String(x.id)===String(spaceId));const u=state.users.find(x=>x.id===s?.host_id);return s?{...s,host_username:u.username,host_display_name:u.display_name,host_avatar_url:u.avatar_url}:null;}
    if(sql.startsWith("select space_id,user_id,role")) return state.members.find(x=>x.space_id===v[0]&&x.user_id===v[1])||null;
    if(sql.startsWith("select count(*) as count from space_members")) return {count:state.members.filter(x=>x.space_id===v[0]&&!x.left_at).length};
    if(sql.startsWith("select 1 from relationships")) return null;
@@ -27,7 +27,7 @@ const db={
   async run(){
    if(sql.startsWith("update spaces set status='live'")) return {success:true};
    if(sql.startsWith("insert into spaces")) state.spaces.push({id:v[0],host_id:v[1],title:v[2],status:v[3],scheduled_at:v[4],started_at:v[5],ended_at:null,created_at:v[6],updated_at:v[6],deleted_at:null});
-   else if(sql.startsWith("insert into space_members")) state.members.push({space_id:v[0],user_id:v[1],role:v[2]||"listener",joined_at:now,last_seen_at:v[2]||now,left_at:null});
+   else if(sql.startsWith("insert into space_members")) { const isHost=sql.includes("'host'"); state.members.push({space_id:v[0],user_id:v[1],role:isHost?"host":(v[2]||"listener"),joined_at:now,last_seen_at:isHost?v[2]:(v[2]||now),left_at:null}); }
    else if(sql.startsWith("update space_members set left_at")) state.members.filter(m=>m.space_id===v[0]&&m.user_id===v[1]).forEach(m=>m.left_at=v[2]);
    else if(sql.startsWith("update space_members set last_seen_at")) state.members.filter(m=>m.space_id===v[0]&&m.user_id===v[1]).forEach(m=>m.last_seen_at=v[2]);
    else if(sql.startsWith("update spaces set status='ended'")) state.spaces.find(s=>s.id===v[0]).status="ended";
