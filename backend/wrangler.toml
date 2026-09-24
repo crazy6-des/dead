@@ -16,3 +16,7 @@ bucket_name = "sss"
 FRONTEND_ORIGIN = "https://dangero11.netlify.app"
 BREVO_SENDER_EMAIL = "growthmedia70@gmail.com"
 BREVO_SENDER_NAME = "sphere"
+
+[[durable_objects.bindings]]
+name = "SPACE_ROOM"
+class_name = "SpaceRoom"
