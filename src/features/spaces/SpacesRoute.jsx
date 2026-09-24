@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { ArrowLeft, Headphones, Mic, MicOff, Plus, Radio, Search, Send, Users, X } from "lucide-react";
 import { spaceService } from "../../services/spaceService.js";
 import { SPACE_STATUSES } from "./spaceContract.js";
@@ -8,7 +8,7 @@ function Avatar({ name, src }) {
   return <span className="space-avatar">{String(name || "S").charAt(0).toUpperCase()}</span>;
 }
 
-function LiveAudio({ space, userRole, onRoleChange }) {
+const LiveAudio = forwardRef(function LiveAudio({ space, userRole, onRoleChange, onChat }, ref) {
   const wsRef = useRef(null), peersRef = useRef(new Map()), streamRef = useRef(null), audioRef = useRef(new Map());
   const [connection, setConnection] = useState("connecting");
   const [mic, setMic] = useState(false);
@@ -35,6 +35,7 @@ function LiveAudio({ space, userRole, onRoleChange }) {
     } catch (err) { setError(err?.name==="NotAllowedError" ? "Microphone access was denied." : "Microphone is unavailable."); }
   };
   const disableMic = () => { streamRef.current?.getTracks().forEach((track)=>track.stop()); streamRef.current=null; setMic(false); };
+  useImperativeHandle(ref, () => ({ sendChat(text) { if (wsRef.current?.readyState !== WebSocket.OPEN) return false; wsRef.current.send(JSON.stringify({type:"chat",text})); return true; } }), []);
   useEffect(() => {
     const ws=spaceService.websocket(space.id); wsRef.current=ws;
     ws.onopen=()=>setConnection("connected");
@@ -50,6 +51,7 @@ function LiveAudio({ space, userRole, onRoleChange }) {
         else if(msg.kind==="ice"){try{await pc.addIceCandidate(msg.data);}catch{}}
       }
       if(msg.type==="role" && msg.targetUserId){ onRoleChange(msg.targetUserId,msg.role); }
+      if(msg.type==="chat" && msg.message){ onChat(msg.message); }
     };
     return ()=>{disableMic(); ws.close(); peersRef.current.forEach((pc)=>pc.close()); peersRef.current.clear(); audioRef.current.forEach((audio)=>{audio.pause();audio.srcObject=null;});audioRef.current.clear();};
   },[space.id]);
@@ -62,9 +64,10 @@ function LiveAudio({ space, userRole, onRoleChange }) {
 
 function SpaceRoom({ space, onBack, onRefresh }) {
   const [detail,setDetail]=useState(space), [members,setMembers]=useState([]), [messages,setMessages]=useState([]), [text,setText]=useState(""), [error,setError]=useState("");
+  const audioRef=useRef(null);
   const load=async()=>{try{const [next,membersData,msgs]=await Promise.all([spaceService.get(space.id),spaceService.members(space.id),spaceService.messages(space.id)]);setDetail(next);setMembers(membersData);setMessages(msgs);setError("");}catch(err){setError(err?.message||"Could not load this Space.");}};
   useEffect(()=>{load(); const timer=setInterval(()=>spaceService.heartbeat(space.id).catch(()=>{}),20000); return()=>clearInterval(timer);},[space.id]);
-  const send=async()=>{if(!text.trim())return;try{const msg=await spaceService.sendMessage(space.id,text);setMessages((all)=>[...all,msg]);setText("");}catch(err){setError(err?.message||"Could not send message.");}};
+  const send=async()=>{const value=text.trim();if(!value)return;const sent=audioRef.current?.sendChat(value);if(!sent){setError("Live connection is not ready. Try again in a moment.");return;}setText("");};
   const leave=async()=>{try{await spaceService.leave(space.id);onBack();onRefresh();}catch(err){setError(err?.message||"Could not leave.");}};
   const end=async()=>{try{await spaceService.end(space.id);onBack();onRefresh();}catch(err){setError(err?.message||"Could not end the Space.");}};
   const roleChange=(userId,role)=>setMembers((all)=>all.map((m)=>m.id===userId?{...m,role}:m));
@@ -72,7 +75,7 @@ function SpaceRoom({ space, onBack, onRefresh }) {
     <header className="space-room__head"><button className="icon-btn" onClick={onBack} aria-label="Back to Spaces"><ArrowLeft/></button><div><small>{detail.status==="live"?"LIVE NOW":"SPACE"}</small><h2>{detail.title}</h2></div><button className="icon-btn" onClick={load} aria-label="Refresh Space"><Radio/></button></header>
     {error&&<div className="inline-notice" role="status">{error}</div>}
     <div className="space-room__grid">
-      <section className="space-stage"><div className="space-host"><Avatar name={detail.host} src={detail.hostAvatarUrl}/><div><strong>{detail.host}</strong><span>@{detail.hostUsername} · Host</span></div></div><h3>{detail.title}</h3><p>Live audio on S. Speak, listen, and participate with the people in this Space.</p><LiveAudio space={detail} userRole={detail.role} onRoleChange={roleChange}/>{detail.role==="host"&&<button className="danger-outline" onClick={end}>End Space</button>}{detail.role!=="host"&&<button className="outline" onClick={leave}>Leave Space</button>}</section>
+      <section className="space-stage"><div className="space-host"><Avatar name={detail.host} src={detail.hostAvatarUrl}/><div><strong>{detail.host}</strong><span>@{detail.hostUsername} · Host</span></div></div><h3>{detail.title}</h3><p>Live audio on S. Speak, listen, and participate with the people in this Space.</p><LiveAudio ref={audioRef} space={detail} userRole={detail.role} onRoleChange={roleChange} onChat={(message)=>setMessages((all)=>all.some((item)=>item.id===message.id)?all:[...all,{...message,text:message.text,sender:message.sender}])}/>{detail.role==="host"&&<button className="danger-outline" onClick={end}>End Space</button>}{detail.role!=="host"&&<button className="outline" onClick={leave}>Leave Space</button>}</section>
       <aside className="space-room__side"><div className="space-panel"><h3><Users size={15}/> Participants · {members.length}</h3>{members.map((m)=><div className="space-member" key={m.id}><Avatar name={m.name} src={m.avatarUrl}/><div><b>{m.name}</b><span>@{m.username} · {m.role}</span></div>{detail.role==="host"&&m.role!=="host"&&<button className="outline" onClick={()=>spaceService.setRole(detail.id,m.id,m.role==="speaker"?"listener":"speaker").then(()=>setMembers((all)=>all.map((x)=>x.id===m.id?{...x,role:x.role==="speaker"?"listener":"speaker"}:x))).catch(err=>setError(err?.message||"Could not change role."))}>{m.role==="speaker"?"Make listener":"Invite to speak"}</button>}</div>)}</div>
       <div className="space-panel space-chat"><h3>Conversation</h3><div className="space-chat__body">{messages.map((m)=><div className="space-chat__message" key={m.id}><b>{m.sender?.name||m.sender?.username}</b><span>{m.text}</span></div>)}</div><div className="space-chat__composer"><input value={text} onChange={(e)=>setText(e.target.value)} onKeyDown={(e)=>{if(e.key==="Enter")send();}} placeholder="Say something…" maxLength={2000}/><button className="primary" onClick={send} disabled={!text.trim()}><Send size={15}/></button></div></div></aside>
     </div>
