@@ -51,7 +51,7 @@ const LiveAudio = forwardRef(function LiveAudio({ space, userRole, onRoleChange,
         const pc=await createPeer(msg.fromUserId,false);
         if(msg.kind==="offer"){await pc.setRemoteDescription(msg.data); const answer=await pc.createAnswer(); await pc.setLocalDescription(answer); ws.send(JSON.stringify({type:"signal",kind:"answer",targetUserId:msg.fromUserId,data:answer}));}
         else if(msg.kind==="answer") await pc.setRemoteDescription(msg.data);
-        else if(msg.kind==="ice"){try{await pc.addIceCandidate(msg.data);}catch{}}
+        else if(msg.kind==="ice"){try{await pc.addIceCandidate(msg.data);}catch { return; }}
       }
       if(msg.type==="role" && msg.targetUserId){ onRoleChange(msg.targetUserId,msg.role); if(msg.targetUserId===selfUserIdRef.current) onSelfRoleChange(msg.role); }
       if(msg.type==="chat" && msg.message){ onChat(msg.message); }
@@ -70,7 +70,19 @@ function SpaceRoom({ space, onBack, onRefresh }) {
   const [detail,setDetail]=useState(space), [members,setMembers]=useState([]), [messages,setMessages]=useState([]), [text,setText]=useState(""), [error,setError]=useState("");
   const audioRef=useRef(null);
   const load=async()=>{try{const [next,membersData,msgs]=await Promise.all([spaceService.get(space.id),spaceService.members(space.id),spaceService.messages(space.id)]);setDetail(next);setMembers(membersData);setMessages(msgs);setError("");}catch(err){setError(err?.message||"Could not load this Space.");}};
-  useEffect(()=>{load(); const timer=setInterval(()=>spaceService.heartbeat(space.id).catch(()=>{}),20000); return()=>clearInterval(timer);},[space.id]);
+  useEffect(()=>{
+    let cancelled=false;
+    const loadSpace=async()=>{
+      try{
+        const [next,membersData,msgs]=await Promise.all([spaceService.get(space.id),spaceService.members(space.id),spaceService.messages(space.id)]);
+        if(cancelled)return;
+        setDetail(next);setMembers(membersData);setMessages(msgs);setError("");
+      }catch(err){if(!cancelled)setError(err?.message||"Could not load this Space.");}
+    };
+    void loadSpace();
+    const timer=globalThis.setInterval(()=>spaceService.heartbeat(space.id).catch(()=>{}),20000);
+    return()=>{cancelled=true;globalThis.clearInterval(timer);};
+  },[space.id]);
   const send=async()=>{const value=text.trim();if(!value)return;const sent=audioRef.current?.sendChat(value);if(!sent){setError("Live connection is not ready. Try again in a moment.");return;}setText("");};
   const leave=async()=>{try{await spaceService.leave(space.id);onBack();onRefresh();}catch(err){setError(err?.message||"Could not leave.");}};
   const end=async()=>{try{await spaceService.end(space.id);onBack();onRefresh();}catch(err){setError(err?.message||"Could not end the Space.");}};
