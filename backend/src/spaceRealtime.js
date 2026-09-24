@@ -1,4 +1,3 @@
-import { DurableObject } from "cloudflare:workers";
 import { resolveSession } from "./auth.js";
 
 export class SpaceRoom {
