@@ -37,7 +37,7 @@ const db={
 async batch(statements){for(const s of statements)await s.run();return statements.map(()=>({success:true}));}
 };
 const req=(path,init={})=>new Request("https://example.test"+path,{...init,headers:{Cookie:"s_session=session-1","content-type":"application/json",...(init.headers||{})}});
-let result=await createSpace(req("//api/spaces",{method:"POST",body:JSON.stringify({title:"S Live Room"})}),{DB:db});
+let result=await createSpace(req("/api/spaces",{method:"POST",body:JSON.stringify({title:"S Live Room"})}),{DB:db});
 assert.equal(result.error,null); assert.equal(result.response.space.host,"Alice"); assert.equal(state.spaces.length,1);
 const id=state.spaces[0].id;
 result=await listSpaces(req("/api/spaces"),{DB:db}); assert.equal(result.response.items[0].participantCount,1);
