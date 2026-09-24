@@ -12,7 +12,9 @@ export class SpaceRoom {
     const [, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server, [`user:${userId}`, `space:${spaceId}`]);
     server.serializeAttachment({userId,username,spaceId});
-    server.send(JSON.stringify({type:"ready",userId}));
+    const peers = this.ctx.getWebSockets().map((ws) => ws.deserializeAttachment() || {}).filter((peer) => peer.userId && peer.userId !== userId);
+    server.send(JSON.stringify({type:"ready",userId,peers:peers.map((peer)=>({userId:peer.userId,username:peer.username}))}));
+    await this.env.DB.prepare("UPDATE space_members SET last_seen_at=?3 WHERE space_id=?1 AND user_id=?2 AND left_at IS NULL").bind(spaceId,userId,new Date().toISOString()).run();
     this.broadcast({type:"presence",action:"joined",userId,username});
     return new Response(null,{status:101,webSocket:pair[0]});
   }
