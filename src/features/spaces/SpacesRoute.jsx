@@ -8,7 +8,7 @@ function Avatar({ name, src }) {
   return <span className="space-avatar">{String(name || "S").charAt(0).toUpperCase()}</span>;
 }
 
-const LiveAudio = forwardRef(function LiveAudio({ space, userRole, onRoleChange, onChat }, ref) {
+const LiveAudio = forwardRef(function LiveAudio({ space, userRole, onRoleChange, onChat, onPresence }, ref) {
   const wsRef = useRef(null), peersRef = useRef(new Map()), streamRef = useRef(null), audioRef = useRef(new Map());
   const [connection, setConnection] = useState("connecting");
   const [mic, setMic] = useState(false);
@@ -52,6 +52,7 @@ const LiveAudio = forwardRef(function LiveAudio({ space, userRole, onRoleChange,
       }
       if(msg.type==="role" && msg.targetUserId){ onRoleChange(msg.targetUserId,msg.role); }
       if(msg.type==="chat" && msg.message){ onChat(msg.message); }
+      if(msg.type==="presence"){ onPresence(); }
     };
     return ()=>{disableMic(); ws.close(); peersRef.current.forEach((pc)=>pc.close()); peersRef.current.clear(); audioRef.current.forEach((audio)=>{audio.pause();audio.srcObject=null;});audioRef.current.clear();};
   },[space.id]);
@@ -75,7 +76,8 @@ function SpaceRoom({ space, onBack, onRefresh }) {
     <header className="space-room__head"><button className="icon-btn" onClick={onBack} aria-label="Back to Spaces"><ArrowLeft/></button><div><small>{detail.status==="live"?"LIVE NOW":"SPACE"}</small><h2>{detail.title}</h2></div><button className="icon-btn" onClick={load} aria-label="Refresh Space"><Radio/></button></header>
     {error&&<div className="inline-notice" role="status">{error}</div>}
     <div className="space-room__grid">
-      <section className="space-stage"><div className="space-host"><Avatar name={detail.host} src={detail.hostAvatarUrl}/><div><strong>{detail.host}</strong><span>@{detail.hostUsername} · Host</span></div></div><h3>{detail.title}</h3><p>Live audio on S. Speak, listen, and participate with the people in this Space.</p><LiveAudio ref={audioRef} space={detail} userRole={detail.role} onRoleChange={roleChange} onChat={(message)=>setMessages((all)=>all.some((item)=>item.id===message.id)?all:[...all,{...message,text:message.text,sender:message.sender}])}/>{detail.role==="host"&&<button className="danger-outline" onClick={end}>End Space</button>}{detail.role!=="host"&&<button className="outline" onClick={leave}>Leave Space</button>}</section>
+      <section className="space-stage"><div className="space-host"><Avatar name={detail.host} src={detail.hostAvatarUrl}/><div><strong>{detail.host}</strong><span>@{detail.hostUsername} · Host</span></div></div><h3>{detail.title}</h3><p>Live audio on S. Speak, listen, and participate with the people in this Space.</p><LiveAudio ref={audioRef} space={detail} userRole={detail.role} onRoleChange={roleChange} onPresence={load}
+      onChat={(message)=>setMessages((all)=>all.some((item)=>item.id===message.id)?all:[...all,{...message,text:message.text,sender:message.sender}])}/>{detail.role==="host"&&<button className="danger-outline" onClick={end}>End Space</button>}{detail.role!=="host"&&<button className="outline" onClick={leave}>Leave Space</button>}</section>
       <aside className="space-room__side"><div className="space-panel"><h3><Users size={15}/> Participants · {members.length}</h3>{members.map((m)=><div className="space-member" key={m.id}><Avatar name={m.name} src={m.avatarUrl}/><div><b>{m.name}</b><span>@{m.username} · {m.role}</span></div>{detail.role==="host"&&m.role!=="host"&&<button className="outline" onClick={()=>spaceService.setRole(detail.id,m.id,m.role==="speaker"?"listener":"speaker").then(()=>setMembers((all)=>all.map((x)=>x.id===m.id?{...x,role:x.role==="speaker"?"listener":"speaker"}:x))).catch(err=>setError(err?.message||"Could not change role."))}>{m.role==="speaker"?"Make listener":"Invite to speak"}</button>}</div>)}</div>
       <div className="space-panel space-chat"><h3>Conversation</h3><div className="space-chat__body">{messages.map((m)=><div className="space-chat__message" key={m.id}><b>{m.sender?.name||m.sender?.username}</b><span>{m.text}</span></div>)}</div><div className="space-chat__composer"><input value={text} onChange={(e)=>setText(e.target.value)} onKeyDown={(e)=>{if(e.key==="Enter")send();}} placeholder="Say something…" maxLength={2000}/><button className="primary" onClick={send} disabled={!text.trim()}><Send size={15}/></button></div></div></aside>
     </div>
