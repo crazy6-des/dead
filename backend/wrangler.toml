@@ -23,4 +23,4 @@ class_name = "SpaceRoom"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["SpaceRoom"]
+new_sqlite_classes = ["SpaceRoom"]
