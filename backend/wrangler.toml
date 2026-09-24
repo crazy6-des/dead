@@ -20,3 +20,7 @@ BREVO_SENDER_NAME = "sphere"
 [[durable_objects.bindings]]
 name = "SPACE_ROOM"
 class_name = "SpaceRoom"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["SpaceRoom"]
