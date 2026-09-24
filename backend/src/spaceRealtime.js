@@ -55,9 +55,15 @@ export class SpaceRoom {
   async webSocketClose(ws) {
     const info=ws.deserializeAttachment()||{};
     if(info.userId && info.spaceId) {
-      const timestamp=new Date().toISOString();
-      await this.env.DB.prepare("UPDATE space_members SET left_at=?3 WHERE space_id=?1 AND user_id=?2 AND left_at IS NULL").bind(info.spaceId,info.userId,timestamp).run();
-      this.broadcast({type:"presence",action:"left",userId:info.userId,username:info.username});
+      const stillConnected = this.ctx.getWebSockets().some((peer) => {
+        const peerInfo = peer.deserializeAttachment() || {};
+        return peer !== ws && peerInfo.userId === info.userId && peerInfo.spaceId === info.spaceId && peer.readyState !== WebSocket.CLOSED;
+      });
+      if (!stillConnected) {
+        const timestamp=new Date().toISOString();
+        await this.env.DB.prepare("UPDATE space_members SET left_at=?3 WHERE space_id=?1 AND user_id=?2 AND left_at IS NULL").bind(info.spaceId,info.userId,timestamp).run();
+        this.broadcast({type:"presence",action:"left",userId:info.userId,username:info.username});
+      }
     }
   }
   async webSocketError(ws,error){ console.error("SPACE_WS_ERROR",error); }
