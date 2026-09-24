@@ -45,8 +45,8 @@ result=await listSpaces(req("/api/spaces"),{DB:db}); assert.equal(result.respons
 result=await joinSpace(req("/api/spaces/"+id+"/join",{method:"POST"}),{DB:db},id); assert.equal(result.error,null); assert.equal(result.response.space.role,"host");
 const db2={...db,prepare(query){const base=db.prepare(query);return {bind(...v){const b=base.bind(...v);return {first:async()=>{if(query.startsWith("SELECT s.id"))return v[0]===await sha256Hex("session-2")?{id:"sess2",user_id:"u2",username:"bob",display_name:"Bob"}:null;return b.first()},all:()=>b.all(),run:()=>b.run()}}}}};
 result=await joinSpace(req("/api/spaces/"+id+"/join",{method:"POST",headers:{Cookie:"s_session=session-2"}}),{DB:db2},id); assert.equal(result.error,null);
-result=await createSpaceMessage(req("/api/spaces/"+id+"/messages",{method:"POST",body:JSON.stringify({text:"Hello Space"})}),{DB:db2},id); assert.equal(result.error,null); assert.equal(result.response.message.text,"Hello Space");
-result=await listSpaceMessages(req("/api/spaces/"+id+"/messages"),{DB:db2},id); assert.equal(result.response.items.length,1);
+result=await createSpaceMessage(req("/api/spaces/"+id+"/messages",{method:"POST",headers:{Cookie:"s_session=session-2"},body:JSON.stringify({text:"Hello Space"})}),{DB:db2},id); assert.equal(result.error,null); assert.equal(result.response.message.text,"Hello Space");
+result=await listSpaceMessages(req("/api/spaces/"+id+"/messages",{headers:{Cookie:"s_session=session-2"}}),{DB:db2},id); assert.equal(result.response.items.length,1);
 result=await leaveSpace(req("/api/spaces/"+id+"/leave",{method:"POST",headers:{Cookie:"s_session=session-2"}}),{DB:db2},id); assert.equal(result.error,null);
 result=await endSpace(req("/api/spaces/"+id+"/end",{method:"POST"}),{DB:db},id); assert.equal(result.error,null); assert.equal(state.spaces[0].status,"ended");
 console.log("Spaces persistence, authorization, membership, chat and lifecycle contracts: PASS");
