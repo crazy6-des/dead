@@ -4,7 +4,7 @@ export class SpaceRoom {
   constructor(ctx, env) { this.ctx = ctx; this.env = env; }
   async fetch(request) {
     if (request.method === "POST" && request.headers.get("X-S-Space-Control") === "end") {
-      for (const ws of this.ctx.getWebSockets()) { try { ws.send(JSON.stringify({type:"ended"})); ws.close(1000, "Space ended"); } catch {} }
+      for (const ws of this.ctx.getWebSockets()) { try { ws.send(JSON.stringify({type:"ended"})); ws.close(1000, "Space ended"); } catch { continue; } }
       return new Response("ok");
     }
     if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket", {status:426});
@@ -24,7 +24,7 @@ export class SpaceRoom {
   broadcast(payload, except=null) {
     const data=JSON.stringify(payload);
     for(const ws of this.ctx.getWebSockets()) {
-      if(ws!==except && ws.readyState===WebSocket.OPEN) { try{ws.send(data);}catch{}}
+      if(ws!==except && ws.readyState===WebSocket.OPEN) { try{ws.send(data);}catch { continue; }}
     }
   }
   async webSocketMessage(ws, message) {
