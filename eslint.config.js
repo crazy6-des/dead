@@ -34,6 +34,13 @@ export default [
         clearTimeout: "readonly",
         localStorage: "readonly",
         sessionStorage: "readonly",
+        WebSocket: "readonly",
+        WebSocketPair: "readonly",
+        Audio: "readonly",
+        RTCPeerConnection: "readonly",
+        TextDecoder: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
       },
     },
     plugins: {
