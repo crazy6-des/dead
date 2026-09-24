@@ -3,6 +3,10 @@ import { resolveSession } from "./auth.js";
 export class SpaceRoom {
   constructor(ctx, env) { this.ctx = ctx; this.env = env; }
   async fetch(request) {
+    if (request.method === "POST" && request.headers.get("X-S-Space-Control") === "end") {
+      for (const ws of this.ctx.getWebSockets()) { try { ws.send(JSON.stringify({type:"ended"})); ws.close(1000, "Space ended"); } catch {} }
+      return new Response("ok");
+    }
     if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket", {status:426});
     const userId = request.headers.get("X-S-User-Id"), username = request.headers.get("X-S-Username");
     const spaceId = request.headers.get("X-S-Space-Id");
