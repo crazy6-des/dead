@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Flag, Heart, ImagePlus, MoreHorizontal, Paperclip, Send, X } from "lucide-react";
+import { ArrowLeft, Check, Flag, Heart, ImagePlus, MoreHorizontal, Paperclip, Send, X } from "lucide-react";
 import { APP_ROUTES } from "../../app/routes.js";
 import PostCard from "../post/PostCard.jsx";
 import { NOTIFICATION_FILTERS } from "../notifications/notificationContract.js";
@@ -198,10 +198,6 @@ export function MessagesRoute({ currentUserId = null }) {
       setConversations(nextConversations);
       setConversationError("");
       if (!selected) {
-        if (nextConversations[0]?.id) {
-          setSelected(nextConversations[0].id);
-          return;
-        }
         setLoading(false);
         return;
       }
@@ -430,6 +426,7 @@ export function MessagesRoute({ currentUserId = null }) {
   };
 
   const selectConversation = (id) => {
+    if (!id) return;
     clearSelectedImage();
     setSelected(id);
     setDraft("");
@@ -443,20 +440,42 @@ export function MessagesRoute({ currentUserId = null }) {
     if (nextUrl !== currentUrl) window.history.pushState({}, "", nextUrl);
   };
 
-  return <div className="messages">
-    <aside>{orderedConversations.length === 0 && !loading && !error && <div className="empty messages-empty"><h3>No conversations yet</h3><p>This is expected when you have not started a conversation. Open someone’s profile and choose Message to create the first conversation.</p></div>}{orderedConversations.map((conversation) => {
-      const latest = messages[conversation.id]?.length ? [...messages[conversation.id]].sort((a, b) => (Date.parse(b?.createdAt || "") || 0) - (Date.parse(a?.createdAt || "") || 0))[0] : null;
-      const preview = latest?.text || (latest?.media ? "Image" : conversation.lastMessage || "No messages yet");
-      const previewTime = latest?.createdAt || conversation.updatedAt;
-      const avatarLetter = String(conversation.name || conversation.username || "S").trim().charAt(0).toUpperCase() || "S";
-      return <button key={conversation.id} className={"conversation " + (selected === conversation.id ? "active" : "")} onClick={() => selectConversation(conversation.id)}>
-        <span className="avatar avatar--small">{avatarLetter}</span>
-        <span><b>{conversation.name || conversation.username || "Conversation"}</b><small>{preview}</small></span>
-        <small>{formatConversationTime(previewTime)}</small>
-      </button>;
-    })}</aside>
+  const closeConversation = () => {
+    clearSelectedImage();
+    setSelected(null);
+    setDraft("");
+    setError("");
+    setConversationError("");
+    setFailedMedia({});
+    const params = new URLSearchParams(window.location.search);
+    params.delete("conversation");
+    const query = params.toString();
+    const nextUrl = window.location.pathname + (query ? "?" + query : "") + window.location.hash;
+    const currentUrl = window.location.pathname + window.location.search + window.location.hash;
+    if (nextUrl !== currentUrl) window.history.pushState({}, "", nextUrl);
+  };
+
+  return <div className={"messages " + (hasSelectedConversation ? "messages--conversation-open" : "")}>
+    <aside>
+      {orderedConversations.length === 0 && !loading && !error && <div className="empty messages-empty"><h3>No conversations yet</h3><p>This is expected when you have not started a conversation. Open someone’s profile and choose Message to create the first conversation.</p></div>}
+      {orderedConversations.map((conversation) => {
+        const preview = conversation.lastMessage || "No messages yet";
+        const previewTime = conversation.updatedAt;
+        const avatarLetter = String(conversation.name || conversation.username || "S").trim().charAt(0).toUpperCase() || "S";
+        const unreadCount = Number(conversation.unreadCount || 0);
+        return <button key={conversation.id} className={"conversation " + (selected === conversation.id ? "active" : "")} onClick={() => selectConversation(conversation.id)} aria-label={"Open conversation with " + (conversation.name || conversation.username || "Conversation") + (unreadCount ? ", " + unreadCount + " unread " + (unreadCount === 1 ? "message" : "messages") : "")}>
+          {conversation.avatarUrl ? <img className="avatar avatar--small conversation-avatar" src={conversation.avatarUrl} alt="" /> : <span className="avatar avatar--small">{avatarLetter}</span>}
+          <span className="conversation-copy"><b>{conversation.name || conversation.username || "Conversation"}</b><small className={unreadCount ? "conversation-preview unread" : "conversation-preview"}>{preview}</small></span>
+          <span className="conversation-meta"><small>{formatConversationTime(previewTime)}</small>{unreadCount > 0 && <span className="conversation-unread">{unreadCount > 99 ? "99+" : unreadCount}</span>}</span>
+        </button>;
+      })}
+    </aside>
     <section className="chat">
-      <header><span className="avatar avatar--small">{String(selectedName).charAt(0).toUpperCase()}</span><span><b>{selectedName}</b><small>{selectedConversation?.username ? "@" + selectedConversation.username : "Conversation"}</small></span><MoreHorizontal/></header>
+      <header>
+        {hasSelectedConversation && <button type="button" className="chat-back" onClick={closeConversation} aria-label="Back to messages" title="Back to messages"><ArrowLeft size={18}/></button>}
+        {selectedConversation?.avatarUrl ? <img className="avatar avatar--small" src={selectedConversation.avatarUrl} alt="" /> : <span className="avatar avatar--small">{String(selectedName).charAt(0).toUpperCase()}</span>}
+        <span><b>{selectedName}</b><small>{selectedConversation?.username ? "@" + selectedConversation.username : "Conversation"}</small></span><MoreHorizontal/>
+      </header>
       <div className="chat-body" ref={chatBodyRef} onScroll={(event) => { if (event.currentTarget.scrollTop <= 48) loadOlderMessages(); }}>
         {!loading && !conversationError && messageCursors[selected] && <button className="outline message-load-older" onClick={loadOlderMessages} disabled={loadingOlder}>{loadingOlder ? "Loading older messages…" : "Load older messages"}</button>}
         {loading ? <div className="empty" role="status"><p>Loading conversation…</p></div> : conversationError ? <div className="empty" role="alert"><h3>Conversation unavailable</h3><p>{conversationError}</p></div> :
