@@ -25,6 +25,21 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
     const timer = window.setTimeout(() => { setRemoteLoading(true); setRemoteError(""); setRemote(null); searchApi.search(query, type).then((result) => { if (active) setRemote(result); }).catch((error) => { if (active) { setRemote(null); setRemoteError(error?.message || "Discover results could not be loaded."); } }).finally(() => { if (active) setRemoteLoading(false); }); }, 180);
     return () => { active = false; window.clearTimeout(timer); };
   }, [query, tab, searchApi, activeNiche]);
+  useEffect(() => {
+    if (!activeNiche || tab !== "Posts") return undefined;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const result = await searchApi.search("", "posts", null, activeNiche);
+        if (active) setRemote(result);
+      } catch (error) {
+        if (active) setRemoteError(error?.message || `Could not refresh live ${activeNiche} posts.`);
+      }
+    };
+    const interval = window.setInterval(refresh, 20000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [activeNiche, tab, searchApi]);
+
   const openNiche = async (niche) => {
     setActiveNiche(niche);
     setQuery("");
