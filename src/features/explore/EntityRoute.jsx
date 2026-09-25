@@ -26,6 +26,55 @@ function ActionBar({ post, replyCount, onLike, onSave, onReply, onRepost, onShar
   </div>;
 }
 
+function ReplyItem({ item, onReply, onDeleted, onUpdated }) {
+  const [menu, setMenu] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(item.text || "");
+  const [busy, setBusy] = useState(false);
+  const owner = Boolean(item.isOwner);
+  const save = async () => {
+    const value = text.trim();
+    if (!owner || !value || busy) return;
+    setBusy(true);
+    try {
+      const updated = await replyService.update(item.id, value);
+      onUpdated?.(item.id, updated?.text || value);
+      setEditing(false);
+      setMenu(false);
+    } catch (error) { throw error; }
+    finally { setBusy(false); }
+  };
+  const remove = async () => {
+    if (!owner || busy || !window.confirm("Delete this reply permanently from S?")) return;
+    setBusy(true);
+    try { await replyService.delete(item.id); onDeleted?.(item.id); setMenu(false); }
+    catch (error) { throw error; }
+    finally { setBusy(false); }
+  };
+  return <article className="reply-row" key={item.id}>
+    <div className="avatar avatar--small">{String(item.author?.displayName || item.author?.username || "U")[0]}</div>
+    <div>
+      <div className="post__meta">
+        <strong>{item.author?.displayName || item.author?.username || "User"}</strong>
+        <span className="muted">@{item.author?.username || "user"}</span>
+        <span className="muted">· {formatFullDateTime(item.createdAt || item.t)}</span>
+        {owner && <div className="post-menu">
+          <button className="icon-btn" type="button" aria-label="Reply options" onClick={() => setMenu((value) => !value)}><MoreHorizontal size={16}/></button>
+          {menu && <div className="popover">
+            <button type="button" onClick={() => { setText(item.text || ""); setEditing(true); setMenu(false); }}>Edit reply</button>
+            <button type="button" className="danger" onClick={remove} disabled={busy}>Delete reply</button>
+          </div>}
+        </div>}
+      </div>
+      {editing ? <div className="reply-edit-box">
+        <textarea value={text} onChange={(event) => setText(event.target.value)} maxLength={5000} aria-label="Edit reply"/>
+        <div><span>{text.length}/5000</span><button type="button" onClick={() => { setEditing(false); setText(item.text || ""); }} disabled={busy}>Cancel</button><button type="button" className="primary" onClick={save} disabled={busy || !text.trim()}>{busy ? "Saving…" : "Save"}</button></div>
+      </div> : <p>{item.text}</p>}
+      <button className="reply-inline" type="button" onClick={() => onReply?.(item)}>Reply</button>
+    </div>
+  </article>;
+}
+
 function PostDetail({ post, currentUser, onBack, onLike, onSave, onRepost, onOpen, onFollowUser, onQuote, followingUsers = new Set(), mode = "post" }) {
   const [reply, setReply] = useState("");
   const [quote, setQuote] = useState("");
@@ -44,10 +93,6 @@ function PostDetail({ post, currentUser, onBack, onLike, onSave, onRepost, onOpe
   const [postEditText, setPostEditText] = useState(post.x || post.text || "");
   const [detailText, setDetailText] = useState(post.x || post.text || "");
   const [postEditBusy, setPostEditBusy] = useState(false);
-  const [replyEditingId, setReplyEditingId] = useState(null);
-  const [replyEditText, setReplyEditText] = useState("");
-  const [replyEditBusy, setReplyEditBusy] = useState(false);
-  const [replyMenuId, setReplyMenuId] = useState(null);
 
   useEffect(() => {
     if (mode === "quote" || mode === "media") return undefined;
@@ -121,30 +166,6 @@ function PostDetail({ post, currentUser, onBack, onLike, onSave, onRepost, onOpe
     } finally {
       setReplyLoadingMore(false);
     }
-  };
-
-  const saveReplyEdit = async () => {
-    const text = replyEditText.trim();
-    if (!replyEditingId || !text || replyEditBusy) return;
-    setReplyEditBusy(true);
-    try {
-      const updated = await replyService.update(replyEditingId, text);
-      setReplies((items) => items.map((item) => item.id === replyEditingId ? { ...item, text: updated?.text || text, updatedAt: updated?.updatedAt || new Date().toISOString() } : item));
-      setReplyEditingId(null);
-      setReplyEditText("");
-    } catch (error) { setReplyError(error?.message || "Your reply could not be edited."); }
-    finally { setReplyEditBusy(false); }
-  };
-
-  const deleteReply = async (replyId) => {
-    if (replyEditBusy || !window.confirm("Delete this reply permanently from S?")) return;
-    setReplyEditBusy(true);
-    try {
-      await replyService.delete(replyId);
-      setReplies((items) => items.filter((item) => item.id !== replyId));
-      setReplyCount((count) => Math.max(0, count - 1));
-    } catch (error) { setReplyError(error?.message || "Your reply could not be deleted."); }
-    finally { setReplyEditBusy(false); }
   };
 
   const submitQuote = async () => {
