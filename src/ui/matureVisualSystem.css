@@ -1,3 +1,4 @@
+/* Phase 1 foundation: canonical shell, restrained surfaces, and low-cost interaction states. */
 /* S mature visual system: spacious, lightweight, personal. */
 /* Deliberately additive: preserves existing component behavior while normalizing the visual language. */
 
@@ -26,11 +27,11 @@
   --s-space-6: 24px;
   --s-space-7: 28px;
   --s-space-8: 32px;
-  --s-nav-width: 248px;
-  --s-feed-width: 700px;
-  --s-rail-width: 320px;
-  --s-layout-gap: 28px;
-  --s-header-height: 62px;
+  --s-nav-width: 232px;
+  --s-feed-width: 620px;
+  --s-rail-width: 300px;
+  --s-layout-gap: 20px;
+  --s-header-height: 56px;
   color-scheme: light;
 }
 
@@ -84,25 +85,25 @@ select:focus-visible {
   gap: var(--s-layout-gap);
   justify-content: center;
   width: 100%;
-  max-width: 1440px;
+  max-width: 1192px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0;
   background: var(--s-bg);
   color: var(--s-text);
 }
 
 .sidebar {
-  padding: 22px 4px 20px;
+  padding: 20px 0;
   border-right: 0;
 }
 
 .sidebar .brand {
-  padding: 0 12px 24px;
+  padding: 0 10px 20px;
 }
 
 .brand > b,
 .mobile-head .brand > b {
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--s-accent) 20%, transparent);
+  box-shadow: none;
 }
 
 .nav {
@@ -143,14 +144,14 @@ select:focus-visible {
   border-radius: 13px;
   background: var(--s-accent);
   color: #fff;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--s-accent) 18%, transparent);
-  transition: transform .16s ease, background .16s ease, box-shadow .16s ease;
+  box-shadow: none;
+  transition: background .14s ease, color .14s ease;
 }
 
 .create-btn:hover {
   background: var(--s-accent-strong);
-  transform: translateY(-1px);
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--s-accent) 24%, transparent);
+  transform: none;
+  box-shadow: none;
 }
 
 .me {
@@ -173,7 +174,7 @@ select:focus-visible {
 .top {
   min-height: var(--s-header-height);
   padding: 10px 18px;
-  background: color-mix(in srgb, var(--s-surface) 88%, transparent);
+  background: var(--s-surface);
   border-bottom-color: var(--s-border);
 }
 
@@ -372,7 +373,7 @@ select:focus-visible {
   border-color: var(--s-border);
   border-radius: var(--s-radius-lg);
   background: var(--s-surface);
-  box-shadow: 0 8px 30px color-mix(in srgb, #000 4%, transparent);
+  box-shadow: none;
 }
 
 .rail-card > h3,
@@ -553,7 +554,8 @@ select:focus-visible {
 /* Create modal: personal workspace, not dashboard */
 .modal {
   background: color-mix(in srgb, #050506 68%, transparent);
-  backdrop-filter: blur(10px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .create {
@@ -561,7 +563,7 @@ select:focus-visible {
   border-color: var(--s-border-strong);
   border-radius: 20px;
   background: var(--s-surface);
-  box-shadow: 0 30px 90px color-mix(in srgb, #000 42%, transparent);
+  box-shadow: 0 18px 48px color-mix(in srgb, #000 28%, transparent);
 }
 
 .create > header {
@@ -685,7 +687,7 @@ select:focus-visible {
   background: var(--s-text);
   color: var(--s-bg);
   border: 1px solid color-mix(in srgb, var(--s-bg) 15%, transparent);
-  box-shadow: 0 12px 35px color-mix(in srgb, #000 18%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, #000 14%, transparent);
 }
 
 /* Landing: same personality, more breathing room */
@@ -748,9 +750,9 @@ select:focus-visible {
 /* Tablet: reclaim horizontal space without collapsing the feed. */
 @media (max-width: 1180px) {
   .app {
-    grid-template-columns: 76px minmax(0, 700px);
-    gap: 18px;
-    padding: 0 16px;
+    grid-template-columns: 76px minmax(0, 620px);
+    gap: 16px;
+    padding: 0 12px;
   }
 
   .sidebar {
@@ -817,7 +819,7 @@ select:focus-visible {
   .mobile-head {
     height: var(--s-header-height);
     padding: 8px 12px;
-    background: color-mix(in srgb, var(--s-surface) 92%, transparent);
+    background: var(--s-surface);
     border-bottom-color: var(--s-border);
   }
 
@@ -825,7 +827,7 @@ select:focus-visible {
     top: var(--s-header-height);
     min-height: 54px;
     padding: 9px 15px;
-    background: color-mix(in srgb, var(--s-surface) 94%, transparent);
+    background: var(--s-surface);
   }
 
   .top h1 {
@@ -856,7 +858,7 @@ select:focus-visible {
 
   .mobile-nav {
     height: 62px;
-    background: color-mix(in srgb, var(--s-surface) 94%, transparent);
+    background: var(--s-surface);
     border-top-color: var(--s-border);
     padding-bottom: env(safe-area-inset-bottom);
   }
