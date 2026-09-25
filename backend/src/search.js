@@ -35,7 +35,7 @@ export async function search(request, env) {
   let postRows = { results: [] };
   if (type === "all" || type === "posts") {
     const clauses = ["p.deleted_at IS NULL", "u.deleted_at IS NULL", "(p.author_id = ? OR p.visibility = 'public')"];
-    const values = [session.user_id];
+    const values = [session.user_id, session.user_id];
     if (nicheTerms.length) {
       clauses.push("(" + nicheTerms.map(() => "p.body LIKE ? ESCAPE '\\'").join(" OR ") + ")");
       values.push(...nicheTerms.map((term) => "%" + term.replace(/[%_]/g, "\\$&") + "%"));
