@@ -179,7 +179,7 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
     {!hasMusicCatalog() && <p className="s-create-composer__hint">Local music is ready now. Online music selection becomes available when a catalog API is configured.</p>}\n    {pollOpen && <PollEditor question={draft.poll?.question || ""} options={draft.poll?.options || ["", ""]} onQuestionChange={(value) => updatePoll({ question: value })} onOptionChange={updatePollOption} onAddOption={() => updatePoll({ options: [...(draft.poll?.options || []), ""] })} />}
     <p className="s-create-composer__hint">Catalog music is provided under its provider license. <a href="https://api.freetouse.com/license" target="_blank" rel="noreferrer">Review Free To Use licensing</a>, especially before commercial use.</p>
     <p className="s-create-composer__hint">Choose any combination — text, image, music, background, or just one of them. Nothing posts until you press Publish.</p>
-    <PostMediaPreview media={draft.media} audio={draft.audio} background={draft.background} onRemoveImage={(index) => {
+    <PostMediaPreview media={draft.media} audio={draft.audio} background={draft.background} text={draft.text} onRemoveImage={(index) => {
       const asset = draft.media[index];
       if (asset?.url?.startsWith("blob:")) {
         URL.revokeObjectURL(asset.url);
