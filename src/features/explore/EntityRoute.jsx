@@ -139,13 +139,25 @@ function PostDetail({ post, currentUser, onBack, onLike, onSave, onRepost, onOpe
 }
 function PostEntityRoute({ postId, initialPost, ...props }) {
   const [post,setPost]=useState(initialPost||null); const [loading,setLoading]=useState(!initialPost); const [error,setError]=useState("");
+  const toggleEntityAction = async (action, field, countKey) => {
+    if (!post) return;
+    const previous = post;
+    const enabled = !Boolean(previous[field]);
+    setPost((current) => current ? { ...current, [field]: enabled, [countKey]: Math.max(0, Number(current[countKey] || 0) + (enabled ? 1 : -1)) } : current);
+    try {
+      await props[action]?.(post.id);
+    } catch (cause) {
+      setPost(previous);
+      throw cause;
+    }
+  };
   useEffect(()=>{ if(initialPost) return undefined; let active=true;
     postService.getById(postId).then((result)=>{if(!active)return;setPost(result||null);if(!result)setError("This post may have been removed or is not available.");}).catch((cause)=>active&&setError(cause?.message||"Post could not be loaded.")).finally(()=>active&&setLoading(false));
     return()=>{active=false;};
   },[postId,initialPost]);
   if(loading)return <div className="detail-page"><BackButton onBack={props.onBack}/><div className="empty" role="status"><h3>Loading post…</h3></div></div>;
   if(!post)return <div className="detail-page"><BackButton onBack={props.onBack}/><div className="empty"><h3>Post not found</h3><p>{error||"This post may have been removed or is not available."}</p></div></div>;
-  return <PostDetail post={toFeedPostFromCreatedPost(post)} {...props}/>;
+  return <PostDetail post={toFeedPostFromCreatedPost(post)} {...props} onLike={() => toggleEntityAction("onLike", "liked", "l")} onSave={() => toggleEntityAction("onSave", "saved", "b")} onRepost={() => toggleEntityAction("onRepost", "reposted", "p")}/>
 }
 
 function ShareDetail({ post: initialPost, postId, onBack, onShareFollowers }) {
