@@ -1587,7 +1587,10 @@ select:focus-visible {
 }
 .post--immersive .post__body{min-width:0}
 .post-media-grid{position:relative}
+.post-media{cursor:pointer}
+.post-media:focus-visible{outline:2px solid var(--s-accent);outline-offset:-2px}
 .post-media-sound-layer{
+
   position:absolute;
   left:12px;
   bottom:12px;
