@@ -160,7 +160,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
     finally { setEditBusy(false); }
   };
   const deleteOwnedPost = async () => {
-    if (editBusy || !window.confirm("Delete this post permanently from S?")) return;
+    if (editBusy) return;
     setEditBusy(true);
     try { await postService.delete(post.id); setDeleted(true); setMenu(false); }
     catch (error) { setModerationMessage(error?.message || "Could not delete this post."); }
