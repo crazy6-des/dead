@@ -254,7 +254,7 @@ export async function createPost(request, env) {
       (SELECT json_object('id',qp.id,'author',json_object('username',qu.username,'displayName',qu.display_name),'text',qp.body) FROM posts qp JOIN users qu ON qu.id = qp.author_id WHERE qp.id = p.quoted_post_id AND qp.deleted_at IS NULL) AS quoted_post
      FROM posts p JOIN users u ON u.id = p.author_id WHERE p.id = ?1 AND p.deleted_at IS NULL LIMIT 1`
   ).bind(id).first();
-  return { response: { post: serializePost(row), status: "created" }, error: null };
+  return { response: { post: { ...serializePost(row), isOwner: true }, status: "created" }, error: null };
 }
 
 export async function updatePost(request, env, postId) {
