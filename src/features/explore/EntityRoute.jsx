@@ -31,6 +31,7 @@ function ReplyItem({ item, onReply, onDeleted, onUpdated }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(item.text || "");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const owner = Boolean(item.isOwner);
   const save = async () => {
     const value = text.trim();
@@ -70,6 +71,7 @@ function ReplyItem({ item, onReply, onDeleted, onUpdated }) {
         <textarea value={text} onChange={(event) => setText(event.target.value)} maxLength={5000} aria-label="Edit reply"/>
         <div><span>{text.length}/5000</span><button type="button" onClick={() => { setEditing(false); setText(item.text || ""); }} disabled={busy}>Cancel</button><button type="button" className="primary" onClick={save} disabled={busy || !text.trim()}>{busy ? "Saving…" : "Save"}</button></div>
       </div> : <p>{item.text}</p>}
+      {error && <small className="inline-notice" role="alert">{error}</small>}
       <button className="reply-inline" type="button" onClick={() => onReply?.(item)}>Reply</button>
     </div>
   </article>;
