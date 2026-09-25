@@ -133,13 +133,14 @@ export default function App() {
     return () => { active = false; };
   }, [feedMode]);
   const persistPostAction = async (id, action, enabled, rollback, reconcile) => {
-    if (!hasApiBaseUrl()) return;
+    if (!hasApiBaseUrl()) return null;
     const key = id + ":" + action;
-    if (postActionBusyRef.current.has(key)) return;
+    if (postActionBusyRef.current.has(key)) return Promise.resolve();
     postActionBusyRef.current.add(key);
     try {
       const result = await socialService.setPostAction(id, action, enabled);
       if (typeof reconcile === "function") reconcile(result);
+      return result;
     } catch (error) {
       rollback();
       flash(error?.message || "Could not save that change");
@@ -149,9 +150,9 @@ export default function App() {
   };
   const runPostAction = (id, action, readState, transition, countKey) => {
     const current = posts.find((post) => post.id === id);
-    if (!current) return;
+    if (!current) return Promise.resolve();
     const key = id + ":" + action;
-    if (!hasApiBaseUrl()) { setPosts((all) => transition(all, id)); return; }
+    if (!hasApiBaseUrl()) { setPosts((all) => transition(all, id)); return Promise.resolve(); }
     if (postActionBusyRef.current.has(key)) return;
     const enabled = !Boolean(readState(current));
     setPosts((all) => transition(all, id));
