@@ -196,14 +196,13 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
         {audioSource?.url && <button type="button" className={"post-sound-control " + (audioPlaying ? "is-playing" : "")} onClick={toggleAudio} aria-label={audioPlaying ? "Pause soundtrack" : "Play soundtrack"}>{audioPlaying ? "♫" : <Music2 size={17}/>}<span>{audioBlocked ? "Tap for sound" : (audioSource.title || audioSource.name || "Soundtrack")}</span></button>}
         {audioSource?.url && <audio ref={audioRef} preload="metadata" src={audioSource.url} aria-hidden="true" tabIndex={-1} />}
       </div>}
-      {mediaSources.length > 0 && <div className={"post-media-grid media-count-" + Math.min(mediaSources.length, 4)}>{mediaSources.map((source, index) => <button className="post-media" key={source + index} onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))}><img src={source} alt={imageItems[index]?.alt || "Post media"} loading="lazy" /></button>)}</div>}
+      {mediaSources.length > 0 && <div className={"post-media-grid media-count-" + Math.min(mediaSources.length, 4)}>
+        {mediaSources.map((source, index) => <button className="post-media" key={source + index} onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))}><img src={source} alt={imageItems[index]?.alt || "Post media"} loading="lazy" />{index === 0 && audioSource?.url && <span className="post-media-sound-layer" onClick={(event) => { event.stopPropagation(); toggleAudio(event); }}><Music2 size={16}/><b>{audioBlocked ? "Tap for sound" : (audioSource.title || audioSource.name || "Soundtrack")}</b></span>}</button>)}
+        {audioSource?.url && <audio ref={audioRef} preload="metadata" src={audioSource.url} aria-hidden="true" tabIndex={-1} />}
+      </div>}
       {audioSource?.url && mediaSources.length === 0 && !backgroundStyle && <div className="post-audio-stage">
         <div className="post-audio-stage__art">{audioSource.artworkUrl ? <img src={audioSource.artworkUrl} alt="" loading="lazy" /> : <Music2 size={34}/>}</div>
         <button type="button" className={"post-sound-control " + (audioPlaying ? "is-playing" : "")} onClick={toggleAudio} aria-label={audioPlaying ? "Pause soundtrack" : "Play soundtrack"}>{audioPlaying ? "♫" : <Music2 size={17}/>}<span>{audioBlocked ? "Tap for sound" : (audioSource.title || audioSource.name || "Soundtrack")}</span></button>
-        <audio ref={audioRef} preload="metadata" src={audioSource.url} aria-hidden="true" tabIndex={-1} />
-      </div>}
-      {audioSource?.url && mediaSources.length > 0 && !backgroundStyle && <div className="post-sound-meta">
-        <button type="button" className={"post-sound-control " + (audioPlaying ? "is-playing" : "")} onClick={toggleAudio}><Music2 size={15}/><span>{audioBlocked ? "Tap for sound" : (audioSource.title || audioSource.name || "Soundtrack")}</span></button>
         <audio ref={audioRef} preload="metadata" src={audioSource.url} aria-hidden="true" tabIndex={-1} />
       </div>}
       {audioSource?.url && audioSource.provider && <div className="post-audio-license">Music: {audioSource.provider}{audioSource.licenseUrl && <> · <a href={audioSource.licenseUrl} target="_blank" rel="noreferrer">License</a></>}</div>}
