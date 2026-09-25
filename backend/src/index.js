@@ -58,7 +58,27 @@ export default { async fetch(request, env) {
     return methodNotAllowed(request, env);
   }
   const postDetailMatch = url.pathname.match(/^\/api\/posts\/([^/]+)$/);
-  if (postDetailMatch) { if (request.method !== "GET") return methodNotAllowed(request, env); const result = await getPost(request, env, decodeURIComponent(postDetailMatch[1])); if (result.error) return errorResponse(result.error.code,result.error.status,result.error.message,request,env,result.error.details); return json(result.response,200,request,env); }
+  if (postDetailMatch) {
+    const postId = decodeURIComponent(postDetailMatch[1]);
+    if (request.method === "GET") {
+      const result = await getPost(request, env, postId);
+      if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details);
+      return json(result.response, 200, request, env);
+    }
+    if (request.method === "PATCH") {
+      if (!mutationOriginAllowed(request, env)) return originRejected(request, env);
+      const result = await updatePost(request, env, postId);
+      if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details);
+      return json(result.response, 200, request, env);
+    }
+    if (request.method === "DELETE") {
+      if (!mutationOriginAllowed(request, env)) return originRejected(request, env);
+      const result = await deletePost(request, env, postId);
+      if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details);
+      return json(result.response, 200, request, env);
+    }
+    return methodNotAllowed(request, env);
+  }
   if (url.pathname === "/api/posts") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await createPost(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 201, request, env); }
   if (url.pathname === "/api/feed") { if (request.method !== "GET") return methodNotAllowed(request, env); const result = await listFeed(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
   const repliesMatch = url.pathname.match(/^\/api\/posts\/([^/]+)\/replies$/);
