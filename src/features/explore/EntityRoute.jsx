@@ -145,7 +145,7 @@ function PostEntityRoute({ postId, initialPost, ...props }) {
     const enabled = !Boolean(previous[field]);
     setPost((current) => current ? { ...current, [field]: enabled, [countKey]: Math.max(0, Number(current[countKey] || 0) + (enabled ? 1 : -1)) } : current);
     try {
-      await props[action]?.(post.id);
+      await props[action]?.(post.id, enabled);
     } catch (cause) {
       setPost(previous);
       throw cause;
