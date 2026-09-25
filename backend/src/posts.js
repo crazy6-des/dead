@@ -80,7 +80,7 @@ export function serializePost(row) {
     liked: Boolean(row.liked),
     saved: Boolean(row.saved),
     reposted: Boolean(row.reposted),
-    following: Boolean(row.following),
+    following: Boolean(row.following),\n    isOwner: Boolean(row.is_owner),
     stats: {
       likes: Number(row.like_count || 0),
       reposts: Number(row.repost_count || 0),
@@ -256,6 +256,34 @@ export async function createPost(request, env) {
   return { response: { post: serializePost(row), status: "created" }, error: null };
 }
 
+export async function updatePost(request, env, postId) {
+  const session = await requireUser(request, env);
+  if (!session) return { response: null, error: error("UNAUTHORIZED", 401, "Authentication is required.") };
+  if (!env?.DB) return { response: null, error: error("SERVICE_UNAVAILABLE", 503, "Post service is not configured.") };
+  const id = String(postId || "").trim();
+  if (!id) return { response: null, error: error("VALIDATION_ERROR", 400, "A post id is required.") };
+  let body;
+  try { body = await request.json(); } catch { return { response: null, error: error("INVALID_JSON", 400, "Request body must be valid JSON.") }; }
+  const text = String(body?.text || "").trim();
+  if (!text || text.length > MAX_POST_TEXT) return { response: null, error: error("VALIDATION_ERROR", 400, "Post text must contain 1-5000 characters.") };
+  const result = await env.DB.prepare("UPDATE posts SET body=?1, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?2 AND author_id=?3 AND deleted_at IS NULL").bind(text, id, session.user_id).run();
+  if (!result?.meta?.changes) return { response: null, error: error("POST_NOT_FOUND", 404, "Post was not found or you are not its owner.") };
+  const row = await env.DB.prepare("SELECT p.id,p.author_id,p.body,p.created_at,p.updated_at,p.reply_to_id,u.username,u.display_name,(p.author_id=?1) AS is_owner FROM posts p JOIN users u ON u.id=p.author_id WHERE p.id=?2 AND p.deleted_at IS NULL LIMIT 1").bind(session.user_id, id).first();
+  if (row.reply_to_id) return { response: { reply: { id: row.id, postId: row.reply_to_id, author: { id: row.author_id, username: row.username, displayName: row.display_name }, text: row.body, createdAt: row.created_at, updatedAt: row.updated_at, isOwner: Boolean(row.is_owner) }, status: "updated" }, error: null };
+  return { response: { post: serializePost(row), status: "updated" }, error: null };
+}
+
+export async function deletePost(request, env, postId) {
+  const session = await requireUser(request, env);
+  if (!session) return { response: null, error: error("UNAUTHORIZED", 401, "Authentication is required.") };
+  if (!env?.DB) return { response: null, error: error("SERVICE_UNAVAILABLE", 503, "Post service is not configured.") };
+  const id = String(postId || "").trim();
+  if (!id) return { response: null, error: error("VALIDATION_ERROR", 400, "A post id is required.") };
+  const result = await env.DB.prepare("UPDATE posts SET deleted_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'), updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?1 AND author_id=?2 AND deleted_at IS NULL").bind(id, session.user_id).run();
+  if (!result?.meta?.changes) return { response: null, error: error("POST_NOT_FOUND", 404, "Post was not found or you are not its owner.") };
+  return { response: { ok: true, id, status: "deleted" }, error: null };
+}
+
 function visibilitySql(alias = "p") {
   return `(
     ${alias}.author_id = ?USER?
@@ -282,7 +310,7 @@ export async function getPost(request, env, postId) {
   if (!normalizedId) return { response: null, error: error("VALIDATION_ERROR", 400, "A post id is required.") };
   const values = [session.user_id, normalizedId];
   const visibility = visibilitySql("p").replace(/\?USER\?/g, () => { values.push(session.user_id); return `?${values.length}`; });
-  const row = await env.DB.prepare(`SELECT p.id,p.author_id,p.body,p.visibility,p.reply_policy,p.post_kind,p.background_json,p.quoted_post_id,p.poll_json,p.created_at,p.updated_at,u.username,u.display_name,
+  const row = await env.DB.prepare(`SELECT p.id,p.author_id,p.body,p.visibility,p.reply_policy,p.post_kind,p.background_json,p.quoted_post_id,p.poll_json,p.created_at,p.updated_at,u.username,u.display_name,(p.author_id=?1) AS is_owner,
     (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id=p.id ORDER BY m.position) AS media,
     (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id=p.id AND r.reaction_type='like') AS like_count,
     (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id=p.id AND r.reaction_type='repost') AS repost_count,
@@ -334,7 +362,7 @@ export async function listFeed(request, env) {
   values.push(limit + 1);
   const rows = await env.DB.prepare(
     `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.created_at, p.updated_at,
-      u.username, u.display_name, p.post_kind, p.background_json, p.quoted_post_id, p.poll_json,
+      u.username, u.display_name, (p.author_id = ?1) AS is_owner, p.post_kind, p.background_json, p.quoted_post_id, p.poll_json,
       (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id = p.id ORDER BY m.position) AS media,
       (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id = p.id AND r.reaction_type = 'like') AS like_count,
       (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id = p.id AND r.reaction_type = 'repost') AS repost_count,
