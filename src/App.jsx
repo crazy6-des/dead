@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Bell, Bookmark, Compass, Home as HomeIcon, List, Menu, MessageCircle, Plus, Search, Settings as SettingsIcon, Sparkles, UserRound, X, Zap, Radio as RadioIcon } from "lucide-react";
-import { CreateRoute } from "./features/create/index.js";
 import { toFeedPostFromCreatedPost } from "./features/index.js";
 import { toggleLike, toggleSaved, setFollowUser, toggleRepost } from "./features/social/socialState.js";
 import { useAppRouter } from "./app/useAppRouter.js";
@@ -11,22 +10,38 @@ import { socialGraphService } from "./services/socialGraphService.js";
 import { socialService } from "./services/socialService.js";
 import { createFeedAdapter } from "./services/feedService.js";
 import { SOCIAL_RELATIONSHIPS, normalizeUsername } from "./features/social/socialGraphContract.js";
-import HomeRoute from "./features/home/HomeRoute.jsx";
-import DiscoverRoute from "./features/discover/DiscoverRoute.jsx";
-import ProfileRoute from "./features/profile/ProfileRoute.jsx";
-import { NotificationsRoute, MessagesRoute, SavedRoute } from "./features/inbox/InboxRoutes.jsx";
-import SettingsRoute from "./features/settings/SettingsRoute.jsx";
-import EarnRoute from "./features/earn/EarnRoute.jsx";
-import EntityRoute from "./features/explore/EntityRoute.jsx";
-import SearchOverlay from "./features/search/SearchOverlay.jsx";
-import { BookmarkFoldersRoute, ListsRoute } from "./features/library/LibraryRoutes.jsx";
-import SpacesRoute from "./features/spaces/SpacesRoute.jsx";
+
+
+
+
+
+
+
+
+
+
 import { useAuthState } from "./features/auth/authState.js";
 import { getUserPresentation } from "./features/auth/userPresentation.js";
 import { hasApiBaseUrl } from "./services/apiClient.js";
 import { settingsService } from "./services/settingsService.js";
 import AuthLanding from "./features/auth/AuthLanding.jsx";
 import LandingRoute from "./features/landing/LandingRoute.jsx";
+
+const HomeRoute = lazy(() => import("./features/home/HomeRoute.jsx"));
+const DiscoverRoute = lazy(() => import("./features/discover/DiscoverRoute.jsx"));
+const ProfileRoute = lazy(() => import("./features/profile/ProfileRoute.jsx"));
+const NotificationsRoute = lazy(() => import("./features/inbox/InboxRoutes.jsx").then((module) => ({ default: module.NotificationsRoute })));
+const MessagesRoute = lazy(() => import("./features/inbox/InboxRoutes.jsx").then((module) => ({ default: module.MessagesRoute })));
+const SavedRoute = lazy(() => import("./features/inbox/InboxRoutes.jsx").then((module) => ({ default: module.SavedRoute })));
+const SettingsRoute = lazy(() => import("./features/settings/SettingsRoute.jsx"));
+const EarnRoute = lazy(() => import("./features/earn/EarnRoute.jsx"));
+const EntityRoute = lazy(() => import("./features/explore/EntityRoute.jsx"));
+const SearchOverlay = lazy(() => import("./features/search/SearchOverlay.jsx"));
+const BookmarkFoldersRoute = lazy(() => import("./features/library/LibraryRoutes.jsx").then((module) => ({ default: module.BookmarkFoldersRoute })));
+const ListsRoute = lazy(() => import("./features/library/LibraryRoutes.jsx").then((module) => ({ default: module.ListsRoute })));
+const SpacesRoute = lazy(() => import("./features/spaces/SpacesRoute.jsx"));
+const CreateRoute = lazy(() => import("./features/create/CreateRoute.jsx"));
+
 
 function PageHeader({ route, onSearch, onTheme, onMenu, mobileMenuOpen, go }) {
   const label = ROUTE_LABELS[route] || PRODUCT_IDENTITY.name;
@@ -218,7 +233,7 @@ export default function App() {
   }
   const open = (path) => go(path);
   const openSearch = () => setSearchOpen(true);
-  const render = () => { if (route === APP_ROUTES.HOME) return <HomeRoute currentUser={auth.user} posts={posts} onLike={like} onSave={save} onFollow={followPost} onRepost={repost} onCreate={() => setCreating(true)} onOpen={open} onModeChange={setFeedMode} loading={feedLoading} loadingMore={feedLoadingMore} hasMore={Boolean(feedCursor)} error={feedError} onRetry={() => refreshFeed(feedMode)} onLoadMore={loadMoreFeed} />; if (route === APP_ROUTES.DISCOVER) return <DiscoverRoute posts={posts} onLike={like} onSave={save} onRepost={repost} onOpen={open} followingUsers={followingUsers} onFollow={followUser}/>; if (route === APP_ROUTES.PROFILE) return <ProfileRoute posts={posts} onLike={like} onSave={save} onFollow={followPost} onRepost={repost} onFollowUser={followUser} followingUsers={followingUsers} onOpen={open}/>; if (route === APP_ROUTES.NOTIFICATIONS) return <NotificationsRoute onOpen={open}/>; if (route === APP_ROUTES.MESSAGES) return <MessagesRoute currentUserId={auth.user?.id || auth.user?.user_id || auth.user?.userId || null}/>; if (route === APP_ROUTES.SPACES) return <SpacesRoute/>; if (route === APP_ROUTES.SAVED) return <SavedRoute posts={posts} onSave={save} onOpen={open}/>; if (route === APP_ROUTES.BOOKMARKS) return <BookmarkFoldersRoute posts={posts} onOpen={open}/>; if (route === APP_ROUTES.LISTS) return <ListsRoute/>; if (route === APP_ROUTES.SETTINGS || route.startsWith(`${APP_ROUTES.SETTINGS}/`)) return <SettingsRoute route={route} onOpen={open} onSettingsUpdate={setUserSettings} auth={auth}/>; if (route === APP_ROUTES.EARN) return <EarnRoute onOpen={open}/>; if (route === APP_ROUTES.SEARCH || route.startsWith(`${APP_ROUTES.SEARCH}/`)) return <SearchOverlay posts={posts} onOpen={open} onClose={() => go(APP_ROUTES.HOME)}/>; return <EntityRoute path={route} currentUser={auth.user} posts={posts} onBack={() => go(APP_ROUTES.HOME)} onOpen={open} onSave={save} onLike={like} onRepost={repost} onFollowUser={followUser} onQuote={quote} onShareFollowers={sharePostWithFollowers} followingUsers={followingUsers}/>; };
+  const render = () => <Suspense fallback={<div className="route-loading" role="status" aria-live="polite"><span>Loading S…</span></div>}>{(() => { if (route === APP_ROUTES.HOME) return <HomeRoute currentUser={auth.user} posts={posts} onLike={like} onSave={save} onFollow={followPost} onRepost={repost} onCreate={() => setCreating(true)} onOpen={open} onModeChange={setFeedMode} loading={feedLoading} loadingMore={feedLoadingMore} hasMore={Boolean(feedCursor)} error={feedError} onRetry={() => refreshFeed(feedMode)} onLoadMore={loadMoreFeed} />; if (route === APP_ROUTES.DISCOVER) return <DiscoverRoute posts={posts} onLike={like} onSave={save} onRepost={repost} onOpen={open} followingUsers={followingUsers} onFollow={followUser}/>; if (route === APP_ROUTES.PROFILE) return <ProfileRoute posts={posts} onLike={like} onSave={save} onFollow={followPost} onRepost={repost} onFollowUser={followUser} followingUsers={followingUsers} onOpen={open}/>; if (route === APP_ROUTES.NOTIFICATIONS) return <NotificationsRoute onOpen={open}/>; if (route === APP_ROUTES.MESSAGES) return <MessagesRoute currentUserId={auth.user?.id || auth.user?.user_id || auth.user?.userId || null}/>; if (route === APP_ROUTES.SPACES) return <SpacesRoute/>; if (route === APP_ROUTES.SAVED) return <SavedRoute posts={posts} onSave={save} onOpen={open}/>; if (route === APP_ROUTES.BOOKMARKS) return <BookmarkFoldersRoute posts={posts} onOpen={open}/>; if (route === APP_ROUTES.LISTS) return <ListsRoute/>; if (route === APP_ROUTES.SETTINGS || route.startsWith(`${APP_ROUTES.SETTINGS}/`)) return <SettingsRoute route={route} onOpen={open} onSettingsUpdate={setUserSettings} auth={auth}/>; if (route === APP_ROUTES.EARN) return <EarnRoute onOpen={open}/>; if (route === APP_ROUTES.SEARCH || route.startsWith(`${APP_ROUTES.SEARCH}/`)) return <SearchOverlay posts={posts} onOpen={open} onClose={() => go(APP_ROUTES.HOME)}/>; return <EntityRoute path={route} currentUser={auth.user} posts={posts} onBack={() => go(APP_ROUTES.HOME)} onOpen={open} onSave={save} onLike={like} onRepost={repost} onFollowUser={followUser} onQuote={quote} onShareFollowers={sharePostWithFollowers} followingUsers={followingUsers}/>; };
   if (route === APP_ROUTES.RESET_PASSWORD || !auth.isAuthenticated) return <AuthLanding onAuthenticated={enterApp}/>;
   return <div className={"app " + (userSettings.theme === "light" ? "light" : "") + (userSettings.reduceMotion ? " reduce-motion" : "")} aria-busy={auth.isLoading}><Sidebar route={route} go={go} onCreate={() => setCreating(true)} user={auth.user}/><main className="main"><PageHeader route={route} go={go} onSearch={openSearch} onTheme={toggleTheme} onMenu={() => setMobileMenuOpen(true)} mobileMenuOpen={mobileMenuOpen}/>{render()}</main><RightRail go={go} posts={posts} followingUsers={followingUsers} onFollowUser={followUser} onSearch={openSearch}/><nav className="mobile-nav">{MOBILE_NAVIGATION.map(({ label, route: path, icon: ConfigIcon }) => { const Icon = label === "Create" ? Plus : ConfigIcon; return <button key={label} onClick={() => path ? go(path) : setCreating(true)} className={path && isRouteActive(route, path) ? "active" : ""}><Icon/><small>{label}</small></button>; })}</nav>{mobileMenuOpen && <MobileMenu route={route} go={go} onCreate={() => setCreating(true)} onClose={() => setMobileMenuOpen(false)}/>} {searchOpen && <SearchOverlay posts={posts} onOpen={(path) => { setSearchOpen(false); open(path); }} onClose={() => setSearchOpen(false)}/>} {creating && <div className="modal" role="dialog" aria-modal="true" aria-labelledby="create-dialog-title"><div className="create"><CreateRoute onPublish={publish} onCancel={() => setCreating(false)}/></div><button className="modal-close" onClick={() => setCreating(false)} aria-label="Close create dialog"><X/></button></div>}{toast && <div className="toast">{toast}</div>}</div>;
 }
