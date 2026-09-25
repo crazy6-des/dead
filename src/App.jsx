@@ -148,10 +148,13 @@ export default function App() {
       postActionBusyRef.current.delete(key);
     }
   };
-  const runPostAction = (id, action, readState, transition, countKey) => {
+  const runPostAction = (id, action, readState, transition, countKey, overrideEnabled) => {
     const current = posts.find((post) => post.id === id);
-    if (!current) return Promise.resolve();
     const key = id + ":" + action;
+    if (!current) {
+      if (!hasApiBaseUrl() || typeof overrideEnabled !== "boolean") return Promise.resolve();
+      return persistPostAction(id, action, overrideEnabled, undefined, undefined);
+    }
     if (!hasApiBaseUrl()) { setPosts((all) => transition(all, id)); return Promise.resolve(); }
     if (postActionBusyRef.current.has(key)) return;
     const enabled = !Boolean(readState(current));
@@ -169,9 +172,9 @@ export default function App() {
       },
     );
   };
-  const like = (id) => runPostAction(id, "like", (post) => post.liked, toggleLike, "l");
-  const save = (id) => runPostAction(id, "bookmark", (post) => post.saved, toggleSaved, "b");
-  const repost = (id) => runPostAction(id, "repost", (post) => post.reposted, toggleRepost, "p");
+  const like = (id, enabled) => runPostAction(id, "like", (post) => post.liked, toggleLike, "l", enabled);
+  const save = (id, enabled) => runPostAction(id, "bookmark", (post) => post.saved, toggleSaved, "b", enabled);
+  const repost = (id, enabled) => runPostAction(id, "repost", (post) => post.reposted, toggleRepost, "p", enabled);
   const followUser = async (username) => {
     const target = normalizeUsername(username);
     if (!target || !hasApiBaseUrl() || followBusyRef.current.has(target)) return;
