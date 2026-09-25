@@ -162,9 +162,16 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const deleteOwnedPost = async () => {
     if (editBusy) return;
     setEditBusy(true);
-    try { await postService.delete(post.id); setDeleted(true); setMenu(false); }
-    catch (error) { setModerationMessage(error?.message || "Could not delete this post."); }
-    finally { setEditBusy(false); }
+    setDeleted(true);
+    setMenu(false);
+    try {
+      await postService.delete(post.id);
+    } catch (error) {
+      setDeleted(false);
+      setModerationMessage(error?.message || "Could not delete this post.");
+    } finally {
+      setEditBusy(false);
+    }
   };
   const runModeration = async (action, reason = null) => {
     setModerationBusy(true);
