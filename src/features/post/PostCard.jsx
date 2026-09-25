@@ -103,14 +103,14 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
     const observer = new window.IntersectionObserver(async (entries) => {
       const entry = entries[0];
       if (!entry) return;
-      if (entry.isIntersecting && entry.intersectionRatio >= 0.68) {
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.1) {
         const result = await activatePostAudio(post.id);
         setAudioBlocked(Boolean(result.blocked));
-      } else if (!entry.isIntersecting || entry.intersectionRatio < 0.25) {
+      } else if (!entry.isIntersecting || entry.intersectionRatio < 0.05) {
         deactivatePostAudio(post.id);
         setAudioBlocked(false);
       }
-    }, { threshold: [0, 0.25, 0.68, 1] });
+    }, { rootMargin: "-30% 0px -30% 0px", threshold: [0, 0.1, 0.5] });
     observer.observe(card);
     return () => { observer.disconnect(); unregister(); };
   }, [post.id, audioSource?.url]);
