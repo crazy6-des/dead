@@ -24,11 +24,7 @@ export default function PostMediaPreview({ media = [], audio = null, background 
           {onRemoveAudio && <button type="button" onClick={onRemoveAudio} aria-label="Remove music"><X size={14} aria-hidden="true" /></button>}
         </div>
       )}
-      {background && (
-        <div className="s-create-composer__background-preview" style={{ background: background.value }} aria-label="Selected post background">
-          Background preview
-        </div>
-      )}
+      {background && !children && null}
     </>
   );
 }
