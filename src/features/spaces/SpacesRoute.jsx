@@ -85,7 +85,8 @@ function SpaceRoom({ space, onBack, onRefresh }) {
   },[space.id]);
   const send=async()=>{const value=text.trim();if(!value)return;const sent=audioRef.current?.sendChat(value);if(!sent){setError("Live connection is not ready. Try again in a moment.");return;}setText("");};
   const leave=async()=>{try{await spaceService.leave(space.id);onBack();onRefresh();}catch(err){setError(err?.message||"Could not leave.");}};
-  const remove=async()=>{if(!window.confirm("Delete this Space permanently?"))return;try{await spaceService.delete(detail.id);onBack();onRefresh();}catch(err){setError(err?.message||"Could not delete the Space.");}};\n  const end=async()=>{try{await spaceService.end(space.id);onBack();onRefresh();}catch(err){setError(err?.message||"Could not end the Space.");}};
+  const remove=async()=>{if(!window.confirm("Delete this Space permanently?"))return;try{await spaceService.delete(detail.id);onBack();onRefresh();}catch(err){setError(err?.message||"Could not delete the Space.");}};
+  const end=async()=>{try{await spaceService.end(space.id);onBack();onRefresh();}catch(err){setError(err?.message||"Could not end the Space.");}};
   const roleChange=(userId,role)=>setMembers((all)=>all.map((m)=>m.id===userId?{...m,role}:m));
   return <div className="space-room">
     <header className="space-room__head"><button className="icon-btn" onClick={onBack} aria-label="Back to Spaces"><ArrowLeft/></button><div><small>{detail.status==="live"?"LIVE NOW":"SPACE"}</small><h2>{detail.title}</h2></div><button className="icon-btn" onClick={load} aria-label="Refresh Space"><Radio/></button></header>
