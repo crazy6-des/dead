@@ -21,7 +21,7 @@ import { browseMusic, searchMusic } from "./music.js";
 import { requestPasswordReset, confirmPasswordReset } from "./passwordReset.js";
 import { votePoll } from "./polls.js";
 import { moderationAction } from "./moderation.js";
-import { createSpace, getSpaceDetail, listSpaces, joinSpace, leaveSpace, heartbeatSpace, endSpace, listSpaceMembers, listSpaceMessages, createSpaceMessage, setSpaceRole } from "./spaces.js";
+import { createSpace, getSpaceDetail, listSpaces, joinSpace, leaveSpace, heartbeatSpace, endSpace, deleteSpace, listSpaceMembers, listSpaceMessages, createSpaceMessage, setSpaceRole } from "./spaces.js";
 import { upgradeSpaceWebSocket } from "./spaceRealtime.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
