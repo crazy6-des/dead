@@ -16,7 +16,7 @@ export function createApiMessageAdapter(client = apiClient) {
       }));
     },
     deleteMedia(mediaId) { return client.delete("/api/media/" + encodeURIComponent(mediaId)); },
-    send(input) { return client.post("/api/messages", createMessageRequest(input)).then(normalizeMessage); }
+    send(input) { return client.post("/api/messages", createMessageRequest(input)).then(normalizeMessage); }, update(messageId, text) { return client.patch("/api/messages/" + encodeURIComponent(messageId), { text: String(text || "").trim() }).then(normalizeMessage); }, delete(messageId) { return client.delete("/api/messages/" + encodeURIComponent(messageId)); }
   };
 }
 
@@ -28,7 +28,7 @@ export function createDevMessageAdapter(seed = {}) {
     markConversationRead() { return Promise.resolve({ ok:true }); },
     uploadImage(file) { return Promise.resolve({ mediaId:"local-"+Date.now(), url:URL.createObjectURL(file), mediaType:"image", mimeType:file.type, size:file.size, name:file.name }); },
     deleteMedia() { return Promise.resolve({ ok:true }); },
-    send(input) { return Promise.resolve(normalizeMessage({ ...input, id:Date.now(), senderId:"me", createdAt:new Date().toISOString(), media:input.media || null })); }
+    send(input) { return Promise.resolve(normalizeMessage({ ...input, id:Date.now(), senderId:"me", createdAt:new Date().toISOString(), media:input.media || null })); }, update(messageId, text) { return Promise.resolve(normalizeMessage({ id:messageId, text:String(text || "").trim(), senderId:"me", createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() })); }, delete(messageId) { return Promise.resolve({ ok:true, id:messageId }); }
   };
 }
 export function createMessageAdapter({ client = apiClient, devSeed = {} } = {}) { return hasApiBaseUrl() ? createApiMessageAdapter(client) : createDevMessageAdapter(devSeed); }
