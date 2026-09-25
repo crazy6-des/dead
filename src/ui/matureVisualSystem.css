@@ -1576,3 +1576,6 @@ select:focus-visible {
   .post-background-card{min-height:220px;padding:22px;border-radius:15px}
   .post-background-card.has-text{font-size:22px}
 }
+
+
+.space-owner-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.space-owner-actions .danger-outline{margin:0}.space-owner-actions .space-delete{opacity:.9}@media(max-width:720px){.space-owner-actions{width:100%}.space-owner-actions .danger-outline{flex:1}}
