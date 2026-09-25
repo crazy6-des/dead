@@ -142,7 +142,7 @@ export default function App() {
       if (typeof reconcile === "function") reconcile(result);
       return result;
     } catch (error) {
-      rollback();
+      rollback?.();
       flash(error?.message || "Could not save that change");
     } finally {
       postActionBusyRef.current.delete(key);
