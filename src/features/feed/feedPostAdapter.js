@@ -47,6 +47,7 @@ export function toFeedPostFromCreatedPost(
     saved: Boolean(post.saved),
     following: Boolean(post.following),
     reposted: Boolean(post.reposted),
+    isOwner: Boolean(post.isOwner ?? post.is_owner),
     topic: post.topic ?? "Your post",
     media,
     music: post.music ?? audio,
