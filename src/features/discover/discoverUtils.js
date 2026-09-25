@@ -1,3 +1,36 @@
+export const DISCOVER_NICHES = Object.freeze({
+  Tech: ["tech", "technology", "software", "developer", "coding", "programming", "app", "ai", "artificial intelligence", "startup", "cybersecurity", "cloud"],
+  Comedy: ["comedy", "funny", "joke", "jokes", "meme", "memes", "laugh", "hilarious", "skit", "satire"],
+  Finance: ["finance", "money", "bank", "banking", "investment", "investing", "stocks", "forex", "crypto", "savings", "loan", "economy", "business"],
+  News: ["news", "breaking", "headline", "report", "update", "updates", "current affairs", "politics", "election", "government"],
+});
+
+function searchablePostText(post) {
+  return [post?.text, post?.a, post?.x, post?.topic, post?.h, post?.authorName]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+export function detectPostNiches(post) {
+  const text = searchablePostText(post);
+  return Object.entries(DISCOVER_NICHES)
+    .filter(([, keywords]) => keywords.some((keyword) => text.includes(keyword)))
+    .map(([niche]) => niche);
+}
+
+export function getNicheStats(posts = []) {
+  return Object.keys(DISCOVER_NICHES).map((niche) => ({
+    niche,
+    count: posts.filter((post) => detectPostNiches(post).includes(niche)).length,
+  }));
+}
+
+export function getNichePosts(posts = [], niche) {
+  if (!DISCOVER_NICHES[niche]) return [];
+  return posts.filter((post) => detectPostNiches(post).includes(niche));
+}
+
 const HASHTAG_PATTERN = /(^|\s)#([\p{L}\p{N}_]{2,50})/gu;
 
 export function extractHashtags(posts = []) {
