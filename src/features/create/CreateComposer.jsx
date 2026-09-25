@@ -160,7 +160,10 @@ export default function CreateComposer({ onPublish, onCancel, initialDraft }) {
 
   return <form className="s-create-composer" onSubmit={handleSubmit}>
     <div className="s-create-composer__header"><strong>Create</strong>{onCancel && <button type="button" className="s-create-composer__cancel" onClick={onCancel}>Close</button>}</div>
-    <textarea value={draft.text} maxLength={5000} onChange={(event) => updateDraft({ text: event.target.value })} placeholder="Share something… #hashtag" aria-label="Post text" />
+    {draft.background ? <div className="s-create-composer__background-editor" style={{ background: draft.background.value }}>
+      <textarea value={draft.text} maxLength={5000} onChange={(event) => updateDraft({ text: event.target.value })} placeholder="Write on your background…" aria-label="Post text on background" />
+      {draft.text && <span>{draft.text.length}/5000</span>}
+    </div> : <textarea value={draft.text} maxLength={5000} onChange={(event) => updateDraft({ text: event.target.value })} placeholder="Share something… #hashtag" aria-label="Post text" />}
     <div className="s-create-composer__media" aria-label="Add to post">
       <label className="s-create-composer__picker" title="Add image"><Image size={16} aria-hidden="true" /><span>Image</span><input type="file" accept="image/*" multiple onChange={handleImageChange} /></label>
       <label className="s-create-composer__picker" title="Choose local music"><Music2 size={16} aria-hidden="true" /><span>Music</span><input type="file" accept="audio/*" onChange={handleMusicChange} /></label>
