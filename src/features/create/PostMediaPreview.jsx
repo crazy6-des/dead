@@ -24,7 +24,7 @@ export default function PostMediaPreview({ media = [], audio = null, background 
           {onRemoveAudio && <button type="button" onClick={onRemoveAudio} aria-label="Remove music"><X size={14} aria-hidden="true" /></button>}
         </div>
       )}
-      {background && (
+      {background && !text && (
         <div className={"s-create-composer__background-preview" + (text ? " has-text" : "")} style={{ background: background.value }} aria-label="Selected post background">
           {text ? <span>{text}</span> : <small>Background selected — add text above or publish as a background.</small>}
         </div>
