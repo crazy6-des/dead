@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { Bell, Bookmark, Compass, Home as HomeIcon, List, Menu, MessageCircle, Plus, Search, Settings as SettingsIcon, Sparkles, UserRound, X, Zap, Radio as RadioIcon } from "lucide-react";
+import { Bell, Bookmark, Compass, Home as HomeIcon, List, Menu, MessageCircle, Plus, Search, Sparkles, UserRound, X, Zap, Radio as RadioIcon } from "lucide-react";
 import { toFeedPostFromCreatedPost } from "./features/index.js";
 import { CreateRoute } from "./features/create/index.js";
 import { toggleLike, toggleSaved, setFollowUser, toggleRepost } from "./features/social/socialState.js";
