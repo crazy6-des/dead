@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { formatFullDateTime } from "../../utils/dateTime.js";
-import { moderationService } from "../../services/moderationService.js";\nimport { postService } from "../../services/postService.js";
+import { moderationService } from "../../services/moderationService.js";
+import { postService } from "../../services/postService.js";
 import { pollService } from "../../services/pollService.js";
 import { MODERATION_ACTIONS, REPORT_REASONS } from "../moderation/moderationContract.js";
 import { BarChart3, Bookmark, Check, Copy, Download, Flag, Heart, MessageCircle, MoreHorizontal, Music2, Repeat2, Send, Shield, X } from "lucide-react";
@@ -70,7 +71,10 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const [moderation, setModeration] = useState(null);
   const [moderationBusy, setModerationBusy] = useState(false);
   const [moderationMessage, setModerationMessage] = useState("");
-  const [menu, setMenu] = useState(false);\n  const [editing, setEditing] = useState(false);\n  const [editText, setEditText] = useState(text);\n  const [editBusy, setEditBusy] = useState(false);\n  const [deleted, setDeleted] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editBusy, setEditBusy] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const [pollVotes, setPollVotes] = useState(() => ({}));
   const [pollBusy, setPollBusy] = useState(false);
   const [pollError, setPollError] = useState("");
@@ -81,8 +85,11 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const isFollowing = Boolean(post.following);
   const author = getAuthorName(post);
   const username = post.username || String(post.h || post.author?.username || "@user").replace("@", "").toLowerCase();
-  const text = post.text || post.x || "";\n  const [localText, setLocalText] = useState(text);
-  useEffect(() => { setLocalText(post.text || post.x || ""); setEditText(post.text || post.x || ""); }, [post.id, post.text, post.x]);\n  if (deleted) return null;\n  const mediaItems = getMediaItems(post.media);
+  const text = post.text || post.x || "";
+  const [localText, setLocalText] = useState(text);
+  const [editText, setEditText] = useState(text);
+  useEffect(() => { setLocalText(post.text || post.x || ""); setEditText(post.text || post.x || ""); }, [post.id, post.text, post.x]);
+  const mediaItems = getMediaItems(post.media);
   const imageItems = mediaItems.filter((item) => !isAudioMedia(item));
   const mediaSources = imageItems.map(getMediaSource).filter(Boolean);
   const audioSource = getAudioSource(post, mediaItems);
@@ -102,6 +109,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
       audio.pause();
     };
   }, []);
+  if (deleted) return null;
   const toggleAudio = async () => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -122,7 +130,26 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
     link.remove();
     setMenu(false);
   };
-  const saveEdit = async () => {\n    const value = editText.trim();\n    if (!value || editBusy) return;\n    setEditBusy(true);\n    try {\n      const updated = await postService.update(post.id, value);\n      setLocalText(updated?.text || updated?.body || value);\n      setEditing(false);\n      setMenu(false);\n    } catch (error) { setModerationMessage(error?.message || "Could not edit this post."); }\n    finally { setEditBusy(false); }\n  };\n  const deleteOwnedPost = async () => {\n    if (editBusy || !window.confirm("Delete this post permanently from S?")) return;\n    setEditBusy(true);\n    try { await postService.delete(post.id); setDeleted(true); setMenu(false); }\n    catch (error) { setModerationMessage(error?.message || "Could not delete this post."); }\n    finally { setEditBusy(false); }\n  };\n  const runModeration = async (action, reason = null) => {
+  const saveEdit = async () => {
+    const value = editText.trim();
+    if (!value || editBusy) return;
+    setEditBusy(true);
+    try {
+      const updated = await postService.update(post.id, value);
+      setLocalText(updated?.text || updated?.body || value);
+      setEditing(false);
+      setMenu(false);
+    } catch (error) { setModerationMessage(error?.message || "Could not edit this post."); }
+    finally { setEditBusy(false); }
+  };
+  const deleteOwnedPost = async () => {
+    if (editBusy || !window.confirm("Delete this post permanently from S?")) return;
+    setEditBusy(true);
+    try { await postService.delete(post.id); setDeleted(true); setMenu(false); }
+    catch (error) { setModerationMessage(error?.message || "Could not delete this post."); }
+    finally { setEditBusy(false); }
+  };
+  const runModeration = async (action, reason = null) => {
     setModerationBusy(true);
     try {
       await moderationService.act({ targetType: action === MODERATION_ACTIONS.REPORT ? "post" : "user", targetId: action === MODERATION_ACTIONS.REPORT ? post.id : username, action, reason });
