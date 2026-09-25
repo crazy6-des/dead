@@ -26,9 +26,12 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
   const remotePosts = (remote?.items?.posts || []).map((post) => toFeedPostFromCreatedPost(post));
   const remoteTopics = remote?.items?.topics || [];
   const remoteMusic = remote?.items?.music || [];
+  const nicheTerms = ["Tech", "Comedy", "Finance", "News"];
 
-  return <div className="page">
+  return <div className="page discover-page">
+    <section className="discover-intro"><div><small>EXPLORE S</small><h2>Find what is happening.</h2><p>Search people, conversations, topics and music from the community.</p></div></section>
     <div className="discover-search"><Search aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search people, posts, topics, music" aria-label="Search discover" /></div>
+    <div className="discover-niches" aria-label="Explore topics">{nicheTerms.map((term) => <button key={term} type="button" onClick={() => { setQuery(term); setTab("Posts"); }}>{term}</button>)}</div>
     <div className="tabs5" role="tablist" aria-label="Discover sections">{["For you", "People", "Posts", "Topics", "Music"].map((item) => <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}</div>
 
     {(tab === "For you" || tab === "Topics") && <section className="card"><header><div><small>FROM THE COMMUNITY</small><h2>Trending hashtags</h2></div><Hash size={18} aria-hidden="true" /></header>{(query.trim() && tab === "Topics" ? remoteTopics : trends).length ? (query.trim() && tab === "Topics" ? remoteTopics.map((tag) => ({ tag, count: 0 })) : trends).map(({ tag, count }) => <button className="discover-row" key={tag} type="button" onClick={() => { setQuery(tag); setTab("Posts"); }}><span><strong>{tag}</strong><small>{count ? `${count} ${count === 1 ? "post" : "posts"}` : "Explore conversation"}</small></span></button>) : <div className="empty"><p>Hashtags from published posts will appear here.</p></div>}</section>}
