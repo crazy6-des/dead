@@ -1500,3 +1500,15 @@ select:focus-visible {
   .space-stage{padding:24px 15px}.space-room__head{padding-left:11px;padding-right:11px}
 }
 @media(min-width:801px){.mobile-head,.mobile-nav{display:none}}
+
+
+/* Phase 9 Performance: lightweight route-loading state while feature chunks arrive. */
+.route-loading{
+  min-height:160px;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  color:var(--s-text-3);
+  font-size:12px;
+  line-height:1.5;
+}
