@@ -8,11 +8,11 @@ import {
   validateCredentials,
   verifyPassword,
 } from "./auth.js";
-import { createPost, getPost, listFeed } from "./posts.js";
+import { createPost, getPost, listFeed, updatePost, deletePost } from "./posts.js";
 import { createReply, listReplies } from "./replies.js";
 import { setPostAction, setRelationship, sharePostWithFollowers, listSavedPosts } from "./social.js";
 import { search } from "./search.js";
-import { createConversation, listConversations, listMessages, markConversationRead, sendMessage } from "./messages.js";
+import { createConversation, listConversations, listMessages, markConversationRead, sendMessage, updateMessage, deleteMessage } from "./messages.js";
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from "./notifications.js";
 import { getMyProfile, getProfile, listProfilePosts, updateMyProfile } from "./profile.js";
 import { deleteMedia, getMedia, uploadMedia } from "./media.js";
@@ -83,6 +83,13 @@ export default { async fetch(request, env) {
   if (url.pathname === "/api/messages/conversations") { if (request.method === "GET") { const result = await listConversations(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); } if (request.method === "POST") { if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await createConversation(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 201, request, env); } return methodNotAllowed(request, env); }
   const conversationMatch = url.pathname.match(/^\/api\/messages\/conversations\/([^/]+)(?:\/read)?$/);
   if (conversationMatch) { const conversationId = decodeURIComponent(conversationMatch[1]); if (url.pathname.endsWith("/read")) { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await markConversationRead(request, env, conversationId); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); } if (request.method !== "GET") return methodNotAllowed(request, env); const result = await listMessages(request, env, conversationId); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
+  const messageDetailMatch = url.pathname.match(/^\/api\/messages\/([^/]+)$/);
+  if (messageDetailMatch) {
+    const messageId = decodeURIComponent(messageDetailMatch[1]);
+    if (request.method === "PATCH") { if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await updateMessage(request, env, messageId); if (result.error) return errorResponse(result.error.code,result.error.status,result.error.message,request,env,result.error.details); return json(result.response,200,request,env); }
+    if (request.method === "DELETE") { if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await deleteMessage(request, env, messageId); if (result.error) return errorResponse(result.error.code,result.error.status,result.error.message,request,env,result.error.details); return json(result.response,200,request,env); }
+    return methodNotAllowed(request, env);
+  }
   if (url.pathname === "/api/messages") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await sendMessage(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 201, request, env); }
   if (url.pathname === "/api/spaces") {
     if (request.method === "GET") { const result = await listSpaces(request, env); if (result.error) return errorResponse(result.error.code,result.error.status,result.error.message,request,env); return json(result.response,200,request,env); }
