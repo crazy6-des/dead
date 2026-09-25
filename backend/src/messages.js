@@ -124,6 +124,31 @@ export async function sendMessage(request, env) {
   return { response: messagePayload(row, session.user_id), error: null };
 }
 
+export async function updateMessage(request, env, messageId) {
+  const session = await resolveSession(request, env);
+  if (!session?.user_id) return { response: null, error: { code: "UNAUTHORIZED", status: 401, message: "Authentication is required." } };
+  if (!env?.DB) return { response: null, error: { code: "SERVICE_UNAVAILABLE", status: 503, message: "Message service is not configured." } };
+  const id = String(messageId || "").trim();
+  let body;
+  try { body = await request.json(); } catch { return { response: null, error: { code: "INVALID_JSON", status: 400, message: "Request body must be valid JSON." } }; }
+  const text = String(body?.text || "").trim();
+  if (!id || !text || text.length > 5000) return { response: null, error: { code: "VALIDATION_ERROR", status: 400, message: "Message text must contain 1-5000 characters." } };
+  const result = await env.DB.prepare("UPDATE messages SET body=?1, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'), edited_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?2 AND sender_id=?3 AND deleted_at IS NULL").bind(text,id,session.user_id).run();
+  if (!result?.meta?.changes) return { response: null, error: { code: "MESSAGE_NOT_FOUND", status: 404, message: "Message was not found or you are not its sender." } };
+  const row = await env.DB.prepare("SELECT m.id,m.conversation_id,m.sender_id,m.message_type,m.body,m.created_at,m.updated_at,m.deleted_at,m.media_id,m.edited_at,pm.media_type,pm.mime_type,pm.byte_size AS media_size,json_extract(pm.metadata_json,'$.name') AS media_name FROM messages m LEFT JOIN post_media pm ON pm.id=m.media_id WHERE m.id=?1 LIMIT 1").bind(id).first();
+  return { response: normalizeMessageRow(row), error: null };
+}
+
+export async function deleteMessage(request, env, messageId) {
+  const session = await resolveSession(request, env);
+  if (!session?.user_id) return { response: null, error: { code: "UNAUTHORIZED", status: 401, message: "Authentication is required." } };
+  if (!env?.DB) return { response: null, error: { code: "SERVICE_UNAVAILABLE", status: 503, message: "Message service is not configured." } };
+  const id = String(messageId || "").trim();
+  const result = await env.DB.prepare("UPDATE messages SET deleted_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'), updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?1 AND sender_id=?2 AND deleted_at IS NULL").bind(id,session.user_id).run();
+  if (!result?.meta?.changes) return { response: null, error: { code: "MESSAGE_NOT_FOUND", status: 404, message: "Message was not found or you are not its sender." } };
+  return { response: { ok: true, id, status: "deleted" }, error: null };
+}
+
 export async function markConversationRead(request, env, conversationId) {
   const { session, failure: authFailure } = await requireSession(request, env); if (authFailure) return authFailure;
   const result = await env.DB.prepare("UPDATE conversation_members SET last_read_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE conversation_id = ?1 AND user_id = ?2").bind(conversationId, session.user_id).run();
