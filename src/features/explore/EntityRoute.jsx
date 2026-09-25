@@ -7,7 +7,7 @@ import PostCard from "../post/PostCard.jsx";
 import { toFeedPostFromCreatedPost } from "../feed/feedPostAdapter.js";
 import { postService, publishQuotePost } from "../../services/postService.js";
 import { createSearchAdapter } from "../../services/searchService.js";
-import { ArrowLeft, Check, Copy, Heart, Link2, MessageCircle, Repeat2, Send, Users } from "lucide-react";
+import { ArrowLeft, Check, Copy, Heart, Link2, MessageCircle, MoreHorizontal, Repeat2, Send, Users, X } from "lucide-react";
 import { getUserPresentation } from "../auth/userPresentation.js";
 import { formatFullDateTime } from "../../utils/dateTime.js";
 
@@ -38,7 +38,7 @@ function PostDetail({ post, currentUser, onBack, onLike, onSave, onRepost, onOpe
   const [replyLoadingMore, setReplyLoadingMore] = useState(false);
   const [replyError, setReplyError] = useState("");
   const [shared, setShared] = useState(false);
-  const [quoteSubmitting, setQuoteSubmitting] = useState(false);
+  const [quoteSubmitting, setQuoteSubmitting] = useState(false);\n  const [replyEditingId, setReplyEditingId] = useState(null);\n  const [replyEditText, setReplyEditText] = useState("");\n  const [replyEditBusy, setReplyEditBusy] = useState(false);
 
   useEffect(() => {
     if (mode === "quote" || mode === "media") return undefined;
@@ -94,6 +94,30 @@ function PostDetail({ post, currentUser, onBack, onLike, onSave, onRepost, onOpe
     }
   };
 
+  const saveReplyEdit = async () => {
+    const text = replyEditText.trim();
+    if (!replyEditingId || !text || replyEditBusy) return;
+    setReplyEditBusy(true);
+    try {
+      const updated = await replyService.update(replyEditingId, text);
+      setReplies((items) => items.map((item) => item.id === replyEditingId ? { ...item, text: updated?.text || text, updatedAt: updated?.updatedAt || new Date().toISOString() } : item));
+      setReplyEditingId(null);
+      setReplyEditText("");
+    } catch (error) { setReplyError(error?.message || "Your reply could not be edited."); }
+    finally { setReplyEditBusy(false); }
+  };
+
+  const deleteReply = async (replyId) => {
+    if (replyEditBusy || !window.confirm("Delete this reply permanently from S?")) return;
+    setReplyEditBusy(true);
+    try {
+      await replyService.delete(replyId);
+      setReplies((items) => items.filter((item) => item.id !== replyId));
+      setReplyCount((count) => Math.max(0, count - 1));
+    } catch (error) { setReplyError(error?.message || "Your reply could not be deleted."); }
+    finally { setReplyEditBusy(false); }
+  };
+
   const submitQuote = async () => {
     const text = quote.trim();
     if (!text || quoteSubmitting) return;
@@ -133,7 +157,7 @@ function PostDetail({ post, currentUser, onBack, onLike, onSave, onRepost, onOpe
   <section className="thread"><div className="thread-head"><h3>{mode === "media" ? "Media" : "Replies"}</h3><span>{mode === "media" ? "Media from this post" : replyCount + " repl" + (replyCount === 1 ? "y" : "ies")}</span></div>
     {mode !== "media" && <><div className="reply-composer"><div className="avatar avatar--small">{currentUserPresentation.avatarInitial}</div><div className="reply-composer__body">{replyTarget && <div className="reply-target" role="status">Replying to @{replyTarget.author?.username || "user"} <button type="button" onClick={() => setReplyTarget(null)}>Cancel</button></div>}<textarea id="reply-box" value={reply} onChange={(e) => setReply(e.target.value)} placeholder={replyTarget ? "Reply to this reply…" : "Reply to this post…"} maxLength={5000} disabled={replySubmitting}/><div><span>{reply.length}/5000</span><button className="primary" disabled={!reply.trim() || replySubmitting} onClick={submitReply}>{replySubmitting ? "Replying…" : "Reply"}</button></div></div></div>
       {replyError && <div className="inline-notice" role="alert">{replyError}</div>}
-      {replyLoading ? <div className="empty" role="status"><h3>Loading replies…</h3></div> : replies.length === 0 ? <div className="empty"><h3>No replies yet</h3><p>Be the first to reply.</p></div> : <div className="reply-list">{replyCursor && <button className="outline" type="button" onClick={loadOlderReplies} disabled={replyLoadingMore}>{replyLoadingMore ? "Loading older replies…" : "Load older replies"}</button>}{replies.map((item) => <article className="reply-row" key={item.id}><div className="avatar avatar--small">{String(item.author?.displayName || item.author?.username || "U")[0]}</div><div><div className="post__meta"><strong>{item.author?.displayName || item.author?.username || "User"}</strong><span className="muted">@{item.author?.username || "user"}</span><span className="muted">· {formatFullDateTime(item.createdAt || item.t)}</span></div><p>{item.text}</p><button className="reply-inline" type="button" onClick={() => { setReplyTarget(item); document.getElementById("reply-box")?.focus(); }}>Reply</button></div></article>)}</div>}
+      {replyLoading ? <div className="empty" role="status"><h3>Loading replies…</h3></div> : replies.length === 0 ? <div className="empty"><h3>No replies yet</h3><p>Be the first to reply.</p></div> : <div className="reply-list">{replyCursor && <button className="outline" type="button" onClick={loadOlderReplies} disabled={replyLoadingMore}>{replyLoadingMore ? "Loading older replies…" : "Load older replies"}</button>}{replies.map((item) => <article className="reply-row" key={item.id}><div className="avatar avatar--small">{String(item.author?.displayName || item.author?.username || "U")[0]}</div><div><div className="post__meta"><strong>{item.author?.displayName || item.author?.username || "User"}</strong><span className="muted">@{item.author?.username || "user"}</span><span className="muted">· {formatFullDateTime(item.createdAt || item.t)}</span>{item.isOwner && <div className="post-menu"><button className="icon-btn" type="button" aria-label="Reply options"><MoreHorizontal size={16}/></button><div className="popover"><button type="button" onClick={() => { setReplyEditingId(item.id); setReplyEditText(item.text || ""); }}><span aria-hidden="true">✎</span>Edit reply</button><button type="button" className="danger" onClick={() => deleteReply(item.id)} disabled={replyEditBusy}>Delete reply</button></div></div>}</div>{replyEditingId === item.id ? <div className="reply-edit-box"><textarea value={replyEditText} onChange={(event) => setReplyEditText(event.target.value)} maxLength={5000} aria-label="Edit reply"/><div><span>{replyEditText.length}/5000</span><button type="button" onClick={() => setReplyEditingId(null)} disabled={replyEditBusy}>Cancel</button><button type="button" className="primary" onClick={saveReplyEdit} disabled={replyEditBusy || !replyEditText.trim()}>{replyEditBusy ? "Saving…" : "Save"}</button></div></div> : <p>{item.text}</p>}<button className="reply-inline" type="button" onClick={() => { setReplyTarget(item); document.getElementById("reply-box")?.focus(); }}>Reply</button></div></article>)}</div>}
     </>}
   </section>{shared && <div className="inline-notice"><Link2 size={16}/>Post link copied/shared.</div>}</div>;
 }
