@@ -43,7 +43,7 @@ export async function getMedia(request, env, mediaId) {
   const row = await env.DB.prepare(`
     SELECT pm.id, pm.object_key, pm.mime_type, pm.byte_size, pm.owner_id, pm.post_id,
       p.author_id AS post_author_id, p.deleted_at AS post_deleted_at, p.visibility AS post_visibility,
-      m.sender_id AS message_sender_id
+      m.sender_id AS message_sender_id,\n      EXISTS (SELECT 1 FROM users au WHERE au.avatar_url = '/api/media/' || pm.id AND au.deleted_at IS NULL) AS is_profile_avatar
     FROM post_media pm
     LEFT JOIN posts p ON p.id = pm.post_id
     LEFT JOIN messages m ON m.media_id = pm.id AND m.deleted_at IS NULL
@@ -52,7 +52,7 @@ export async function getMedia(request, env, mediaId) {
   `).bind(mediaId).first();
   if (!row) return fail("NOT_FOUND",404,"Media not found.");
 
-  let publicPostAllowed = false;
+  const publicAvatarAllowed = Boolean(row.is_profile_avatar);\n  let publicPostAllowed = false;
   if (row.post_id && !row.post_deleted_at && row.post_visibility === "public") {
     const account = await env.DB.prepare(
       "SELECT private_account FROM user_settings WHERE user_id = ?1 LIMIT 1"
@@ -60,7 +60,7 @@ export async function getMedia(request, env, mediaId) {
     publicPostAllowed = Number(account?.private_account || 0) === 0;
   }
 
-  if (!session?.user_id && !publicPostAllowed) {
+  if (!session?.user_id && !publicPostAllowed && !publicAvatarAllowed) {
     return fail("UNAUTHORIZED",401,"Authentication is required.");
   }
 
@@ -91,7 +91,7 @@ export async function getMedia(request, env, mediaId) {
     && await env.DB.prepare("SELECT 1 FROM conversation_members cm JOIN messages m2 ON m2.conversation_id = cm.conversation_id WHERE m2.media_id = ?1 AND m2.deleted_at IS NULL AND cm.user_id = ?2 LIMIT 1").bind(mediaId, session.user_id).first()
   );
 
-  if (!publicPostAllowed && !ownerAllowed && !postAllowed && !messageAllowed) return fail("FORBIDDEN",403,"You do not have access to this media.");
+  if (!publicPostAllowed && !publicAvatarAllowed && !ownerAllowed && !postAllowed && !messageAllowed) return fail("FORBIDDEN",403,"You do not have access to this media.");
 
   const object = await env.MEDIA_BUCKET.get(row.object_key);
   if (!object) return fail("NOT_FOUND",404,"Media not found.");
