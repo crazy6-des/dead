@@ -4,7 +4,7 @@ import { moderationService } from "../../services/moderationService.js";
 import { postService } from "../../services/postService.js";
 import { pollService } from "../../services/pollService.js";
 import { MODERATION_ACTIONS, REPORT_REASONS } from "../moderation/moderationContract.js";
-import { activatePostAudio, deactivatePostAudio, registerPostAudio, togglePostAudio } from "./postPlayback.js";
+import { activatePostAudio, deactivatePostAudio, registerPostAudio, togglePostAudio } from "../create/postContract.js";
 import { BarChart3, Bookmark, Check, Copy, Download, Flag, Heart, MessageCircle, MoreHorizontal, Music2, Repeat2, Send, Shield, X } from "lucide-react";
 
 function getMediaItems(media) {
