@@ -39,9 +39,14 @@ function PostDetail({ post, currentUser, onBack, onLike, onSave, onRepost, onOpe
   const [replyError, setReplyError] = useState("");
   const [shared, setShared] = useState(false);
   const [quoteSubmitting, setQuoteSubmitting] = useState(false);
+  const [postMenu, setPostMenu] = useState(false);
+  const [postEditing, setPostEditing] = useState(false);
+  const [postEditText, setPostEditText] = useState(post.x || post.text || "");
+  const [postEditBusy, setPostEditBusy] = useState(false);
   const [replyEditingId, setReplyEditingId] = useState(null);
   const [replyEditText, setReplyEditText] = useState("");
-  const [replyEditBusy, setReplyEditBusy] = useState(false);\n  const [replyMenuId, setReplyMenuId] = useState(null);
+  const [replyEditBusy, setReplyEditBusy] = useState(false);
+  const [replyMenuId, setReplyMenuId] = useState(null);
 
   useEffect(() => {
     if (mode === "quote" || mode === "media") return undefined;
@@ -61,6 +66,26 @@ function PostDetail({ post, currentUser, onBack, onLike, onSave, onRepost, onOpe
       });
     return () => { active = false; };
   }, [mode, post.id, post.r]);
+
+  const savePostEdit = async () => {
+    const text = postEditText.trim();
+    if (!text || postEditBusy) return;
+    setPostEditBusy(true);
+    try {
+      const updated = await postService.update(post.id, text);
+      post.x = updated?.text || text;
+      setPostEditing(false);
+      setPostMenu(false);
+    } catch (error) { setReplyError(error?.message || "The post could not be edited."); }
+    finally { setPostEditBusy(false); }
+  };
+  const deleteOwnedPost = async () => {
+    if (postEditBusy || !window.confirm("Delete this post permanently from S?")) return;
+    setPostEditBusy(true);
+    try { await postService.delete(post.id); setPostMenu(false); onBack(); }
+    catch (error) { setReplyError(error?.message || "The post could not be deleted."); }
+    finally { setPostEditBusy(false); }
+  };
 
   const submitReply = async () => {
     const text = reply.trim();
