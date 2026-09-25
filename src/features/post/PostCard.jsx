@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { formatFullDateTime } from "../../utils/dateTime.js";
-import { moderationService } from "../../services/moderationService.js";
+import { moderationService } from "../../services/moderationService.js";\nimport { postService } from "../../services/postService.js";
 import { pollService } from "../../services/pollService.js";
 import { MODERATION_ACTIONS, REPORT_REASONS } from "../moderation/moderationContract.js";
 import { BarChart3, Bookmark, Check, Copy, Download, Flag, Heart, MessageCircle, MoreHorizontal, Music2, Repeat2, Send, Shield, X } from "lucide-react";
@@ -70,7 +70,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const [moderation, setModeration] = useState(null);
   const [moderationBusy, setModerationBusy] = useState(false);
   const [moderationMessage, setModerationMessage] = useState("");
-  const [menu, setMenu] = useState(false);
+  const [menu, setMenu] = useState(false);\n  const [editing, setEditing] = useState(false);\n  const [editText, setEditText] = useState(text);\n  const [editBusy, setEditBusy] = useState(false);\n  const [deleted, setDeleted] = useState(false);
   const [pollVotes, setPollVotes] = useState(() => ({}));
   const [pollBusy, setPollBusy] = useState(false);
   const [pollError, setPollError] = useState("");
@@ -81,8 +81,8 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const isFollowing = Boolean(post.following);
   const author = getAuthorName(post);
   const username = post.username || String(post.h || post.author?.username || "@user").replace("@", "").toLowerCase();
-  const text = post.text || post.x || "";
-  const mediaItems = getMediaItems(post.media);
+  const text = post.text || post.x || "";\n  const [localText, setLocalText] = useState(text);
+  useEffect(() => { setLocalText(post.text || post.x || ""); setEditText(post.text || post.x || ""); }, [post.id, post.text, post.x]);\n  if (deleted) return null;\n  const mediaItems = getMediaItems(post.media);
   const imageItems = mediaItems.filter((item) => !isAudioMedia(item));
   const mediaSources = imageItems.map(getMediaSource).filter(Boolean);
   const audioSource = getAudioSource(post, mediaItems);
@@ -122,7 +122,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
     link.remove();
     setMenu(false);
   };
-  const runModeration = async (action, reason = null) => {
+  const saveEdit = async () => {\n    const value = editText.trim();\n    if (!value || editBusy) return;\n    setEditBusy(true);\n    try {\n      const updated = await postService.update(post.id, value);\n      setLocalText(updated?.text || updated?.body || value);\n      setEditing(false);\n      setMenu(false);\n    } catch (error) { setModerationMessage(error?.message || "Could not edit this post."); }\n    finally { setEditBusy(false); }\n  };\n  const deleteOwnedPost = async () => {\n    if (editBusy || !window.confirm("Delete this post permanently from S?")) return;\n    setEditBusy(true);\n    try { await postService.delete(post.id); setDeleted(true); setMenu(false); }\n    catch (error) { setModerationMessage(error?.message || "Could not delete this post."); }\n    finally { setEditBusy(false); }\n  };\n  const runModeration = async (action, reason = null) => {
     setModerationBusy(true);
     try {
       await moderationService.act({ targetType: action === MODERATION_ACTIONS.REPORT ? "post" : "user", targetId: action === MODERATION_ACTIONS.REPORT ? post.id : username, action, reason });
@@ -140,10 +140,10 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
         <span>@{username}</span><span>·</span>
         <button className="post-time" onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))}>{formatFullDateTime(post.createdAt || post.t)}</button>
         <div className="post-menu"><button className="icon-btn" onClick={() => setMenu((v) => !v)} aria-label="More"><MoreHorizontal size={18}/></button>
-          {menu && <div className="popover"><button onClick={() => { navigator.clipboard?.writeText(window.location.origin + "/post/" + encodeURIComponent(post.id)); setMenu(false); }}><Copy size={16}/>Copy link</button><button onClick={() => { onRepost?.(post.id); setMenu(false); }}><Repeat2 size={16}/>Repost</button><button onClick={() => { onSave?.(post.id); setMenu(false); }}><Bookmark size={16}/> {post.saved ? "Remove from favourites" : "Add to favourites"}</button><button onClick={() => onOpen?.("/share/" + encodeURIComponent(post.id))}><Send size={16}/>Share</button>{(mediaSources.length > 0 || audioSource?.url) && <button onClick={downloadMedia}><Download size={16}/>Download media</button>}<button onClick={() => runModeration(MODERATION_ACTIONS.MUTE)} disabled={moderationBusy}><Shield size={16}/>Mute author</button><button onClick={() => runModeration(MODERATION_ACTIONS.BLOCK)} disabled={moderationBusy}><X size={16}/>Block author</button><button className="danger" onClick={() => setModeration("report")}><Flag size={16}/>Report post</button></div>}
+          {menu && <div className="popover"><button onClick={() => { navigator.clipboard?.writeText(window.location.origin + "/post/" + encodeURIComponent(post.id)); setMenu(false); }}><Copy size={16}/>Copy link</button>{post.isOwner && <><button onClick={() => { setEditText(localText); setEditing(true); setMenu(false); }}><span aria-hidden="true">✎</span>Edit post</button><button className="danger" onClick={deleteOwnedPost} disabled={editBusy}><X size={16}/>Delete post</button></>}<button onClick={() => { onRepost?.(post.id); setMenu(false); }}><Repeat2 size={16}/>Repost</button><button onClick={() => { onSave?.(post.id); setMenu(false); }}><Bookmark size={16}/> {post.saved ? "Remove from favourites" : "Add to favourites"}</button><button onClick={() => onOpen?.("/share/" + encodeURIComponent(post.id))}><Send size={16}/>Share</button>{(mediaSources.length > 0 || audioSource?.url) && <button onClick={downloadMedia}><Download size={16}/>Download media</button>}<button onClick={() => runModeration(MODERATION_ACTIONS.MUTE)} disabled={moderationBusy}><Shield size={16}/>Mute author</button><button onClick={() => runModeration(MODERATION_ACTIONS.BLOCK)} disabled={moderationBusy}><X size={16}/>Block author</button><button className="danger" onClick={() => setModeration("report")}><Flag size={16}/>Report post</button></div>}
         </div>
       </div>
-      {text && <button className="post-content-hit" onClick={() => onOpen?.("/post/" + post.id)}><p className="post__text">{text}</p></button>}
+      {editing ? <div className="post-edit-box"><textarea value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={5000} aria-label="Edit post"/><div><span>{editText.length}/5000</span><button type="button" className="outline" onClick={() => { setEditing(false); setEditText(localText); }} disabled={editBusy}>Cancel</button><button type="button" className="primary" onClick={saveEdit} disabled={editBusy || !editText.trim()}>{editBusy ? "Saving…" : "Save"}</button></div></div> : localText && <button className="post-content-hit" onClick={() => onOpen?.("/post/" + post.id)}><p className="post__text">{localText}</p></button>}
       {post.quotedPost && <button className="quoted-post-card" onClick={() => onOpen?.("/post/" + encodeURIComponent(post.quotedPost.id))}><strong>{post.quotedPost.author?.displayName || post.quotedPost.author?.username || "User"}</strong><span>@{post.quotedPost.author?.username || "user"}</span><p>{post.quotedPost.text || ""}</p></button>}
       {backgroundStyle && <div className="post-background-card" style={backgroundStyle} aria-label="Post background" />}
       {mediaSources.length > 0 && <div className={"post-media-grid media-count-" + Math.min(mediaSources.length, 4)}>{mediaSources.map((source, index) => <button className="post-media" key={source + index} onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))}><img src={source} alt={imageItems[index]?.alt || "Post media"} loading="lazy" /></button>)}</div>}
