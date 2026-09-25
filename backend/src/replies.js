@@ -17,7 +17,8 @@ function serializeReply(row) {
     text: row.body,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    likes: Number(row.like_count || 0),\n    isOwner: Boolean(row.is_owner),
+    likes: Number(row.like_count || 0),
+    isOwner: Boolean(row.is_owner),
   };
 }
 async function requireSession(request, env) {
