@@ -61,6 +61,15 @@ export async function search(request, env) {
     ? await env.DB.prepare("SELECT id, username, display_name FROM users WHERE deleted_at IS NULL AND (username LIKE ?1 ESCAPE '\\\\' OR display_name LIKE ?1 ESCAPE '\\\\') ORDER BY username ASC LIMIT ?2").bind(like, limit).all()
     : { results: [] };
 
+  const nicheCount = niche
+    ? Number((await env.DB.prepare(
+      `SELECT COUNT(*) AS count
+       FROM posts p JOIN users u ON u.id=p.author_id
+       WHERE p.deleted_at IS NULL AND u.deleted_at IS NULL AND p.visibility='public'
+       AND (${nicheTerms.map((_, index) => "LOWER(p.body) LIKE ?" + (index + 1)).join(" OR ")})`
+    ).bind(...nicheParams).first())?.count || 0)
+    : null;
+
   const topics = (query && (type === "all" || type === "topics"))
     ? await env.DB.prepare("SELECT body FROM posts WHERE deleted_at IS NULL AND visibility='public' AND body LIKE ?1 ESCAPE '\\\\' ORDER BY created_at DESC LIMIT ?2").bind(like, limit).all()
     : { results: [] };
@@ -81,6 +90,7 @@ export async function search(request, env) {
       query,
       type,
       niche,
+      nicheCount,
     },
     error: null,
   };
