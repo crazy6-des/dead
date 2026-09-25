@@ -42,14 +42,14 @@ function ReplyItem({ item, onReply, onDeleted, onUpdated }) {
       onUpdated?.(item.id, updated?.text || value);
       setEditing(false);
       setMenu(false);
-    } catch (error) { throw error; }
+    } catch (cause) { setError(cause?.message || "Could not edit this reply."); }
     finally { setBusy(false); }
   };
   const remove = async () => {
     if (!owner || busy || !window.confirm("Delete this reply permanently from S?")) return;
     setBusy(true);
     try { await replyService.delete(item.id); onDeleted?.(item.id); setMenu(false); }
-    catch (error) { throw error; }
+    catch (cause) { setError(cause?.message || "Could not delete this reply."); }
     finally { setBusy(false); }
   };
   return <article className="reply-row" key={item.id}>
