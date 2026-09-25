@@ -24,44 +24,51 @@ export async function search(request, env) {
   const session = await resolveSession(request, env);
   if (!session?.user_id) return failure("UNAUTHORIZED", 401, "Authentication is required.");
   if (!env?.DB) return failure("SERVICE_UNAVAILABLE", 503, "Search service is not configured.");
+
   const url = new URL(request.url);
   const query = String(url.searchParams.get("q") || "").trim().slice(0, 120);
   const type = String(url.searchParams.get("type") || "all");
   const niche = normalizeNiche(url.searchParams.get("niche"));
   const limit = normalizeLimit(url.searchParams.get("limit"));
-  if (!query && !niche && type !== "posts") return { response: { items: { people: [], posts: [], topics: [], music: [] }, query: "", type }, error: null };
+  if (!query && !niche && type !== "posts") {
+    return { response: { items: { people: [], posts: [], topics: [], music: [] }, query: "", type, niche: "" }, error: null };
+  }
 
   const like = "%" + query.replace(/[%_]/g, "\\$&") + "%";
-  const nicheForPosts = nicheClause(niche, 3);
-  const people = (query && (type === "all" || type === "people"))
-    ? await env.DB.prepare("SELECT id, username, display_name FROM users WHERE deleted_at IS NULL AND (username LIKE ?1 ESCAPE '\\\\' OR display_name LIKE ?1 ESCAPE '\\\\') ORDER BY username ASC LIMIT ?2").bind(like, limit).all()
-    : { results: [] };
-
-  const postConditions = query ? " AND p.body LIKE ?1 ESCAPE '\\\\'" : "";
-  const postParams = query ? [like, session.user_id, limit, ...nicheForPosts.params] : [session.user_id, limit, ...nicheForPosts.params];
-  const postLimitIndex = query ? 3 : 2;
-  const nicheStartIndex = query ? 4 : 3;
-  const nicheSql = niche ? nicheForPosts.sql.replace(/\?3/g, "?3").replace(/\?4/g, "?4") : "";
+  const nicheTerms = DISCOVER_NICHES[niche] || [];
+  const nicheSql = nicheTerms.length
+    ? " AND (" + nicheTerms.map((_, index) => "LOWER(p.body) LIKE ?" + (4 + index)).join(" OR ") + ")"
+    : "";
+  const nicheParams = nicheTerms.map((term) => "%" + term.toLowerCase().replace(/[%_]/g, "\\$&") + "%");
   const postRows = (type === "all" || type === "posts")
     ? await env.DB.prepare(
-      `SELECT p.id,p.author_id,p.body,p.visibility,p.reply_policy,p.post_kind,p.background_json,p.quoted_post_id,p.created_at,p.updated_at,u.username,u.display_name,(p.author_id=?${query ? 2 : 1}) AS is_owner,
+      `SELECT p.id,p.author_id,p.body,p.visibility,p.reply_policy,p.post_kind,p.background_json,p.quoted_post_id,p.created_at,p.updated_at,u.username,u.display_name,(p.author_id=?2) AS is_owner,
        (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url,'/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id=p.id ORDER BY m.position) AS media,
        (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id=p.id AND r.reaction_type='like') AS like_count,
        (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id=p.id AND r.reaction_type='repost') AS repost_count,
        (SELECT COUNT(*) FROM posts rp WHERE rp.reply_to_id=p.id AND rp.deleted_at IS NULL) AS reply_count,
        (SELECT COUNT(*) FROM bookmarks b WHERE b.post_id=p.id) AS bookmark_count
        FROM posts p JOIN users u ON u.id=p.author_id
-       WHERE p.deleted_at IS NULL AND u.deleted_at IS NULL${postConditions}
-       AND (p.author_id=?${query ? 2 : 1} OR p.visibility='public')${nicheSql}
-       ORDER BY p.created_at DESC,p.id DESC LIMIT ?${postLimitIndex}`
-    ).bind(...postParams).all()
+       WHERE p.deleted_at IS NULL AND u.deleted_at IS NULL
+       AND (p.author_id=?2 OR p.visibility='public')
+       ${query ? "AND p.body LIKE ?1 ESCAPE '\\\\'" : ""}
+       ${nicheSql}
+       ORDER BY p.created_at DESC,p.id DESC LIMIT ?3`
+    ).bind(like, session.user_id, limit, ...nicheParams).all()
+    : { results: [] };
+
+  const people = (query && (type === "all" || type === "people"))
+    ? await env.DB.prepare("SELECT id, username, display_name FROM users WHERE deleted_at IS NULL AND (username LIKE ?1 ESCAPE '\\\\' OR display_name LIKE ?1 ESCAPE '\\\\') ORDER BY username ASC LIMIT ?2").bind(like, limit).all()
     : { results: [] };
 
   const topics = (query && (type === "all" || type === "topics"))
     ? await env.DB.prepare("SELECT body FROM posts WHERE deleted_at IS NULL AND visibility='public' AND body LIKE ?1 ESCAPE '\\\\' ORDER BY created_at DESC LIMIT ?2").bind(like, limit).all()
     : { results: [] };
+
   const topicSet = new Set();
-  for (const row of topics.results || []) for (const match of String(row.body || "").matchAll(/#[a-z0-9_]+/gi)) topicSet.add(match[0]);
+  for (const row of topics.results || []) {
+    for (const match of String(row.body || "").matchAll(/#[a-z0-9_]+/gi)) topicSet.add(match[0]);
+  }
 
   return {
     response: {
