@@ -38,7 +38,10 @@ function PostDetail({ post, currentUser, onBack, onLike, onSave, onRepost, onOpe
   const [replyLoadingMore, setReplyLoadingMore] = useState(false);
   const [replyError, setReplyError] = useState("");
   const [shared, setShared] = useState(false);
-  const [quoteSubmitting, setQuoteSubmitting] = useState(false);\n  const [replyEditingId, setReplyEditingId] = useState(null);\n  const [replyEditText, setReplyEditText] = useState("");\n  const [replyEditBusy, setReplyEditBusy] = useState(false);
+  const [quoteSubmitting, setQuoteSubmitting] = useState(false);
+  const [replyEditingId, setReplyEditingId] = useState(null);
+  const [replyEditText, setReplyEditText] = useState("");
+  const [replyEditBusy, setReplyEditBusy] = useState(false);
 
   useEffect(() => {
     if (mode === "quote" || mode === "media") return undefined;
