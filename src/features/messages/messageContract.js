@@ -32,6 +32,8 @@ export function normalizeMessage(value = {}) {
     text: String(value.text || ""),
     media,
     createdAt: value.createdAt || null,
+    updatedAt: value.updatedAt || null,
+    editedAt: value.editedAt || null,
     status: value.status || "sent",
   });
 }
