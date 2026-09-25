@@ -71,3 +71,59 @@ export function normalizeCreatedPostResponse(response) {
   if (!post.kind) post.kind = POST_KINDS.TEXT;
   return post;
 }
+
+const activePostAudioPlayers = new Map();
+let activePostAudioId = null;
+
+function stopPostAudio(id, audio) {
+  try { audio?.pause(); } catch {}
+  activePostAudioPlayers.get(id)?.setPlaying?.(false);
+}
+
+export function registerPostAudio(id, audio, setPlaying) {
+  const key = String(id || "");
+  if (!key || !audio) return () => {};
+  activePostAudioPlayers.set(key, { audio, setPlaying });
+  return () => {
+    if (activePostAudioPlayers.get(key)?.audio === audio) {
+      stopPostAudio(key, audio);
+      activePostAudioPlayers.delete(key);
+      if (activePostAudioId === key) activePostAudioId = null;
+    }
+  };
+}
+
+export async function activatePostAudio(id) {
+  const key = String(id || "");
+  const entry = activePostAudioPlayers.get(key);
+  if (!entry?.audio) return { played: false, blocked: false };
+  if (activePostAudioId && activePostAudioId !== key) {
+    const previous = activePostAudioPlayers.get(activePostAudioId);
+    stopPostAudio(activePostAudioId, previous?.audio);
+  }
+  activePostAudioId = key;
+  try {
+    await entry.audio.play();
+    entry.setPlaying?.(true);
+    return { played: true, blocked: false };
+  } catch {
+    entry.setPlaying?.(false);
+    return { played: false, blocked: true };
+  }
+}
+
+export function deactivatePostAudio(id) {
+  const key = String(id || "");
+  const entry = activePostAudioPlayers.get(key);
+  if (entry?.audio) stopPostAudio(key, entry.audio);
+  if (activePostAudioId === key) activePostAudioId = null;
+}
+
+export function togglePostAudio(id) {
+  const key = String(id || "");
+  const entry = activePostAudioPlayers.get(key);
+  if (!entry?.audio) return Promise.resolve({ played: false, blocked: false });
+  if (entry.audio.paused) return activatePostAudio(key);
+  deactivatePostAudio(key);
+  return Promise.resolve({ played: false, blocked: false });
+}
