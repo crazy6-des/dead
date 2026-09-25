@@ -22,7 +22,7 @@ export const replyService = Object.freeze({
     };
   },
 
-  async create(postId, text) {
+  async update(replyId, text) {\n    assertBackend();\n    const id = String(replyId || "").trim();\n    const normalizedText = String(text || "").trim();\n    if (!id || !normalizedText) throw new TypeError("Reply id and text are required.");\n    const result = await apiClient.patch(`/api/posts/${encodeURIComponent(id)}`, { text: normalizedText });\n    return result?.reply || result?.post || null;\n  },\n\n  async delete(replyId) {\n    assertBackend();\n    const id = String(replyId || "").trim();\n    if (!id) throw new TypeError("Reply id is required.");\n    return apiClient.delete(`/api/posts/${encodeURIComponent(id)}`);\n  },\n\n  async create(postId, text) {
     assertBackend();
     const normalizedPostId = String(postId || "").trim();
     const normalizedText = String(text || "").trim();
