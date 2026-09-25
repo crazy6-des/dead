@@ -43,7 +43,8 @@ export async function getMedia(request, env, mediaId) {
   const row = await env.DB.prepare(`
     SELECT pm.id, pm.object_key, pm.mime_type, pm.byte_size, pm.owner_id, pm.post_id,
       p.author_id AS post_author_id, p.deleted_at AS post_deleted_at, p.visibility AS post_visibility,
-      m.sender_id AS message_sender_id,\n      EXISTS (SELECT 1 FROM users au WHERE au.avatar_url = '/api/media/' || pm.id AND au.deleted_at IS NULL) AS is_profile_avatar
+      m.sender_id AS message_sender_id,
+      EXISTS (SELECT 1 FROM users au WHERE au.avatar_url = '/api/media/' || pm.id AND au.deleted_at IS NULL) AS is_profile_avatar
     FROM post_media pm
     LEFT JOIN posts p ON p.id = pm.post_id
     LEFT JOIN messages m ON m.media_id = pm.id AND m.deleted_at IS NULL
@@ -52,7 +53,8 @@ export async function getMedia(request, env, mediaId) {
   `).bind(mediaId).first();
   if (!row) return fail("NOT_FOUND",404,"Media not found.");
 
-  const publicAvatarAllowed = Boolean(row.is_profile_avatar);\n  let publicPostAllowed = false;
+  const publicAvatarAllowed = Boolean(row.is_profile_avatar);
+  let publicPostAllowed = false;
   if (row.post_id && !row.post_deleted_at && row.post_visibility === "public") {
     const account = await env.DB.prepare(
       "SELECT private_account FROM user_settings WHERE user_id = ?1 LIMIT 1"
