@@ -4,6 +4,7 @@ import { moderationService } from "../../services/moderationService.js";
 import { postService } from "../../services/postService.js";
 import { pollService } from "../../services/pollService.js";
 import { MODERATION_ACTIONS, REPORT_REASONS } from "../moderation/moderationContract.js";
+import { activatePostAudio, deactivatePostAudio, registerPostAudio, togglePostAudio } from "./postPlayback.js";
 import { BarChart3, Bookmark, Check, Copy, Download, Flag, Heart, MessageCircle, MoreHorizontal, Music2, Repeat2, Send, Shield, X } from "lucide-react";
 
 function getMediaItems(media) {
@@ -79,8 +80,10 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const [pollBusy, setPollBusy] = useState(false);
   const [pollError, setPollError] = useState("");
   const [localPoll, setLocalPoll] = useState(null);
+  const cardRef = useRef(null);
   const audioRef = useRef(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
+  const [audioBlocked, setAudioBlocked] = useState(false);
   const reposted = Boolean(post.reposted);
   const isFollowing = Boolean(post.following);
   const author = getAuthorName(post);
@@ -94,26 +97,41 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const audioSource = getAudioSource(post, mediaItems);
   useEffect(() => {
     const audio = audioRef.current;
+    const card = cardRef.current;
+    if (!audio || !card || !audioSource?.url || typeof window.IntersectionObserver === "undefined") return undefined;
+    const unregister = registerPostAudio(post.id, audio, setAudioPlaying);
+    const observer = new window.IntersectionObserver(async (entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.68) {
+        const result = await activatePostAudio(post.id);
+        setAudioBlocked(Boolean(result.blocked));
+      } else if (!entry.isIntersecting || entry.intersectionRatio < 0.25) {
+        deactivatePostAudio(post.id);
+        setAudioBlocked(false);
+      }
+    }, { threshold: [0, 0.25, 0.68, 1] });
+    observer.observe(card);
+    return () => { observer.disconnect(); unregister(); };
+  }, [post.id, audioSource?.url]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
     if (!audio) return undefined;
-    const stopOnScroll = () => { audio.pause(); setAudioPlaying(false); };
-    const onPlay = () => setAudioPlaying(true);
+    const onPlay = () => { setAudioPlaying(true); setAudioBlocked(false); };
     const onPause = () => setAudioPlaying(false);
-    window.addEventListener("scroll", stopOnScroll, { passive: true });
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
     return () => {
-      window.removeEventListener("scroll", stopOnScroll);
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
-      audio.pause();
     };
   }, []);
   if (deleted) return null;
-  const toggleAudio = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (audio.paused) await audio.play();
-    else audio.pause();
+  const toggleAudio = async (event) => {
+    event?.stopPropagation?.();
+    const result = await togglePostAudio(post.id);
+    setAudioBlocked(Boolean(result.blocked));
   };
   const background = post.background || post.bg || null;
   const backgroundStyle = getBackgroundStyle(background);
@@ -158,7 +176,9 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
     } catch (err) { setModerationMessage(err?.message || "Could not complete that action."); }
     finally { setModerationBusy(false); }
   };
-  return <article className="post" onDoubleClick={() => onLike?.(post.id)}>
+  const immersive = Boolean(audioSource?.url || mediaSources.length > 0 || backgroundStyle);
+  const postClassName = "post" + (immersive ? " post--immersive" : "") + (audioPlaying ? " post--audio-playing" : "");
+  return <article ref={cardRef} className={postClassName} data-post-id={post.id} onDoubleClick={() => onLike?.(post.id)}>
     <button className="avatar avatar-button" onClick={() => onOpen?.("/user/" + encodeURIComponent(username))} aria-label="Open profile">{author[0]}</button>
     <div className="post__body">
       <div className="post__meta">
@@ -171,9 +191,22 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
       </div>
       {editing ? <div className="post-edit-box"><textarea value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={5000} aria-label="Edit post"/><div><span>{editText.length}/5000</span><button type="button" className="outline" onClick={() => { setEditing(false); setEditText(localText); }} disabled={editBusy}>Cancel</button><button type="button" className="primary" onClick={saveEdit} disabled={editBusy || !editText.trim()}>{editBusy ? "Saving…" : "Save"}</button></div></div> : localText && !backgroundStyle && <button className="post-content-hit" onClick={() => onOpen?.("/post/" + post.id)}><p className="post__text">{localText}</p></button>}
       {post.quotedPost && <button className="quoted-post-card" onClick={() => onOpen?.("/post/" + encodeURIComponent(post.quotedPost.id))}><strong>{post.quotedPost.author?.displayName || post.quotedPost.author?.username || "User"}</strong><span>@{post.quotedPost.author?.username || "user"}</span><p>{post.quotedPost.text || ""}</p></button>}
-      {backgroundStyle && <div className={"post-background-card" + (localText ? " has-text" : "")} style={backgroundStyle} aria-label="Post background">{localText && <span>{localText}</span>}</div>}
+      {backgroundStyle && <div className={"post-background-card" + (localText ? " has-text" : "")} style={backgroundStyle} aria-label="Post background">
+        {localText && <span>{localText}</span>}
+        {audioSource?.url && <button type="button" className={"post-sound-control " + (audioPlaying ? "is-playing" : "")} onClick={toggleAudio} aria-label={audioPlaying ? "Pause soundtrack" : "Play soundtrack"}>{audioPlaying ? "♫" : <Music2 size={17}/>}<span>{audioBlocked ? "Tap for sound" : (audioSource.title || audioSource.name || "Soundtrack")}</span></button>}
+        {audioSource?.url && <audio ref={audioRef} preload="metadata" src={audioSource.url} aria-hidden="true" tabIndex={-1} />}
+      </div>}
       {mediaSources.length > 0 && <div className={"post-media-grid media-count-" + Math.min(mediaSources.length, 4)}>{mediaSources.map((source, index) => <button className="post-media" key={source + index} onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))}><img src={source} alt={imageItems[index]?.alt || "Post media"} loading="lazy" /></button>)}</div>}
-      {audioSource?.url && <><button type="button" className={"audio-card post-audio-card " + (audioPlaying ? "is-playing" : "")} onClick={toggleAudio} aria-label={audioPlaying ? "Pause music" : "Play music"}><div className="audio-art">{audioSource.artworkUrl ? <img src={audioSource.artworkUrl} alt="" loading="lazy" /> : <Music2 size={20}/>}</div><div className="audio-card__body"><strong>{audioSource.title || audioSource.name || "Music"}</strong><span>{audioSource.artist || "Original audio"}</span><small>{audioPlaying ? "Playing · scroll to stop" : "Tap to play"}</small><audio ref={audioRef} preload="metadata" src={audioSource.url} aria-hidden="true" tabIndex={-1} /></div></button>{audioSource.provider && <div className="post-audio-license">Music: {audioSource.provider}{audioSource.licenseUrl && <> · <a href={audioSource.licenseUrl} target="_blank" rel="noreferrer">License</a></>}</div>}</>}
+      {audioSource?.url && mediaSources.length === 0 && !backgroundStyle && <div className="post-audio-stage">
+        <div className="post-audio-stage__art">{audioSource.artworkUrl ? <img src={audioSource.artworkUrl} alt="" loading="lazy" /> : <Music2 size={34}/>}</div>
+        <button type="button" className={"post-sound-control " + (audioPlaying ? "is-playing" : "")} onClick={toggleAudio} aria-label={audioPlaying ? "Pause soundtrack" : "Play soundtrack"}>{audioPlaying ? "♫" : <Music2 size={17}/>}<span>{audioBlocked ? "Tap for sound" : (audioSource.title || audioSource.name || "Soundtrack")}</span></button>
+        <audio ref={audioRef} preload="metadata" src={audioSource.url} aria-hidden="true" tabIndex={-1} />
+      </div>}
+      {audioSource?.url && mediaSources.length > 0 && !backgroundStyle && <div className="post-sound-meta">
+        <button type="button" className={"post-sound-control " + (audioPlaying ? "is-playing" : "")} onClick={toggleAudio}><Music2 size={15}/><span>{audioBlocked ? "Tap for sound" : (audioSource.title || audioSource.name || "Soundtrack")}</span></button>
+        <audio ref={audioRef} preload="metadata" src={audioSource.url} aria-hidden="true" tabIndex={-1} />
+      </div>}
+      {audioSource?.url && audioSource.provider && <div className="post-audio-license">Music: {audioSource.provider}{audioSource.licenseUrl && <> · <a href={audioSource.licenseUrl} target="_blank" rel="noreferrer">License</a></>}</div>}
       {post.poll && <div className="poll-card"><div className="poll-card__question"><BarChart3 size={17}/><strong>{post.poll.question}</strong></div>{getPollOptions(localPoll || post.poll).map((option, index) => { const poll = localPoll || post.poll; const pollId = post.poll.id || post.id; const selected = Number(poll?.votedOptionIndex ?? pollVotes[pollId]) === index; const votes = getPollOptionVotes(poll, option, index); const total = Array.isArray(poll?.optionVotes) ? poll.optionVotes.reduce((sum, count) => sum + Math.max(0, Number(count || 0)), 0) : Number(poll?.totalVotes || 0); const percent = total > 0 ? Math.round((votes / total) * 100) : 0; const optionText = getPollOptionText(option); return <button className={"poll-option " + (selected ? "is-selected" : "")} key={index} onClick={async () => { if (pollBusy) return; setPollBusy(true); setPollError(""); try { const result = await pollService.vote(pollId, index); if (result?.poll) setLocalPoll(result.poll); setPollVotes((current) => ({ ...current, [pollId]: Number(result?.optionIndex ?? index) })); } catch (err) { setPollError(err?.message || "Could not record your vote."); } finally { setPollBusy(false); } }}><span>{optionText || "Option " + (index + 1)}</span><span>{percent}%</span></button>; })}<small>{pollError || `${(localPoll || post.poll)?.totalVotes || 0} votes`}</small></div>}
 
       <div className="post__actions"><button onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id) + "/replies")}><MessageCircle size={18}/><span>{post.replies ?? post.r ?? 0}</span></button><button className={reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)}><Repeat2 size={18}/><span>{post.reposts ?? post.p ?? 0}</span></button><button className={post.liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)}><Heart size={18} fill={post.liked ? "currentColor" : "none"}/><span>{post.likes ?? post.l ?? 0}</span></button><button className={post.saved ? "is-saved" : ""} onClick={() => onSave?.(post.id)}><Bookmark size={18} fill={post.saved ? "currentColor" : "none"}/><span>{post.bookmarks ?? post.b ?? 0}</span></button><button onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id) + "/quote")} aria-label="Quote"><Repeat2 size={16}/></button><button onClick={() => onOpen?.("/share/" + post.id)} aria-label="Share"><Send size={17}/></button></div>
