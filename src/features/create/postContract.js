@@ -76,7 +76,7 @@ const activePostAudioPlayers = new Map();
 let activePostAudioId = null;
 
 function stopPostAudio(id, audio) {
-  try { audio?.pause(); } catch {}
+  try { audio?.pause(); } catch (error) { void error; }
   activePostAudioPlayers.get(id)?.setPlaying?.(false);
 }
 
