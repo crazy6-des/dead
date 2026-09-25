@@ -136,7 +136,7 @@ export async function updateMessage(request, env, messageId) {
   const result = await env.DB.prepare("UPDATE messages SET body=?1, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'), edited_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?2 AND sender_id=?3 AND deleted_at IS NULL").bind(text,id,session.user_id).run();
   if (!result?.meta?.changes) return { response: null, error: { code: "MESSAGE_NOT_FOUND", status: 404, message: "Message was not found or you are not its sender." } };
   const row = await env.DB.prepare("SELECT m.id,m.conversation_id,m.sender_id,m.message_type,m.body,m.created_at,m.updated_at,m.deleted_at,m.media_id,m.edited_at,pm.media_type,pm.mime_type,pm.byte_size AS media_size,json_extract(pm.metadata_json,'$.name') AS media_name FROM messages m LEFT JOIN post_media pm ON pm.id=m.media_id WHERE m.id=?1 LIMIT 1").bind(id).first();
-  return { response: normalizeMessageRow(row), error: null };
+  return { response: messagePayload(row, session.user_id), error: null };
 }
 
 export async function deleteMessage(request, env, messageId) {
