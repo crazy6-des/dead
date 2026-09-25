@@ -157,7 +157,12 @@ export function MessagesRoute({ currentUserId = null }) {
   const [sending, setSending] = useState(false);
   const [messageReport, setMessageReport] = useState(null);
   const [messageReportNote, setMessageReportNote] = useState("");
-  const [messageReportBusy, setMessageReportBusy] = useState(false);\n  const [messageMenuId, setMessageMenuId] = useState(null);\n  const [messageEditingId, setMessageEditingId] = useState(null);\n  const [messageEditText, setMessageEditText] = useState("");\n  const [messageEditBusy, setMessageEditBusy] = useState(false);\n  const messageLongPressRef = useRef(null);
+  const [messageReportBusy, setMessageReportBusy] = useState(false);
+  const [messageMenuId, setMessageMenuId] = useState(null);
+  const [messageEditingId, setMessageEditingId] = useState(null);
+  const [messageEditText, setMessageEditText] = useState("");
+  const [messageEditBusy, setMessageEditBusy] = useState(false);
+  const messageLongPressRef = useRef(null);
   const [error, setError] = useState("");
   const [conversationError, setConversationError] = useState("");
   const imageInputRef = useRef(null);
@@ -277,7 +282,9 @@ export function MessagesRoute({ currentUserId = null }) {
     ...message,
     direction: message.direction || (currentUserId && message.senderId === currentUserId ? "out" : "in"),
   });
-  const clearMessageLongPress = () => { if (messageLongPressRef.current) { window.clearTimeout(messageLongPressRef.current); messageLongPressRef.current = null; } };\n  const beginMessageLongPress = (message) => { if (message.direction !== "out" || String(message.id).startsWith("local-") || message.status === "failed" || message.status === "sending") return; clearMessageLongPress(); messageLongPressRef.current = window.setTimeout(() => { setMessageMenuId(message.id); messageLongPressRef.current = null; }, 550); };\n  const submitMessageReport = async () => {
+  const clearMessageLongPress = () => { if (messageLongPressRef.current) { window.clearTimeout(messageLongPressRef.current); messageLongPressRef.current = null; } };
+  const beginMessageLongPress = (message) => { if (message.direction !== "out" || String(message.id).startsWith("local-") || message.status === "failed" || message.status === "sending") return; clearMessageLongPress(); messageLongPressRef.current = window.setTimeout(() => { setMessageMenuId(message.id); messageLongPressRef.current = null; }, 550); };
+  const submitMessageReport = async () => {
     if (!messageReport?.id || !messageReport.reason || messageReportBusy) return;
     setMessageReportBusy(true);
     try { await moderationService.report({ targetType: "message", targetId: messageReport.id, reason: messageReport.reason, note: messageReportNote }); setMessageReport(null); setMessageReportNote(""); setError(""); }
