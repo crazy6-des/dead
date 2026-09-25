@@ -12,11 +12,12 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [remoteError, setRemoteError] = useState("");
   const [activeNiche, setActiveNiche] = useState("");
+  const [liveNicheStats, setLiveNicheStats] = useState(() => Object.fromEntries(DISCOVER_NICHES ? Object.keys(DISCOVER_NICHES).map((niche) => [niche, 0]) : []));
   const searchApi = useMemo(() => createSearchAdapter({ posts }), [posts]);
   const trends = useMemo(() => extractHashtags(posts), [posts]);
   const people = useMemo(() => getSuggestedPeople(posts, followingUsers), [posts, followingUsers]);
   const filtered = useMemo(() => posts.filter((post) => matchesDiscoverQuery(post, query)), [posts, query]);
-  const nicheStats = useMemo(() => getNicheStats(posts), [posts]);
+  const nicheStats = useMemo(() => Object.keys(DISCOVER_NICHES).map((niche) => ({ niche, count: liveNicheStats[niche] ?? 0 })), [liveNicheStats]);
   const localNichePosts = useMemo(() => getNichePosts(posts, activeNiche), [posts, activeNiche]);
   useEffect(() => {
     const type = tab === "People" ? "people" : tab === "Posts" ? "posts" : tab === "Topics" ? "topics" : tab === "Music" ? "music" : "all";
@@ -25,6 +26,24 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
     const timer = window.setTimeout(() => { setRemoteLoading(true); setRemoteError(""); setRemote(null); searchApi.search(query, type).then((result) => { if (active) setRemote(result); }).catch((error) => { if (active) { setRemote(null); setRemoteError(error?.message || "Discover results could not be loaded."); } }).finally(() => { if (active) setRemoteLoading(false); }); }, 180);
     return () => { active = false; window.clearTimeout(timer); };
   }, [query, tab, searchApi, activeNiche]);
+  useEffect(() => {
+    let active = true;
+    const refreshNicheStats = async () => {
+      try {
+        const results = await Promise.all(Object.keys(DISCOVER_NICHES).map(async (niche) => {
+          const result = await searchApi.search("", "posts", null, niche);
+          return [niche, Number(result?.nicheCount || 0)];
+        }));
+        if (active) setLiveNicheStats(Object.fromEntries(results));
+      } catch (error) {
+        if (active) setRemoteError(error?.message || "Could not refresh live Discover topics.");
+      }
+    };
+    void refreshNicheStats();
+    const interval = window.setInterval(refreshNicheStats, 20000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [searchApi]);
+
   useEffect(() => {
     if (!activeNiche || tab !== "Posts") return undefined;
     let active = true;
