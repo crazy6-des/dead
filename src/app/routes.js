@@ -61,7 +61,6 @@ export function navigateTo(route) {
   const target = next + suffix + fragment;
   if (current !== target) {
     window.history.pushState({}, "", target);
-    window.dispatchEvent(new window.Event("popstate"));
   }
   return next;
 }
