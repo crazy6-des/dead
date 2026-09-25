@@ -70,6 +70,38 @@ const created = await request("/api/posts", {
 const postId = created.post?.id;
 if (!postId) throw new Error("Post creation persistence contract failed.");
 
+const updatedPost = await request("/api/posts/" + encodeURIComponent(postId), {
+  method: "PATCH",
+  body: JSON.stringify({ text: "S live persistence E2E edited" }),
+});
+if (updatedPost.post?.text !== "S live persistence E2E edited") throw new Error("Post edit persistence contract failed.");
+
+const deletedCreated = await request("/api/posts", {
+  method: "POST",
+  body: JSON.stringify({
+    text: "S live delete E2E",
+    kind: "text",
+    media: [],
+    audio: null,
+    background: null,
+    poll: null,
+    audience: "public",
+    replyPolicy: "everyone",
+  }),
+});
+const deletedPostId = deletedCreated.post?.id;
+if (!deletedPostId) throw new Error("Delete-test post creation contract failed.");
+await request("/api/posts/" + encodeURIComponent(deletedPostId), { method: "DELETE" });
+let deleteReadFailed = false;
+try {
+  await request("/api/posts/" + encodeURIComponent(deletedPostId));
+} catch (error) {
+  deleteReadFailed = String(error?.message || error).includes("404");
+}
+if (!deleteReadFailed) throw new Error("Post delete persistence contract failed: deleted post remained readable.");
+
+
+
 const richCreated = await request("/api/posts", {
   method: "POST",
   body: JSON.stringify({
