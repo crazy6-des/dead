@@ -88,7 +88,6 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const text = post.text || post.x || "";
   const [localText, setLocalText] = useState(text);
   const [editText, setEditText] = useState(text);
-  useEffect(() => { setLocalText(post.text || post.x || ""); setEditText(post.text || post.x || ""); }, [post.id, post.text, post.x]);
   const mediaItems = getMediaItems(post.media);
   const imageItems = mediaItems.filter((item) => !isAudioMedia(item));
   const mediaSources = imageItems.map(getMediaSource).filter(Boolean);
