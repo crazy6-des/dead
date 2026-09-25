@@ -1512,3 +1512,15 @@ select:focus-visible {
   font-size:12px;
   line-height:1.5;
 }
+
+
+/* Phase 10 Performance: let long social surfaces skip off-screen rendering. */
+.feed-list > .post{
+  content-visibility:auto;
+  contain-intrinsic-size:auto 240px;
+}
+.discover-posts .discover-row,
+.page:has(.notice) .notice{
+  content-visibility:auto;
+  contain-intrinsic-size:auto 72px;
+}
