@@ -13,8 +13,8 @@ export default function HomeRoute({ currentUser, posts, onLike, onSave, onFollow
 
   useEffect(() => {
     const target = loadMoreRef.current;
-    if (!target || !hasMore || loading || loadingMore || typeof IntersectionObserver === "undefined") return undefined;
-    const observer = new IntersectionObserver((entries) => {
+    if (!target || !hasMore || loading || loadingMore || typeof window.IntersectionObserver === "undefined") return undefined;
+    const observer = new window.IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) onLoadMore?.();
     }, { rootMargin: "720px 0px" });
     observer.observe(target);
