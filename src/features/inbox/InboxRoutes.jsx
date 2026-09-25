@@ -284,6 +284,31 @@ export function MessagesRoute({ currentUserId = null }) {
   });
   const clearMessageLongPress = () => { if (messageLongPressRef.current) { window.clearTimeout(messageLongPressRef.current); messageLongPressRef.current = null; } };
   const beginMessageLongPress = (message) => { if (message.direction !== "out" || String(message.id).startsWith("local-") || message.status === "failed" || message.status === "sending") return; clearMessageLongPress(); messageLongPressRef.current = window.setTimeout(() => { setMessageMenuId(message.id); messageLongPressRef.current = null; }, 550); };
+  const saveMessageEdit = async () => {
+    const text = messageEditText.trim();
+    if (!messageEditingId || !text || messageEditBusy) return;
+    setMessageEditBusy(true);
+    try {
+      const updated = await messagesApi.update(messageEditingId, text);
+      setMessages((current) => ({ ...current, [selected]: (current[selected] || []).map((item) => item.id === messageEditingId ? { ...item, text: updated?.text || text, updatedAt: updated?.updatedAt || new Date().toISOString(), editedAt: updated?.editedAt || new Date().toISOString() } : item) }));
+      setMessageEditingId(null);
+      setMessageEditText("");
+      setMessageMenuId(null);
+    } catch (err) { setError(err?.message || "Could not edit this message."); }
+    finally { setMessageEditBusy(false); }
+  };
+
+  const removeMessage = async (messageId) => {
+    if (messageEditBusy || !window.confirm("Delete this message permanently from S?")) return;
+    setMessageEditBusy(true);
+    try {
+      await messagesApi.delete(messageId);
+      setMessages((current) => ({ ...current, [selected]: (current[selected] || []).filter((item) => item.id !== messageId) }));
+      setMessageMenuId(null);
+    } catch (err) { setError(err?.message || "Could not delete this message."); }
+    finally { setMessageEditBusy(false); }
+  };
+
   const submitMessageReport = async () => {
     if (!messageReport?.id || !messageReport.reason || messageReportBusy) return;
     setMessageReportBusy(true);
