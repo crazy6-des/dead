@@ -31,7 +31,7 @@ export async function listSpaces(request, env) {
       u.id AS host_id,u.username AS host_username,u.display_name AS host_display_name,u.avatar_url AS host_avatar_url,
       ${participantQuery()} AS participant_count,
       EXISTS(SELECT 1 FROM space_members me WHERE me.space_id=s.id AND me.user_id=?2 AND me.left_at IS NULL) AS joined,
-      EXISTS(SELECT 1 FROM space_members sp WHERE sp.space_id=s.id AND sp.user_id=?2 AND sp.role IN ('host','speaker') AND sp.left_at IS NULL) AS can_speak
+      EXISTS(SELECT 1 FROM space_members sp WHERE sp.space_id=s.id AND sp.user_id=?2 AND sp.role IN ('host','speaker') AND sp.left_at IS NULL) AS can_speak,\n      (s.host_id=?2) AS is_owner
       FROM spaces s JOIN users u ON u.id=s.host_id
       WHERE s.deleted_at IS NULL AND s.status != 'ended'
       AND (s.title LIKE ?3 ESCAPE '\\' OR u.username LIKE ?3 ESCAPE '\\' OR u.display_name LIKE ?3 ESCAPE '\\')
@@ -46,7 +46,7 @@ function spaceRow(row) {
     startAt: row.scheduled_at, startedAt: row.started_at, endedAt: row.ended_at,
     host: row.host_display_name || row.host_username, hostUsername: row.host_username,
     hostAvatarUrl: row.host_avatar_url, participantCount: Number(row.participant_count || 0),
-    joined: Boolean(row.joined), canSpeak: Boolean(row.can_speak),
+    joined: Boolean(row.joined), canSpeak: Boolean(row.can_speak), isOwner: Boolean(row.is_owner),
   };
 }
 
@@ -87,7 +87,7 @@ export async function createSpace(request, env) {
 }
 
 function spaceDetail(row, participantCount = 0, role = null) {
-  return { id:row.id,title:row.title,status:row.status,startAt:row.scheduled_at,startedAt:row.started_at,endedAt:row.ended_at,host:row.host_display_name || row.host_username,hostUsername:row.host_username,hostAvatarUrl:row.host_avatar_url,participantCount,role };
+  return { id:row.id,title:row.title,status:row.status,startAt:row.scheduled_at,startedAt:row.started_at,endedAt:row.ended_at,host:row.host_display_name || row.host_username,hostUsername:row.host_username,hostAvatarUrl:row.host_avatar_url,participantCount,role,isOwner: Boolean(row.host_id && role === "host") };
 }
 
 export async function getSpaceDetail(request, env, id) {
@@ -145,6 +145,21 @@ export async function endSpace(request,env,id) {
     } catch (error) { console.error("SPACE_END_REALTIME_CLEANUP_FAILED", error); }
   }
   return {response:{ok:true,endedAt:ended},error:null};
+}
+
+
+export async function deleteSpace(request,env,id) {
+  const user=await session(request,env); if(!user)return failure("UNAUTHORIZED",401,"Authentication is required.");
+  const row=await getSpace(env,id); if(!row)return failure("NOT_FOUND",404,"Space was not found.");
+  if(row.host_id!==user.user_id)return failure("FORBIDDEN",403,"Only the Space creator can delete it.");
+  if(row.deleted_at)return {response:{ok:true},error:null};
+  const timestamp=now();
+  await env.DB.batch([
+    env.DB.prepare("UPDATE spaces SET deleted_at=?2,status='ended',ended_at=COALESCE(ended_at,?2),updated_at=?2 WHERE id=?1 AND host_id=?3 AND deleted_at IS NULL").bind(id,timestamp,user.user_id),
+    env.DB.prepare("UPDATE space_members SET left_at=?2 WHERE space_id=?1 AND left_at IS NULL").bind(id,timestamp),
+  ]);
+  if(env.SPACE_ROOM){try{const stub=env.SPACE_ROOM.get(env.SPACE_ROOM.idFromName(id));await stub.fetch(new Request("https://space.internal/control/end",{method:"POST",headers:{"X-S-Space-Control":"end"}}));}catch(error){console.error("SPACE_DELETE_REALTIME_CLEANUP_FAILED",error);}}
+  return {response:{ok:true},error:null};
 }
 
 export async function listSpaceMembers(request,env,id) {
