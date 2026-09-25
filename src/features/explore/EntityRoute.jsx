@@ -7,7 +7,7 @@ import PostCard from "../post/PostCard.jsx";
 import { toFeedPostFromCreatedPost } from "../feed/feedPostAdapter.js";
 import { postService, publishQuotePost } from "../../services/postService.js";
 import { createSearchAdapter } from "../../services/searchService.js";
-import { ArrowLeft, Check, Copy, Heart, Link2, MessageCircle, MoreHorizontal, Repeat2, Send, Users, X } from "lucide-react";
+import { ArrowLeft, Check, Copy, Heart, Link2, MessageCircle, MoreHorizontal, Repeat2, Send, Users } from "lucide-react";
 import { getUserPresentation } from "../auth/userPresentation.js";
 import { formatFullDateTime } from "../../utils/dateTime.js";
 
