@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Hash, Search, Users } from "lucide-react";
 import PostCard from "../post/PostCard.jsx";
-import { DISCOVER_NICHES, extractHashtags, getNichePosts, getNicheStats, getSuggestedPeople, matchesDiscoverQuery } from "./discoverUtils.js";
+import { DISCOVER_NICHES, extractHashtags, getNichePosts, getSuggestedPeople, matchesDiscoverQuery } from "./discoverUtils.js";
 import { createSearchAdapter } from "../../services/searchService.js";
 import { toFeedPostFromCreatedPost } from "../feed/feedPostAdapter.js";
 
