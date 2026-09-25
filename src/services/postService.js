@@ -160,7 +160,7 @@ export async function publishQuotePost({ postId, text = "" } = {}) {
 
 
 export const postService = Object.freeze({
-  getById(postId, options = {}) {
+  update(postId, text) { const id = String(postId || "").trim(); if (!id) return Promise.reject(new TypeError("Post id is required.")); return apiClient.patch(`/api/posts/${encodeURIComponent(id)}`, { text: String(text || "").trim() }).then((result) => result?.post || null); },\n  delete(postId) { const id = String(postId || "").trim(); if (!id) return Promise.reject(new TypeError("Post id is required.")); return apiClient.delete(`/api/posts/${encodeURIComponent(id)}`); },\n  getById(postId, options = {}) {
     const id = String(postId || "").trim();
     if (!id) return Promise.reject(new TypeError("Post id is required."));
     return apiClient.get(`/api/posts/${encodeURIComponent(id)}`, options).then((result) => result?.post || null);
