@@ -11,15 +11,6 @@ const DISCOVER_NICHES = Object.freeze({
 function failure(code, status, message) { return { response: null, error: { code, status, message } }; }
 function normalizeLimit(value) { const n = Number(value); return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_LIMIT) : 20; }
 function normalizeNiche(value) { const raw = String(value || "").trim(); return Object.prototype.hasOwnProperty.call(DISCOVER_NICHES, raw) ? raw : ""; }
-function nicheClause(niche, startIndex) {
-  const terms = DISCOVER_NICHES[niche] || [];
-  if (!terms.length) return { sql: "", params: [] };
-  return {
-    sql: " AND (" + terms.map((_, index) => "LOWER(p.body) LIKE ?" + (startIndex + index)).join(" OR ") + ")",
-    params: terms.map((term) => "%" + term.toLowerCase().replace(/[%_]/g, "\\$&") + "%"),
-  };
-}
-
 export async function search(request, env) {
   const session = await resolveSession(request, env);
   if (!session?.user_id) return failure("UNAUTHORIZED", 401, "Authentication is required.");
