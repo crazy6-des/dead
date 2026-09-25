@@ -13,10 +13,17 @@ export default function CreateRoute({ onPublish, onCancel, initialDraft }) {
   );
 
   return (
-    <CreateComposer
-      initialDraft={initialDraft}
-      onCancel={onCancel}
-      onPublish={publish}
-    />
+    <section className="s-create-page" aria-labelledby="s-create-title">
+      <div className="s-create-page__intro">
+        <small>CREATE ON S</small>
+        <h1 id="s-create-title">Make something worth seeing.</h1>
+        <p>Write it, add media, choose a sound or background, then publish when it feels ready.</p>
+      </div>
+      <CreateComposer
+        initialDraft={initialDraft}
+        onCancel={onCancel}
+        onPublish={publish}
+      />
+    </section>
   );
 }
