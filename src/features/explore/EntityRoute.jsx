@@ -42,6 +42,7 @@ function PostDetail({ post, currentUser, onBack, onLike, onSave, onRepost, onOpe
   const [postMenu, setPostMenu] = useState(false);
   const [postEditing, setPostEditing] = useState(false);
   const [postEditText, setPostEditText] = useState(post.x || post.text || "");
+  const [detailText, setDetailText] = useState(post.x || post.text || "");
   const [postEditBusy, setPostEditBusy] = useState(false);
   const [replyEditingId, setReplyEditingId] = useState(null);
   const [replyEditText, setReplyEditText] = useState("");
@@ -73,7 +74,7 @@ function PostDetail({ post, currentUser, onBack, onLike, onSave, onRepost, onOpe
     setPostEditBusy(true);
     try {
       const updated = await postService.update(post.id, text);
-      post.x = updated?.text || text;
+      setDetailText(updated?.text || text);
       setPostEditing(false);
       setPostMenu(false);
     } catch (error) { setReplyError(error?.message || "The post could not be edited."); }
