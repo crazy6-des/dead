@@ -80,7 +80,8 @@ export function serializePost(row) {
     liked: Boolean(row.liked),
     saved: Boolean(row.saved),
     reposted: Boolean(row.reposted),
-    following: Boolean(row.following),\n    isOwner: Boolean(row.is_owner),
+    following: Boolean(row.following),
+    isOwner: Boolean(row.is_owner),
     stats: {
       likes: Number(row.like_count || 0),
       reposts: Number(row.repost_count || 0),
