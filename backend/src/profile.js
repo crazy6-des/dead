@@ -61,7 +61,7 @@ export async function listProfilePosts(request, env, username) {
     if (!ownProfile) where += targetSettings?.private_account && !isFollower ? " AND p.visibility = 'public' AND 1 = 0" : " AND (p.visibility = 'public' OR (p.visibility = 'followers' AND EXISTS (SELECT 1 FROM relationships rel WHERE rel.source_user_id = ?2 AND rel.target_user_id = p.author_id AND rel.relationship_type = 'follow')))";
   }
   const rows = await env.DB.prepare(
-    `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.quoted_post_id, p.reply_to_id, p.created_at, p.updated_at,
+    `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.quoted_post_id, p.reply_to_id, p.created_at, p.updated_at, (p.author_id = ?1) AS is_owner,
       u.username, u.display_name,
       (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id = p.id ORDER BY m.position) AS media,
       (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id = p.id AND r.reaction_type = 'like') AS like_count,
