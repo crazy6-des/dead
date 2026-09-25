@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { navigateTo, normalizeRoute } from "./routes.js";
 export function useAppRouter() {
   const [route, setRoute] = useState(() => normalizeRoute());
@@ -7,6 +7,6 @@ export function useAppRouter() {
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
-  const go = useCallback((nextRoute) => setRoute(navigateTo(nextRoute)), []);
+  const go = useCallback((nextRoute) => { const next = navigateTo(nextRoute); startTransition(() => setRoute(next)); }, []);
   return { route, go };
 }
