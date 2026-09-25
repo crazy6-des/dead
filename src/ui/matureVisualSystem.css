@@ -1036,8 +1036,10 @@ select:focus-visible {
 .discover-intro p{max-width:520px;margin:0;color:var(--s-text-2);font-size:13px;line-height:1.55}
 .discover-niches{display:flex;gap:7px;overflow:auto;padding:8px 20px 14px;scrollbar-width:none}
 .discover-niches::-webkit-scrollbar{display:none}
-.discover-niches button{flex:0 0 auto;min-height:34px;padding:7px 13px;border:1px solid var(--s-border);border-radius:999px;background:var(--s-surface);color:var(--s-text-2);font-size:11px;font-weight:700}
-.discover-niches button:hover{border-color:var(--s-border-strong);background:var(--s-surface-soft);color:var(--s-text)}
+.discover-niches button{flex:0 0 auto;min-height:34px;padding:7px 13px;border:1px solid var(--s-border);border-radius:999px;background:var(--s-surface);color:var(--s-text-2);font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.discover-niches button small{font-size:9px;color:var(--s-text-3);font-weight:700}
+.discover-niches button:hover,.discover-niches button.active{border-color:var(--s-accent);background:var(--s-accent-soft);color:var(--s-text)}
+.discover-niches button.active small{color:var(--s-accent)}
 .discover-page>.discover-search{margin:4px 20px 8px}
 .discover-page>.tabs5{margin-top:2px}
 .discover-page>.card{margin-top:16px}
