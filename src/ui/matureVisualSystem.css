@@ -1715,3 +1715,58 @@ select:focus-visible {
     border-color:color-mix(in srgb,var(--s-accent) 60%,#fff);
   }
 }
+
+
+/* Profile editor: mobile modal must own the viewport above bottom navigation. */
+.modal:has(.s-profile-editor){
+  z-index:70;
+}
+.modal .s-profile-editor{
+  width:min(640px,calc(100vw - 32px));
+  max-height:min(760px,calc(100svh - 24px));
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+  overflow:hidden;
+}
+.modal .s-profile-editor__body{
+  min-height:0;
+  display:grid;
+  gap:14px;
+  padding:4px 20px 20px;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+.modal .s-profile-editor>footer{
+  position:relative;
+  z-index:2;
+  min-height:64px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:nowrap;
+  padding:12px 20px calc(12px + env(safe-area-inset-bottom));
+  background:var(--s-surface);
+  border-top:1px solid var(--s-border);
+}
+.modal .s-profile-editor>footer .primary,
+.modal .s-profile-editor>footer .outline{
+  min-height:40px;
+  white-space:nowrap;
+}
+@media(max-width:800px){
+  .modal:has(.s-profile-editor){
+    z-index:70;
+  }
+  .modal .s-profile-editor{
+    width:100%;
+    max-width:none;
+    max-height:calc(100svh - 12px);
+    border-radius:20px 20px 0 0;
+  }
+  .modal .s-profile-editor>footer{
+    min-height:68px;
+    padding-left:16px;
+    padding-right:16px;
+  }
+}
