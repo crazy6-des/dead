@@ -11,17 +11,6 @@ const NICHE_KEYWORDS = Object.freeze({
 function failure(code, status, message) { return { response: null, error: { code, status, message } }; }
 function normalizeLimit(value) { const n = Number(value); return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_LIMIT) : 20; }
 function nicheTerms(niche) { return NICHE_KEYWORDS[String(niche || "").trim()] || []; }
-function nicheWhere(alias, terms, startIndex) {
-  if (!terms.length) return { sql: "1=1", values: [] };
-  const clauses = terms.map((term, index) => {
-    const p = startIndex + index;
-    return `LOWER(COALESCE(${alias}.body,'')) LIKE ?${p}`;
-  });
-  return { sql: "(" + clauses.join(" OR ") + ")", values: terms.map((term) => "%" + term.toLowerCase().replace(/[%_]/g, "\\$&") + "%") };
-}
-function addNicheToText(terms) {
-  return terms.length ? " AND " + nicheWhere("p", terms, 4).sql : "";
-}
 
 export async function search(request, env) {
   const session = await resolveSession(request, env);
@@ -41,7 +30,7 @@ export async function search(request, env) {
     : { results: [] };
 
   const postNicheClause = terms.length
-    ? " AND (" + terms.map((_, index) => `LOWER(COALESCE(p.body,'')) LIKE ?${index + 3} ESCAPE '\\\\'`).join(" OR ") + ")"
+    ? " AND (" + terms.map((_, index) => `LOWER(COALESCE(p.body,'')) LIKE ?${index + 4} ESCAPE '\\\\'`).join(" OR ") + ")"
     : "";
   const postValues = [like, session.user_id, limit, ...terms.map((term) => "%" + term.toLowerCase().replace(/[%_]/g, "\\$&") + "%")];
   const postRows = (type === "all" || type === "posts")
