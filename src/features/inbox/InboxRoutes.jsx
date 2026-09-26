@@ -10,6 +10,7 @@ import { MESSAGE_IMAGE_LIMITS } from "../messages/messageContract.js";
 import { moderationService } from "../../services/moderationService.js";
 import { REPORT_REASONS } from "../moderation/moderationContract.js";
 import { formatFullDateTime } from "../../utils/dateTime.js";
+import { resolveApiUrl } from "../../services/apiClient.js";
 
 function formatConversationTime(value) {
   if (!value) return "";
@@ -496,7 +497,7 @@ export function MessagesRoute({ currentUserId = null }) {
         const avatarLetter = String(conversation.name || conversation.username || "S").trim().charAt(0).toUpperCase() || "S";
         const unreadCount = Number(conversation.unreadCount || 0);
         return <button key={conversation.id} className={"conversation " + (selected === conversation.id ? "active" : "")} onClick={() => selectConversation(conversation.id)} aria-label={"Open conversation with " + (conversation.name || conversation.username || "Conversation") + (unreadCount ? ", " + unreadCount + " unread " + (unreadCount === 1 ? "message" : "messages") : "")}>
-          {conversation.avatarUrl ? <img className="avatar avatar--small conversation-avatar" src={conversation.avatarUrl} alt="" /> : <span className="avatar avatar--small">{avatarLetter}</span>}
+          {conversation.avatarUrl ? <img className="avatar avatar--small conversation-avatar" src={resolveApiUrl(conversation.avatarUrl)} alt="" /> : <span className="avatar avatar--small">{avatarLetter}</span>}
           <span className="conversation-copy"><b>{conversation.name || conversation.username || "Conversation"}</b><small className={unreadCount ? "conversation-preview unread" : "conversation-preview"}>{preview}</small></span>
           <span className="conversation-meta"><small>{formatConversationTime(previewTime)}</small>{unreadCount > 0 && <span className="conversation-unread">{unreadCount > 99 ? "99+" : unreadCount}</span>}</span>
         </button>;
@@ -505,7 +506,7 @@ export function MessagesRoute({ currentUserId = null }) {
     <section className="chat">
       <header>
         {hasSelectedConversation && <button type="button" className="chat-back" onClick={closeConversation} aria-label="Back to messages" title="Back to messages"><ArrowLeft size={18}/></button>}
-        {selectedConversation?.avatarUrl ? <img className="avatar avatar--small" src={selectedConversation.avatarUrl} alt="" /> : <span className="avatar avatar--small">{String(selectedName).charAt(0).toUpperCase()}</span>}
+        {selectedConversation?.avatarUrl ? <img className="avatar avatar--small" src={resolveApiUrl(selectedConversation.avatarUrl)} alt="" /> : <span className="avatar avatar--small">{String(selectedName).charAt(0).toUpperCase()}</span>}
         <span><b>{selectedName}</b><small>{selectedConversation?.username ? "@" + selectedConversation.username : "Conversation"}</small></span><MoreHorizontal/>
       </header>
       <div className="chat-body" ref={chatBodyRef} onScroll={(event) => { if (event.currentTarget.scrollTop <= 48) loadOlderMessages(); }}>
