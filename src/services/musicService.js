@@ -1,5 +1,5 @@
 import { createCatalogMusicAsset } from "../features/create/mediaContract.js";
-import { apiClient, hasApiBaseUrl } from "./apiClient.js";
+import { apiClient, hasApiBaseUrl, resolveApiUrl } from "./apiClient.js";
 
 const DEFAULT_LIMIT = 12;
 const AUDIUS_STREAM_PATH = "/api/music/stream";
@@ -17,13 +17,15 @@ function extractItems(data) {
   return [];
 }
 
-function normalizeTrack(item) {
+function normalizeTrack(item, streamBaseUrl = resolveApiUrl(AUDIUS_STREAM_PATH)) {
   const track = item?.track || item?.music || item;
   if (!track || typeof track !== "object") return null;
 
   const musicId = String(track.id ?? track.musicId ?? "").trim();
   const title = String(track.title ?? track.name ?? "Untitled track").trim();
-  const url = musicId ? `${AUDIUS_STREAM_PATH}/${encodeURIComponent(musicId)}` : "";
+  const url = musicId
+    ? `${String(streamBaseUrl).replace(/\/$/, "")}/${encodeURIComponent(musicId)}`
+    : "";
   if (!musicId || !url) return null;
 
   const artist = String(track.user?.name ?? track.artist ?? track.artistName ?? "").trim();
@@ -73,7 +75,12 @@ export function hasMusicCatalog() {
   return hasApiBaseUrl() || Boolean(getCatalogUrl());
 }
 
-export function createApiMusicAdapter({ fetchImpl = fetch, baseUrl = getCatalogUrl() } = {}) {
+export function createApiMusicAdapter({
+  fetchImpl = fetch,
+  baseUrl = getCatalogUrl(),
+  streamBaseUrl = resolveApiUrl(AUDIUS_STREAM_PATH),
+} = {}) {
+  const mapTrack = (item) => normalizeTrack(item, streamBaseUrl);
   return {
     async search(query, { limit = DEFAULT_LIMIT, signal } = {}) {
       const trimmed = String(query || "").trim();
@@ -81,14 +88,14 @@ export function createApiMusicAdapter({ fetchImpl = fetch, baseUrl = getCatalogU
       const payload = hasApiBaseUrl()
         ? await apiClient.get("/api/music/search", { query: { query: trimmed, limit }, signal })
         : await requestDirect(baseUrl, { q: trimmed, limit }, { fetchImpl, signal });
-      return extractItems(payload).map(normalizeTrack).filter(Boolean);
+      return extractItems(payload).map(mapTrack).filter(Boolean);
     },
 
     async browse({ limit = DEFAULT_LIMIT, offset = 0, signal } = {}) {
       const payload = hasApiBaseUrl()
         ? await apiClient.get("/api/music/browse", { query: { limit, offset }, signal })
         : await requestDirect(baseUrl, { limit, offset }, { fetchImpl, signal });
-      return extractItems(payload).map(normalizeTrack).filter(Boolean);
+      return extractItems(payload).map(mapTrack).filter(Boolean);
     },
   };
 }
