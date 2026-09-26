@@ -23,3 +23,10 @@ This directory is a preparation scaffold. It is not deployed and does not claim 
 5. Deploy only after the bindings and secrets are verified.
 
 No credentials belong in this directory or in Git history.
+
+
+### Audius music catalog
+
+S uses the Audius REST catalog for online music search, trending discovery, and stream resolution. Public read-only catalog/stream requests work without credentials; if an Audius bearer token is configured, the Worker sends it only from the backend.
+
+For Cloudflare, configure the backend secret as `AUDIUS_BEARER_TOKEN`. Never put the bearer token in frontend code or commit it to the repository. The frontend receives only the S music contract and the S stream route.
