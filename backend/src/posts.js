@@ -347,7 +347,7 @@ export async function listFeed(request, env) {
     values.push(session.user_id);
     return `?${values.length}`;
   });
-  let where = `p.deleted_at IS NULL AND u.deleted_at IS NULL AND ${visibility}
+  let where = `p.deleted_at IS NULL AND p.reply_to_id IS NULL AND u.deleted_at IS NULL AND ${visibility}
     AND NOT EXISTS (SELECT 1 FROM relationships blocked_rel WHERE blocked_rel.relationship_type = 'block' AND ((blocked_rel.source_user_id = ?1 AND blocked_rel.target_user_id = p.author_id) OR (blocked_rel.source_user_id = p.author_id AND blocked_rel.target_user_id = ?1)))
     AND NOT EXISTS (SELECT 1 FROM relationships muted_rel WHERE muted_rel.relationship_type = 'mute' AND muted_rel.source_user_id = ?1 AND muted_rel.target_user_id = p.author_id)`;
 
