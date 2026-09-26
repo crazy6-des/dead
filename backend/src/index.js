@@ -17,7 +17,7 @@ import { listNotifications, markAllNotificationsRead, markNotificationRead } fro
 import { getMyProfile, getProfile, listProfilePosts, updateMyProfile } from "./profile.js";
 import { deleteMedia, getMedia, uploadMedia } from "./media.js";
 import { getMySettings, updateMySettings } from "./settings.js";
-import { browseMusic, searchMusic } from "./music.js";
+import { browseMusic, searchMusic, streamMusic } from "./music.js";
 import { requestPasswordReset, confirmPasswordReset } from "./passwordReset.js";
 import { votePoll } from "./polls.js";
 import { moderationAction } from "./moderation.js";
@@ -96,7 +96,7 @@ export default { async fetch(request, env) {
   if (url.pathname === "/api/search") { if (request.method !== "GET") return methodNotAllowed(request, env); const result = await search(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
   if (url.pathname === "/api/music/search") { if (request.method !== "GET") return methodNotAllowed(request, env); const result = await searchMusic(request); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
   if (url.pathname === "/api/music/browse") { if (request.method !== "GET") return methodNotAllowed(request, env); const result = await browseMusic(request); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
-  const postAction = url.pathname.match(/^\/api\/social\/posts\/([^/]+)\/(like|repost|bookmark)$/);
+  const musicStreamMatch = url.pathname.match(/^\/api\/music\/stream\/([^/]+)$/);\n  if (musicStreamMatch) { if (request.method !== "GET") return methodNotAllowed(request, env); const result = await streamMusic(request, env, decodeURIComponent(musicStreamMatch[1])); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return result.response; }\n  const postAction = url.pathname.match(/^\/api\/social\/posts\/([^/]+)\/(like|repost|bookmark)$/);
   const pollVote = url.pathname.match(/^\/api\/polls\/([^/]+)\/votes$/);
   if (pollVote) { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await votePoll(request, env, decodeURIComponent(pollVote[1])); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
   if (postAction) { if (!['POST','DELETE'].includes(request.method)) return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await setPostAction(request, env, decodeURIComponent(postAction[1]), postAction[2]); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
