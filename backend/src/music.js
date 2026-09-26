@@ -1,4 +1,4 @@
-const UPSTREAM = "https://api.freetouse.com/v3/music/tracks";
+const UPSTREAM = "https://api.audius.co/v1";
 
 function error(code, status, message) {
   return { code, status, message };
@@ -16,39 +16,52 @@ function normalizeOffset(value) {
   return Math.min(Math.max(parsed, 0), 100000);
 }
 
-const ALLOWED_ORDERS = new Set(["release_date", "views", "plays", "downloads", "staff_order", "random"]);
-const ALLOWED_SORTS = new Set(["asc", "desc"]);
+function upstreamHeaders(env) {
+  const headers = new Headers({ Accept: "application/json" });
+  const bearer = String(env?.AUDIUS_BEARER_TOKEN || "").trim();
+  if (bearer) headers.set("Authorization", bearer.toLowerCase().startsWith("bearer ") ? bearer : `Bearer ${bearer}`);
+  return headers;
+}
 
-async function upstream(path, params) {
+async function upstream(path, params, env) {
   const url = new URL(`${UPSTREAM}/${path}`);
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value));
   });
-  const response = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!response.ok) return { error: error("MUSIC_UPSTREAM_ERROR", 502, "Music catalog is temporarily unavailable.") };
+  const response = await fetch(url, { headers: upstreamHeaders(env) });
+  if (!response.ok) return { error: error("MUSIC_UPSTREAM_ERROR", 502, "Audius music catalog is temporarily unavailable.") };
   let payload;
-  try { payload = await response.json(); } catch { return { error: error("MUSIC_UPSTREAM_INVALID", 502, "Music catalog returned invalid data.") }; }
-  if (payload?.ok === false) return { error: error("MUSIC_UPSTREAM_ERROR", 502, payload.error || "Music catalog request failed.") };
+  try { payload = await response.json(); } catch { return { error: error("MUSIC_UPSTREAM_INVALID", 502, "Audius returned invalid data.") }; }
+  if (payload?.data === undefined && payload?.error) return { error: error("MUSIC_UPSTREAM_ERROR", 502, String(payload.error)) };
   return { response: payload };
 }
 
-function catalogParams(url) {
+function catalogParams(url, defaults = {}) {
   return {
-    limit: normalizeLimit(url.searchParams.get("limit")),
+    limit: normalizeLimit(url.searchParams.get("limit") ?? defaults.limit ?? 12),
     offset: normalizeOffset(url.searchParams.get("offset")),
-    order: ALLOWED_ORDERS.has(url.searchParams.get("order")) ? url.searchParams.get("order") : "release_date",
-    sort: ALLOWED_SORTS.has(url.searchParams.get("sort")) ? url.searchParams.get("sort") : "desc",
   };
 }
 
-export async function searchMusic(request) {
+export async function searchMusic(request, env) {
   const url = new URL(request.url);
   const query = String(url.searchParams.get("query") || "").trim();
   if (!query) return { response: null, error: error("VALIDATION_ERROR", 400, "A music search query is required.") };
-  return upstream("search", { query, ...catalogParams(url) });
+  return upstream("tracks/search", { query, ...catalogParams(url) }, env);
 }
 
-export async function browseMusic(request) {
+export async function browseMusic(request, env) {
   const url = new URL(request.url);
-  return upstream("all", catalogParams(url));
+  return upstream("tracks/trending", catalogParams(url), env);
+}
+
+export async function streamMusic(request, env, trackId) {
+  const id = String(trackId || "").trim();
+  if (!id || !/^[A-Za-z0-9_-]+$/.test(id)) return { response: null, error: error("VALIDATION_ERROR", 400, "A valid Audius track id is required.") };
+  const url = new URL(`${UPSTREAM}/tracks/${encodeURIComponent(id)}/stream`);
+  const response = await fetch(url, { headers: upstreamHeaders(env), redirect: "manual" });
+  if (![200, 206, 301, 302, 303, 307, 308].includes(response.status)) {
+    return { response: null, error: error("MUSIC_STREAM_ERROR", 502, "Audius could not provide this track stream.") };
+  }
+  return { response };
 }
