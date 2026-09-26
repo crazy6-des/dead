@@ -10,6 +10,7 @@ import { createSearchAdapter } from "../../services/searchService.js";
 import { ArrowLeft, Check, Copy, Heart, Link2, MessageCircle, MoreHorizontal, Repeat2, Send, Users } from "lucide-react";
 import { getUserPresentation } from "../auth/userPresentation.js";
 import { formatFullDateTime } from "../../utils/dateTime.js";
+import { resolveApiUrl } from "../../services/apiClient.js";
 
 function BackButton({ onBack }) { return <button className="back-link" onClick={onBack}><ArrowLeft size={17}/>Back</button>; }
 function decodeRouteSegment(value) {
@@ -290,7 +291,7 @@ function UserDetail({ username, onBack, onOpen, onLike, onSave, onRepost, onFoll
   const currentActivityError = activityErrorKey === activityKey ? activityError : "";
   const displayName = profile?.displayName || profile?.username || user;
   const initial = displayName.charAt(0).toUpperCase() || "U";
-  return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero"><div className="profile-cover"></div><div className="entity-avatar-wrap"><div className="avatar entity-avatar">{profile?.avatarUrl ? <img src={profile.avatarUrl} alt="" /> : initial}</div></div><div className="entity-hero__content">
+  return <div className="detail-page"><BackButton onBack={onBack}/><div className="entity-hero"><div className="profile-cover"></div><div className="entity-avatar-wrap"><div className="avatar entity-avatar">{profile?.avatarUrl ? <img src={resolveApiUrl(profile.avatarUrl)} alt="" /> : initial}</div></div><div className="entity-hero__content">
     {loading ? <><h2>Loading profile…</h2><span>@{user}</span></> : error ? <><h2>Profile unavailable</h2><span>@{user}</span><p>{error}</p></> : <><h2>{displayName}</h2><span>@{profile.username}</span><p>{profile.bio || "No bio yet."}</p>{profile.website && <a href={/^https?:\/\//i.test(profile.website) ? profile.website : "https://" + profile.website} target="_blank" rel="noreferrer">{profile.website}</a>}</>}
     <div className="entity-stats"><button onClick={() => onOpen?.("/followers/" + encodeURIComponent(user))}><b>{profile?.counts?.followers ?? "—"}</b><small>Followers</small></button><button onClick={() => onOpen?.("/following/" + encodeURIComponent(user))}><b>{profile?.counts?.following ?? "—"}</b><small>Following</small></button></div><div className="entity-actions"><button className={following ? "outline" : "primary"} onClick={() => onFollowUser?.(user)}>{following ? "Following" : "Follow"}</button><button className="outline" disabled={messaging} onClick={async () => { setMessaging(true); setMessageError(""); try { const result = await messagesApi.createConversation(user); const id = result?.conversation?.id; if (!id) throw new Error("Conversation could not be created."); onOpen?.("/messages?conversation=" + encodeURIComponent(id)); } catch (cause) { setMessageError(cause?.message || "Could not start conversation."); } finally { setMessaging(false); } }}>{messaging ? "Opening…" : "Message"}</button></div>{messageError && <p className="entity-error" role="alert">{messageError}</p>}
   </div></div><div className="entity-tabs">{["posts", "replies", "media", "likes"].map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => { if (item === tab) return; setTab(item); }}>{item.charAt(0).toUpperCase() + item.slice(1)}</button>)}</div>
