@@ -225,9 +225,36 @@ if (profile.profile?.username !== username) throw new Error("Profile read persis
 
 const updatedProfile = await request("/api/profile/me", {
   method: "PATCH",
-  body: JSON.stringify({ bio: "Live E2E", website: "https://sphereis.netlify.app", location: "E2E" }),
+  body: JSON.stringify({
+    displayName: "Live E2E Identity",
+    bio: "Live E2E",
+    website: "https://lastime22.netlify.app",
+    location: "E2E",
+  }),
 });
-if (updatedProfile.profile?.bio !== "Live E2E") throw new Error("Profile update persistence contract failed.");
+if (updatedProfile.profile?.displayName !== "Live E2E Identity" ||
+    updatedProfile.profile?.bio !== "Live E2E" ||
+    updatedProfile.profile?.website !== "https://lastime22.netlify.app" ||
+    updatedProfile.profile?.location !== "E2E") {
+  throw new Error("Profile field update persistence contract failed: " + JSON.stringify(updatedProfile.profile));
+}
+const persistedProfile = await request("/api/profile/me");
+if (persistedProfile.profile?.displayName !== "Live E2E Identity" ||
+    persistedProfile.profile?.bio !== "Live E2E" ||
+    persistedProfile.profile?.website !== "https://lastime22.netlify.app" ||
+    persistedProfile.profile?.location !== "E2E" ||
+    persistedProfile.profile?.username !== username) {
+  throw new Error("Profile reload persistence contract failed: " + JSON.stringify(persistedProfile.profile));
+}
+const avatarUploadUrl = uploadedMedia.media?.url;
+if (!avatarUploadUrl) throw new Error("Profile avatar URL persistence fixture is unavailable.");
+const avatarUpdatedProfile = await request("/api/profile/me", {
+  method: "PATCH",
+  body: JSON.stringify({ avatarUrl: avatarUploadUrl }),
+});
+if (avatarUpdatedProfile.profile?.avatarUrl !== avatarUploadUrl) throw new Error("Profile avatar persistence contract failed.");
+const persistedAvatarProfile = await request("/api/profile/me");
+if (persistedAvatarProfile.profile?.avatarUrl !== avatarUploadUrl) throw new Error("Profile avatar reload persistence contract failed.");
 
 const primaryCookie = cookie;
 
