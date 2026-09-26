@@ -1,9 +1,11 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- src package.json package-lock.json netlify.toml"
 
 [build.environment]
   NODE_VERSION = "20"
+  VITE_API_BASE_URL = "https://muddy-tooth-e4be.binancecompany274.workers.dev"
 
 [[redirects]]
   from = "/*"
