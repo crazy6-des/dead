@@ -56,7 +56,7 @@ function normalizeTrack(item) {
       durationMs,
       artworkUrl,
       provider: "Audius",
-      licenseUrl: String(track.permalink || "https://audius.co").trim(),
+      licenseUrl: "",
     });
   } catch {
     return null;
