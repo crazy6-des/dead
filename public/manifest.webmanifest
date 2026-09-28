@@ -1,10 +1,10 @@
 {
-  "name": "S — Where you are truly seen",
+  "name": "S",
   "short_name": "S",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#070709",
-  "theme_color": "#0b0b0d",
-  "description": "S — where you are truly seen. Where you connect.",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "description": "S social platform",
   "icons": []
 }

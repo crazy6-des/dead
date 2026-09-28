@@ -8,18 +8,14 @@ export default function EarnRoute({ onOpen }) {
     <div className="page">
       <div className="earn">
         <small>EARN</small>
-        <h2>Your creative work can have a future here.</h2>
-        <p>
-          S is reserving a dedicated home for creator earnings, rewards and
-          other opportunities. The UI is ready to connect to real
-          monetization infrastructure later.
-        </p>
+        <h2>No earnings yet</h2>
+        <p>Creator earnings will appear here when your account has eligible earnings.</p>
         <div className="earn-actions">
           <button className="primary" onClick={() => onOpen?.("/settings")}>
-            Manage creator settings <ArrowUpRight size={15} />
+            Creator settings <ArrowUpRight size={15} />
           </button>
-          <button className="outline" type="button" disabled aria-disabled="true">
-            <Wallet size={15} /> Wallet unavailable
+          <button className="outline" type="button" onClick={() => onOpen?.("/settings")}>
+            <Wallet size={15} /> Wallet
           </button>
         </div>
         <Zap size={35} aria-hidden="true" />
@@ -28,8 +24,8 @@ export default function EarnRoute({ onOpen }) {
         {EARN_FEATURES.map((feature) => (
           <div key={feature}>
             <small>{feature}</small>
-            <b>{feature === "Wallet" ? "Not active" : "Coming soon"}</b>
-            <span>Backend connection reserved</span>
+            <b>{feature === "Wallet" ? "No balance" : "No earnings yet"}</b>
+            <span>Nothing to show yet</span>
           </div>
         ))}
       </div>
