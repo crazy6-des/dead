@@ -235,7 +235,7 @@ function PostEntityRoute({ postId, initialPost, ...props }) {
       if (!active) return;
     });
     return () => { active = false; };
-  }, [postId, post]);
+  }, [postId, Boolean(post)]);
 
   useEffect(()=>{ if(initialPost) return undefined; let active=true;
     postService.getById(postId).then((result)=>{if(!active)return;setPost(result||null);if(!result)setError("This post may have been removed or is not available.");}).catch((cause)=>active&&setError(cause?.message||"Post could not be loaded.")).finally(()=>active&&setLoading(false));
