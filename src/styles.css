@@ -803,3 +803,10 @@ html,body{background:#fff!important;color:#0F1419}
   padding:10px!important;
   font-size:15px!important;
 }
+
+
+/* Restore the post overflow control hidden by the global icon reset. */
+.post-menu{position:relative!important;}
+.post-menu>.icon-btn{display:grid!important;place-items:center!important;width:32px!important;height:32px!important;padding:0!important;border:0!important;background:transparent!important;color:#536471!important;cursor:pointer!important;}
+.post-menu>.icon-btn svg{width:18px!important;height:18px!important;}
+.post-menu>.popover{display:block!important;pointer-events:auto!important;}
