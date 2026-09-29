@@ -413,9 +413,25 @@ export async function listFeed(request, env) {
     where += " AND (p.author_id = ?1 OR EXISTS (SELECT 1 FROM relationships f WHERE f.source_user_id = ?1 AND f.target_user_id = p.author_id AND f.relationship_type = 'follow'))";
   }
 
-  if (cursor?.createdAt && cursor?.id) {
+  // For You is ranked after the chronological candidate window is loaded.
+  // Its cursor therefore needs to preserve that same candidate window plus the
+  // ranked-page offset. Using a normal "older than last ranked item" cursor would
+  // skip candidates that were ranked below page 1; using the oldest candidate as
+  // the cursor would also skip those candidates entirely.
+  const forYouCursor = mode === "For You" && cursor?.createdAt && cursor?.id
+    ? {
+        windowCreatedAt: cursor.windowCreatedAt || cursor.createdAt,
+        windowId: cursor.windowId || cursor.id,
+        offset: Math.max(0, Number(cursor.offset || 0)),
+      }
+    : null;
+
+  if (mode !== "For You" && cursor?.createdAt && cursor?.id) {
     values.push(cursor.createdAt, cursor.id);
     where += ` AND (p.created_at < ?${values.length - 1} OR (p.created_at = ?${values.length - 1} AND p.id < ?${values.length}))`;
+  } else if (forYouCursor) {
+    values.push(forYouCursor.windowCreatedAt, forYouCursor.windowId);
+    where += ` AND (p.created_at > ?${values.length - 1} OR (p.created_at = ?${values.length - 1} AND p.id >= ?${values.length}))`;
   }
 
   const candidateLimit = mode === "For You" ? Math.min(Math.max(limit * 5, 50), 150) : limit + 1;
@@ -463,9 +479,43 @@ export async function listFeed(request, env) {
       return score(b) - score(a);
     });
   }
-  const items = rankedRows.slice(0, limit).map(serializePost);
+  const rankOffset = forYouCursor?.offset || 0;
+  const pageRows = mode === "For You"
+    ? rankedRows.slice(rankOffset, rankOffset + limit)
+    : rankedRows.slice(0, limit);
+  const items = pageRows.map(serializePost);
   await hydratePollResults(items, env.DB, session.user_id);
-  const cursorRow = mode === "For You" ? rows.results.at(-1) : items.at(-1);
-  const nextCursor = rows.results.length > limit && cursorRow ? encodeCursor(cursorRow.created_at || cursorRow.createdAt, cursorRow.id) : null;
+
+  let nextCursor = null;
+  if (mode === "For You") {
+    const hasMoreRankedRows = rankedRows.length > rankOffset + limit;
+    if (hasMoreRankedRows && rows.results.length) {
+      const windowRow = forYouCursor
+        ? { created_at: forYouCursor.windowCreatedAt, id: forYouCursor.windowId }
+        : rows.results.at(-1);
+      nextCursor = windowRow
+        ? encodeCursor(windowRow.created_at || windowRow.createdAt, windowRow.id)
+        : null;
+      if (nextCursor) {
+        const cursorPayload = {
+          createdAt: windowRow.created_at || windowRow.createdAt,
+          id: windowRow.id,
+          windowCreatedAt: windowRow.created_at || windowRow.createdAt,
+          windowId: windowRow.id,
+          offset: rankOffset + limit,
+        };
+        nextCursor = globalThis.btoa(JSON.stringify(cursorPayload))
+          .replace(/=/g, "")
+          .replace(/\\+/g, "-")
+          .replace(/\\//g, "_");
+      }
+    }
+  } else {
+    const last = items.at(-1);
+    nextCursor = rows.results.length > limit && last
+      ? encodeCursor(last.createdAt, last.id)
+      : null;
+  }
+
   return { response: { items, nextCursor }, error: null };
 }
