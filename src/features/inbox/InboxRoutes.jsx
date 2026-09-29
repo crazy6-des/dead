@@ -194,6 +194,27 @@ export function MessagesRoute({ currentUserId = null }) {
     return () => window.removeEventListener("popstate", syncConversationFromUrl);
   }, []);
 
+  const loadWholeConversation = useCallback(async (conversationId) => {
+    let cursor = null;
+    const pages = [];
+    do {
+      const page = await messagesApi.listMessages(conversationId, cursor ? { cursor } : { limit: 50 });
+      pages.push(...(page?.items || []));
+      cursor = page?.nextCursor || null;
+    } while (cursor);
+    const seen = new Set();
+    return pages.filter((item) => {
+      if (!item?.id || seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    }).sort((a, b) => {
+      const aTime = Date.parse(a?.createdAt || "") || 0;
+      const bTime = Date.parse(b?.createdAt || "") || 0;
+      if (aTime !== bTime) return aTime - bTime;
+      return String(a?.id || "").localeCompare(String(b?.id || ""));
+    });
+  }, [messagesApi]);
+
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -213,20 +234,20 @@ export function MessagesRoute({ currentUserId = null }) {
         setLoading(false);
         return;
       }
-      const [messagePage] = await Promise.all([
-        messagesApi.listMessages(selected, { limit: 50 }),
+      const [allMessages] = await Promise.all([
+        loadWholeConversation(selected),
         messagesApi.markConversationRead(selected),
       ]);
       if (!active) return;
-      setMessages((current) => ({ ...current, [selectedConversation.id]: messagePage.items || [] }));
-      setMessageCursors((current) => ({ ...current, [selectedConversation.id]: messagePage.nextCursor || null }));
+      setMessages((current) => ({ ...current, [selectedConversation.id]: allMessages }));
+      setMessageCursors((current) => ({ ...current, [selectedConversation.id]: null }));
       setConversations((current) => current.map((item) => item.id === selected ? { ...item, unreadCount: 0 } : item));
       setLoading(false);
     }).catch((err) => {
       if (active) { setError(err?.message || "Could not load conversations."); setLoading(false); }
     });
     return () => { active = false; };
-  }, [selected, messagesApi]);
+  }, [selected, messagesApi, loadWholeConversation]);
 
   useEffect(() => {
     if (!selected) return undefined;
@@ -242,10 +263,21 @@ export function MessagesRoute({ currentUserId = null }) {
         const nextItems = messagePage.items || [];
         setMessages((current) => {
           const existing = current[selected] || [];
-          const same = existing.length === nextItems.length && existing.every((item, index) => item.id === nextItems[index]?.id && item.status === nextItems[index]?.status);
-          return same ? current : { ...current, [selected]: nextItems };
+          const merged = [...existing, ...nextItems];
+          const seen = new Set();
+          const deduped = merged.filter((item) => {
+            if (!item?.id || seen.has(item.id)) return false;
+            seen.add(item.id);
+            return true;
+          }).sort((a, b) => {
+            const aTime = Date.parse(a?.createdAt || "") || 0;
+            const bTime = Date.parse(b?.createdAt || "") || 0;
+            if (aTime !== bTime) return aTime - bTime;
+            return String(a?.id || "").localeCompare(String(b?.id || ""));
+          });
+          const same = existing.length === deduped.length && existing.every((item, index) => item.id === deduped[index]?.id && item.status === deduped[index]?.status);
+          return same ? current : { ...current, [selected]: deduped };
         });
-        setMessageCursors((current) => ({ ...current, [selected]: messagePage.nextCursor || null }));
         const nextConversations = conversationPage.items || conversationPage || [];
         setConversations(nextConversations);
       } catch (err) {
