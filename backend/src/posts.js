@@ -319,7 +319,7 @@ export async function recordPostView(request, env, postId) {
     return `?${values.length}`;
   });
   const row = await env.DB.prepare(
-    `SELECT p.id, p.view_count
+    `SELECT p.id
      FROM posts p JOIN users u ON u.id = p.author_id
      WHERE p.id=?2 AND p.deleted_at IS NULL AND u.deleted_at IS NULL
        AND ${visibility}
@@ -333,25 +333,24 @@ export async function recordPostView(request, env, postId) {
   ).bind(...values).first();
   if (!row) return { response: null, error: error("POST_NOT_FOUND", 404, "Post was not found or is not available.") };
 
-  const view = await env.DB.prepare(
-    "INSERT OR IGNORE INTO post_views (post_id, user_id) VALUES (?1, ?2)"
+  await env.DB.prepare(
+    "INSERT INTO post_view_events (post_id, user_id) VALUES (?1, ?2)"
   ).bind(normalizedId, session.user_id).run();
 
-  if (Number(view?.meta?.changes || 0) > 0) {
-    await env.DB.prepare(
-      "UPDATE posts SET view_count = view_count + 1 WHERE id=?1 AND deleted_at IS NULL"
-    ).bind(normalizedId).run();
-  }
+  await env.DB.prepare(
+    "UPDATE posts SET view_count = view_count + 1 WHERE id=?1 AND deleted_at IS NULL"
+  ).bind(normalizedId).run();
 
   const count = await env.DB.prepare(
     "SELECT view_count FROM posts WHERE id=?1 AND deleted_at IS NULL LIMIT 1"
   ).bind(normalizedId).first();
 
   return {
-    response: { viewed: Number(view?.meta?.changes || 0) > 0, viewCount: Number(count?.view_count || 0) },
+    response: { viewed: true, viewCount: Number(count?.view_count || 0) },
     error: null
   };
 }
+
 
 export async function getPost(request, env, postId) {
   const session = await requireUser(request, env);
