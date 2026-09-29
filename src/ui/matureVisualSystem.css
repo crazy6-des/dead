@@ -2712,3 +2712,62 @@ body,button,input,textarea,select{
   color: var(--s-text);
   background: var(--s-surface);
 }
+
+
+/* Theme control is universal: keep the star available on both the logged-in shell and public front page. */
+@media (min-width: 721px) {
+  .app .mobile-head,
+  .landing .mobile-head {
+    display: flex !important;
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    min-height: 56px;
+    height: 56px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    box-sizing: border-box;
+    background: var(--s-surface, #fff);
+    border-bottom: 1px solid var(--s-border, #e1e8ed);
+  }
+  .app .mobile-head > button:first-child,
+  .landing .mobile-head > button:first-child {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .app .mobile-head .theme-toggle,
+  .landing .mobile-head .theme-toggle {
+    position: relative;
+    z-index: 61;
+    width: 40px !important;
+    height: 40px !important;
+    display: grid !important;
+    place-items: center;
+    color: var(--s-text, #0f1419) !important;
+    cursor: pointer;
+  }
+  .app .mobile-head .theme-toggle svg,
+  .landing .mobile-head .theme-toggle svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  .app .mobile-head .brand,
+  .landing .mobile-head .brand {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 720px) {
+  .landing .mobile-head {
+    display: flex !important;
+  }
+  .landing .mobile-head .theme-toggle {
+    position: relative;
+    z-index: 61;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+}
