@@ -102,6 +102,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const [pollError, setPollError] = useState("");
   const [localPoll, setLocalPoll] = useState(null);
   const cardRef = useRef(null);
+  const viewRecordedRef = useRef(false);
   const audioRef = useRef(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
@@ -129,6 +130,27 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [menu]);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card || !post.id || typeof window.IntersectionObserver === "undefined") return undefined;
+    const observer = new window.IntersectionObserver(async (entries) => {
+      const entry = entries[0];
+      if (!entry?.isIntersecting || entry.intersectionRatio < 0.6 || viewRecordedRef.current) return;
+      viewRecordedRef.current = true;
+      try {
+        const result = await postService.recordView(post.id);
+        if (Number.isFinite(Number(result?.viewCount))) {
+          post.v = Number(result.viewCount);
+        }
+      } catch {
+        viewRecordedRef.current = false;
+      }
+      observer.disconnect();
+    }, { threshold: [0.6] });
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, [post.id]);
 
   useEffect(() => {
     const audio = audioRef.current;
