@@ -92,6 +92,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const [moderationBusy, setModerationBusy] = useState(false);
   const [moderationMessage, setModerationMessage] = useState("");
   const [menu, setMenu] = useState(false);
+  const menuRef = useRef(null);
   const [editing, setEditing] = useState(false);
   const [editBusy, setEditBusy] = useState(false);
   const [deleted, setDeleted] = useState(false);
@@ -115,6 +116,20 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const imageItems = mediaItems.filter((item) => !isAudioMedia(item));
   const mediaSources = imageItems.map(getMediaSource).filter(Boolean);
   const audioSource = getAudioSource(post, mediaItems);
+  useEffect(() => {
+    if (!menu) return undefined;
+    const closeMenu = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) setMenu(false);
+    };
+    const closeOnEscape = (event) => { if (event.key === "Escape") setMenu(false); };
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [menu]);
+
   useEffect(() => {
     const audio = audioRef.current;
     const card = cardRef.current;
@@ -211,8 +226,8 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
         <button className="post-author" onClick={() => onOpen?.("/user/" + encodeURIComponent(username))}><strong>{author}</strong>{(post.verified || post.a === "S Team") && <span className="verified"><Check size={10}/></span>}</button>
         <span>@{username}</span><span>·</span>
         <button className="post-time" title={formatFullDateTime(post.createdAt || post.t)} onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))}>{getRelativeTime(post.createdAt || post.t)}</button>
-        <div className="post-menu"><button className="icon-btn" onClick={() => setMenu((v) => !v)} aria-label="More"><MoreHorizontal size={18}/></button>
-          {menu && <div className="popover"><button onClick={() => { navigator.clipboard?.writeText(window.location.origin + "/post/" + encodeURIComponent(post.id)); setMenu(false); }}><Copy size={16}/>Copy link</button>{post.isOwner && <><button onClick={() => { setEditText(localText); setEditing(true); setMenu(false); }}><span aria-hidden="true">✎</span>Edit post</button><button className="danger" onClick={deleteOwnedPost} disabled={editBusy || deleteBusy}><X size={16}/>{deleteBusy ? "Deleting…" : "Delete post"}</button></>}<button onClick={() => { onRepost?.(post.id); setMenu(false); }}><Repeat2 size={16}/>Repost</button><button onClick={() => { onOpen?.("/post/" + encodeURIComponent(post.id) + "/quote"); setMenu(false); }}><Repeat2 size={16}/>Quote</button><button onClick={() => { onSave?.(post.id); setMenu(false); }}><Bookmark size={16}/> {post.saved ? "Remove from favourites" : "Add to favourites"}</button><button onClick={() => onOpen?.("/share/" + encodeURIComponent(post.id))}><Send size={16}/>Share</button>{(mediaSources.length > 0 || audioSource?.url) && <button onClick={downloadMedia}><Download size={16}/>Download media</button>}<button onClick={() => runModeration(MODERATION_ACTIONS.MUTE)} disabled={moderationBusy}><Shield size={16}/>Mute author</button><button onClick={() => runModeration(MODERATION_ACTIONS.BLOCK)} disabled={moderationBusy}><X size={16}/>Block author</button><button className="danger" onClick={() => setModeration("report")}><Flag size={16}/>Report post</button></div>}
+        <div ref={menuRef} className="post-menu"><button type="button" className="icon-btn" onClick={(event) => { event.stopPropagation(); setMenu((v) => !v); }} aria-label="More"><MoreHorizontal size={18}/></button>
+          {menu && <div className="popover"><button onClick={() => { navigator.clipboard?.writeText(window.location.origin + "/post/" + encodeURIComponent(post.id)); setMenu(false); }}><Copy size={16}/>Copy link</button>{post.isOwner && <><button onClick={() => { setEditText(localText); setEditing(true); setMenu(false); }}><span aria-hidden="true">✎</span>Edit post</button><button className="danger" onClick={deleteOwnedPost} disabled={editBusy || deleteBusy}><X size={16}/>{deleteBusy ? "Deleting…" : "Delete post"}</button></>}<button onClick={() => { onRepost?.(post.id); setMenu(false); }}><Repeat2 size={16}/>Repost</button><button onClick={() => { onOpen?.("/post/" + encodeURIComponent(post.id) + "/quote"); setMenu(false); }}><Repeat2 size={16}/>Quote</button><button onClick={() => { onSave?.(post.id); setMenu(false); }}><Bookmark size={16}/> {post.saved ? "Remove from favourites" : "Add to favourites"}</button><button onClick={() => { setMenu(false); onOpen?.("/share/" + encodeURIComponent(post.id)); }}><Send size={16}/>Share</button>{(mediaSources.length > 0 || audioSource?.url) && <button onClick={downloadMedia}><Download size={16}/>Download media</button>}<button onClick={() => runModeration(MODERATION_ACTIONS.MUTE)} disabled={moderationBusy}><Shield size={16}/>Mute author</button><button onClick={() => runModeration(MODERATION_ACTIONS.BLOCK)} disabled={moderationBusy}><X size={16}/>Block author</button><button className="danger" onClick={() => setModeration("report")}><Flag size={16}/>Report post</button></div>}
         </div>
       </div>
       {editing ? <div className="post-edit-box"><textarea value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={5000} aria-label="Edit post"/><div><span>{editText.length}/5000</span><button type="button" className="outline" onClick={() => { setEditing(false); setEditText(localText); }} disabled={editBusy}>Cancel</button><button type="button" className="primary" onClick={saveEdit} disabled={editBusy || !editText.trim()}>{editBusy ? "Saving…" : "Save"}</button></div></div> : localText && !backgroundStyle && <button className="post-content-hit" onClick={() => onOpen?.("/post/" + post.id)}><p className="post__text">{localText}</p></button>}
