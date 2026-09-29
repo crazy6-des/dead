@@ -5,7 +5,7 @@ import AppErrorBoundary from "../../ui/AppErrorBoundary.jsx";
 import { PRODUCT_IDENTITY } from "../../app/productIdentity.js";
 import { getUserPresentation } from "../auth/userPresentation.js";
 
-const TABS = ["For you", "Following", "Latest"];
+const TABS = ["For you", "Following"];
 
 export default function HomeRoute({ currentUser, posts, onLike, onSave, onFollow, onRepost, onCreate, onOpen, onModeChange, loading = false, loadingMore = false, hasMore = false, error = "", onRetry, onLoadMore }) {
   const [tab, setTab] = useState("For You");
@@ -42,11 +42,11 @@ export default function HomeRoute({ currentUser, posts, onLike, onSave, onFollow
     <div className="feed-tabs" role="tablist" aria-label="Timeline">
       {TABS.map((name) => <button key={name} type="button" role="tab" aria-selected={tab === name} className={tab === name ? "selected" : ""} onClick={() => { setTab(name); onModeChange?.(name); }}>{name}</button>)}
     </div>
-    <button className="quick" type="button" onClick={onCreate}>
+    <div className="quick" role="button" tabIndex={0} onClick={onCreate} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onCreate?.(); } }}>
       <span className="avatar">{presentation.avatarInitial}</span>
-      <span><b>What is happening?!</b></span>
+      <textarea aria-label="Create a post" readOnly placeholder="What is happening?!" onFocus={(event) => event.target.blur()} />
       <Plus size={19} aria-hidden="true" />
-    </button>
+    </div>
     {timeline}
   </>;
 }
