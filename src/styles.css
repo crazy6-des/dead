@@ -532,11 +532,13 @@ body{background:#FFFFFF!important;}
   height:4px!important;background:#1D9BF0!important;
 }
 .messages{
-  height:calc(100dvh - 53px)!important;display:block!important;
+  height:calc(100dvh - 53px)!important;
+  display:grid!important;
+  grid-template-columns:280px minmax(0,1fr)!important;
   background:#FFFFFF!important;
 }
-.messages>aside{display:block!important;height:100%;border:0!important;overflow:auto;}
-.chat{display:none!important;}
+.messages>aside{display:block!important;height:100%;border-right:1px solid #EFF3F4!important;overflow:auto;}
+.chat{display:flex!important;min-width:0;}
 .conversation{
   width:100%;height:72px!important;min-height:72px!important;
   padding:12px 16px!important;gap:12px!important;
@@ -578,4 +580,18 @@ body{background:#FFFFFF!important;}
   .main{padding-bottom:53px!important;}
   .mobile-head{display:flex!important;}
   .feed-tabs{top:53px!important;}
+}
+
+.s-logo{
+  width:28px!important;height:28px!important;border-radius:50%!important;
+  display:grid!important;place-items:center!important;
+  background:#000000!important;color:#FFFFFF!important;
+  font-size:20px!important;line-height:28px!important;font-weight:900!important;
+  font-family:Inter,system-ui,sans-serif!important;
+}
+.s-logo span{font-weight:900!important;color:#FFFFFF!important;}
+@media(max-width:720px){
+  .messages{display:block!important;height:calc(100dvh - 53px)!important;}
+  .messages>aside{display:block!important;border:0!important;}
+  .chat{display:none!important;}
 }
