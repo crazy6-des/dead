@@ -8,9 +8,9 @@ import { apiClient, hasApiBaseUrl, resolveApiUrl } from "../../services/apiClien
 const DEFAULT_PROFILE = Object.freeze({
   displayName: "David",
   username: "david",
-  bio: "Building S — a place to be seen, connect, create and belong.",
+  bio: "",
   location: "",
-  website: "s.social",
+  website: "",
   avatarUrl: "",
   privateAccount: false,
   showFollowerCount: true,
@@ -234,8 +234,8 @@ export default function ProfileRoute({ posts = [], onLike, onSave, onFollow, onR
               <label>Name<input value={draft.displayName} maxLength={MAX_LENGTHS.displayName} onChange={(event) => updateDraft({ displayName: event.target.value })} /></label>
               <label>Username<input value={draft.username} maxLength={30} onChange={(event) => updateDraft({ username: event.target.value })} /></label>
               <label>Bio<textarea value={draft.bio} maxLength={MAX_LENGTHS.bio} rows={3} onChange={(event) => updateDraft({ bio: event.target.value })} /></label>
-              <label>Location<input value={draft.location} maxLength={MAX_LENGTHS.location} placeholder="Your city or region" onChange={(event) => updateDraft({ location: event.target.value })} /></label>
-              <label>Website or social link<input value={draft.website} maxLength={MAX_LENGTHS.website} placeholder="https://…" onChange={(event) => updateDraft({ website: event.target.value })} /></label>
+              <label>Location<input value={draft.location} maxLength={MAX_LENGTHS.location} placeholder="Location" onChange={(event) => updateDraft({ location: event.target.value })} /></label>
+              <label>Website or social link<input value={draft.website} maxLength={MAX_LENGTHS.website} placeholder="Website" onChange={(event) => updateDraft({ website: event.target.value })} /></label>
               <label className="s-profile-editor__check"><input type="checkbox" checked={draft.privateAccount} onChange={(event) => updateDraft({ privateAccount: event.target.checked })} /> Private account</label>
               {error && <p className="s-create-composer__error" role="alert">{error}</p>}
             </div>
