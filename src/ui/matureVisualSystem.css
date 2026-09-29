@@ -623,6 +623,34 @@ select:focus-visible {
   color: var(--s-text);
 }
 
+/* Create composer: keep authored text and controls unmistakable in dark mode. */
+.s-create-composer textarea {
+  color: #1d9bf0;
+  caret-color: #1d9bf0;
+}
+.s-create-composer textarea::placeholder {
+  color: color-mix(in srgb, #1d9bf0 68%, var(--s-text-3));
+}
+.s-create-composer__header strong,
+.s-create-composer__footer > span,
+.s-create-composer__hint,
+.s-create-composer__status {
+  color: color-mix(in srgb, #1d9bf0 72%, var(--s-text));
+}
+.s-create-composer button,
+.s-create-composer__picker,
+.s-create-composer__music-search input {
+  color: #1d9bf0;
+}
+.s-create-composer button:hover:not(:disabled),
+.s-create-composer__picker:hover {
+  color: #62b8ff;
+}
+.s-create-composer__music-result span {
+  color: #1d9bf0;
+}
+
+
 .primary,
 .follow,
 .earn-actions .primary {
@@ -821,6 +849,23 @@ select:focus-visible {
     padding: 8px 12px;
     background: var(--s-surface);
     border-bottom-color: var(--s-border);
+  }
+  .mobile-head {
+    position: relative;
+    z-index: 60;
+    pointer-events: auto;
+  }
+
+  .mobile-head .theme-toggle {
+    position: relative;
+    z-index: 61;
+    pointer-events: auto;
+    color: var(--s-accent);
+    cursor: pointer;
+  }
+
+  .mobile-head .theme-toggle:hover {
+    color: var(--s-accent-strong);
   }
 
   .top {
