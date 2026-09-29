@@ -24,7 +24,7 @@ export default function HomeRoute({ currentUser, posts, onLike, onSave, onFollow
   const presentation = getUserPresentation(currentUser);
   let timeline;
   if (loading) {
-    timeline = <div className="empty feed-state" role="status" aria-live="polite"><h3>Loading your timeline…</h3><p>Fetching the latest posts from S.</p></div>;
+    timeline = <div className="empty feed-state" role="status" aria-live="polite"><h3>Loading your timeline…</h3><p>Loading posts…</p></div>;
   } else if (error) {
     timeline = <div className="empty feed-state" role="alert"><h3>We couldn’t load this timeline</h3><p>{error}</p>{onRetry && <button className="primary" type="button" onClick={onRetry}>Try again</button>}</div>;
   } else if (visible.length > 0) {
@@ -34,8 +34,8 @@ export default function HomeRoute({ currentUser, posts, onLike, onSave, onFollow
     </div>;
   } else {
     timeline = <div className="empty feed-state" role="status">
-      <h3>{tab === "Following" ? "No posts from followed accounts yet" : "Your timeline is empty"}</h3>
-      <p>{tab === "Following" ? "Follow accounts to see their posts here." : "Posts will appear here when the feed service returns real data."}</p>
+      <h3>{tab === "Following" ? "No posts from followed accounts yet" : "No posts yet"}</h3>
+      <p>{tab === "Following" ? "Follow accounts to see their posts here." : "Real posts will appear here when available."}</p>
     </div>;
   }
   return <>
