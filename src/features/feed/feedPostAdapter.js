@@ -35,6 +35,7 @@ export function toFeedPostFromCreatedPost(
 
   return {
     id: post.id,
+    author: { ...author, avatarUrl: author.avatarUrl ? resolveApiUrl(author.avatarUrl) : null },
     a: resolvedAuthorName,
     h: resolvedAuthorHandle,
     t: post.t ?? post.createdAt ?? "now",
