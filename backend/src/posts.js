@@ -387,6 +387,8 @@ export async function listFeed(request, env) {
   const session = await requireUser(request, env);
   if (!session) return { response: null, error: error("UNAUTHORIZED", 401, "Authentication is required.") };
   if (!env?.DB) return { response: null, error: error("SERVICE_UNAVAILABLE", 503, "Feed service is not configured.") };
+  // Feed reads must see a post immediately after publish. Use the current primary when available.
+  const db = typeof db.withSession === "function" ? db.withSession("first-primary") : db;
 
   const url = new URL(request.url);
   const mode = url.searchParams.get("mode") || "For You";
@@ -436,7 +438,7 @@ export async function listFeed(request, env) {
 
   const candidateLimit = mode === "For You" ? Math.min(Math.max(limit * 5, 50), 150) : limit + 1;
   values.push(candidateLimit);
-  const rows = await env.DB.prepare(
+  const rows = await db.prepare(
     `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.view_count, p.created_at, p.updated_at,
       u.username, u.display_name, u.avatar_url, (p.author_id = ?1) AS is_owner, p.post_kind, p.background_json, p.quoted_post_id, p.poll_json,
       (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id = p.id ORDER BY m.position) AS media,
@@ -458,9 +460,9 @@ export async function listFeed(request, env) {
   let rankedRows = rows.results;
   if (mode === "For You" && rankedRows.length) {
     const [likedAuthors, repostedAuthors, savedAuthors] = await Promise.all([
-      env.DB.prepare("SELECT DISTINCT p.author_id FROM post_reactions r JOIN posts p ON p.id=r.post_id WHERE r.user_id=?1 AND r.reaction_type='like' AND p.deleted_at IS NULL").bind(session.user_id).all(),
-      env.DB.prepare("SELECT DISTINCT p.author_id FROM post_reactions r JOIN posts p ON p.id=r.post_id WHERE r.user_id=?1 AND r.reaction_type='repost' AND p.deleted_at IS NULL").bind(session.user_id).all(),
-      env.DB.prepare("SELECT DISTINCT p.author_id FROM bookmarks b JOIN posts p ON p.id=b.post_id WHERE b.user_id=?1 AND p.deleted_at IS NULL").bind(session.user_id).all(),
+      db.prepare("SELECT DISTINCT p.author_id FROM post_reactions r JOIN posts p ON p.id=r.post_id WHERE r.user_id=?1 AND r.reaction_type='like' AND p.deleted_at IS NULL").bind(session.user_id).all(),
+      db.prepare("SELECT DISTINCT p.author_id FROM post_reactions r JOIN posts p ON p.id=r.post_id WHERE r.user_id=?1 AND r.reaction_type='repost' AND p.deleted_at IS NULL").bind(session.user_id).all(),
+      db.prepare("SELECT DISTINCT p.author_id FROM bookmarks b JOIN posts p ON p.id=b.post_id WHERE b.user_id=?1 AND p.deleted_at IS NULL").bind(session.user_id).all(),
     ]);
     const liked = new Set((likedAuthors.results || []).map((row) => row.author_id));
     const reposted = new Set((repostedAuthors.results || []).map((row) => row.author_id));
@@ -484,7 +486,7 @@ export async function listFeed(request, env) {
     ? rankedRows.slice(rankOffset, rankOffset + limit)
     : rankedRows.slice(0, limit);
   const items = pageRows.map(serializePost);
-  await hydratePollResults(items, env.DB, session.user_id);
+  await hydratePollResults(items, db, session.user_id);
 
   let nextCursor = null;
   if (mode === "For You") {
