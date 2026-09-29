@@ -157,9 +157,14 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
     const onPointerDown = () => { void recordView(); };
     const onTouchStart = () => { void recordView(); };
     const onFocus = () => { void recordView(); };
+    const onScroll = () => {
+      const rect = card.getBoundingClientRect();
+      if (rect.bottom > 0 && rect.top < window.innerHeight) void recordView();
+    };
     card.addEventListener("pointerdown", onPointerDown, { passive: true });
     card.addEventListener("touchstart", onTouchStart, { passive: true });
     card.addEventListener("focusin", onFocus);
+    window.addEventListener("scroll", onScroll, { passive: true });
 
     let observer;
     if (typeof window.IntersectionObserver === "function") {
@@ -173,6 +178,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
       card.removeEventListener("pointerdown", onPointerDown);
       card.removeEventListener("touchstart", onTouchStart);
       card.removeEventListener("focusin", onFocus);
+      window.removeEventListener("scroll", onScroll);
       observer?.disconnect();
     };
   }, [post.id]);
