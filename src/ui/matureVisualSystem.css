@@ -2661,3 +2661,54 @@ body,button,input,textarea,select{
   .landing--dark .landing-benefits article{border-color:#29292f}
   .landing-install{margin-left:12px;margin-right:12px}
 }
+
+
+/* Moderation/report sheet: keep the report dialog readable in both themes. */
+.moderation-sheet {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--s-border-strong);
+  border-radius: var(--s-radius-md);
+  background: var(--s-surface-raised);
+  color: var(--s-text);
+  box-shadow: 0 12px 32px color-mix(in srgb, #000 18%, transparent);
+}
+.moderation-sheet > strong {
+  display: block;
+  color: var(--s-text);
+  font-size: 15px;
+}
+.moderation-sheet > small {
+  display: block;
+  margin-top: 4px;
+  color: var(--s-text-3);
+}
+.moderation-sheet > div {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.moderation-sheet > div > button {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--s-border);
+  border-radius: 10px;
+  background: var(--s-surface-soft);
+  color: var(--s-text);
+  text-align: left;
+  cursor: pointer;
+}
+.moderation-sheet > div > button:hover:not(:disabled) {
+  background: var(--s-accent-soft);
+  border-color: var(--s-border-strong);
+  color: var(--s-text);
+}
+.moderation-sheet > div > button:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+.moderation-sheet > .outline {
+  color: var(--s-text);
+  background: var(--s-surface);
+}
