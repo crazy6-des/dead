@@ -8,7 +8,7 @@ import {
   validateCredentials,
   verifyPassword,
 } from "./auth.js";
-import { createPost, getPost, listFeed, updatePost, deletePost } from "./posts.js";
+import { createPost, getPost, recordPostView, listFeed, updatePost, deletePost } from "./posts.js";
 import { createReply, listReplies } from "./replies.js";
 import { setPostAction, setRelationship, sharePostWithFollowers, listSavedPosts } from "./social.js";
 import { search } from "./search.js";
@@ -56,6 +56,14 @@ export default { async fetch(request, env) {
     if (request.method === "GET") { const result = await getMedia(request, env, mediaId); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return result.response; }
     if (request.method === "DELETE") { if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await deleteMedia(request, env, mediaId); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
     return methodNotAllowed(request, env);
+  }
+  const postViewMatch = url.pathname.match(/^\/api\/posts\/([^/]+)\/view$/);
+  if (postViewMatch) {
+    if (request.method !== "POST") return methodNotAllowed(request, env);
+    if (!mutationOriginAllowed(request, env)) return originRejected(request, env);
+    const result = await recordPostView(request, env, decodeURIComponent(postViewMatch[1]));
+    if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details);
+    return json(result.response, 200, request, env);
   }
   const postDetailMatch = url.pathname.match(/^\/api\/posts\/([^/]+)$/);
   if (postDetailMatch) {
