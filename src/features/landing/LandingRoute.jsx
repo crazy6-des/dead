@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowRight, LockKeyhole, Mail, Sparkles, X } from "lucide-react";
+import { ArrowRight, LockKeyhole, Mail, ShieldCheck, Sparkles, WalletCards, X } from "lucide-react";
 import { authService } from "../../services/authService.js";
 
 const BENEFITS = [
