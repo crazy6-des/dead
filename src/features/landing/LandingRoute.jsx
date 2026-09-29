@@ -27,14 +27,19 @@ function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
         ? await authService.signIn({ identifier: form.email || form.username, password: form.password })
         : await authService.signUp({ username: form.username, displayName: form.displayName, email: form.email, password: form.password });
       if (result?.authenticated) onAuthenticated?.();
-    } catch (cause) {
-      setError(cause?.message || "We could not complete that request.");
-    } finally { setBusy(false); }
+    } catch (cause) { setError(cause?.message || "We could not complete that request."); }
+    finally { setBusy(false); }
   };
 
   const confirmReset = async (event) => {
     event.preventDefault(); setBusy(true); setError(""); setMessage("");
-    try { const token = new URLSearchParams(window.location.search).get("token"); const result = await authService.resetPassword({ token, password: form.password }); setMessage(result?.message || "Password updated. You can now sign in."); setForm({ ...form, password: "" }); setMode("signin"); } catch (cause) { setError(cause?.message || "We could not update your password."); } finally { setBusy(false); }
+    try {
+      const token = new URLSearchParams(window.location.search).get("token");
+      const result = await authService.resetPassword({ token, password: form.password });
+      setMessage(result?.message || "Password updated. You can now sign in.");
+      setForm({ ...form, password: "" }); setMode("signin");
+    } catch (cause) { setError(cause?.message || "We could not update your password."); }
+    finally { setBusy(false); }
   };
 
   const reset = async (event) => {
@@ -69,18 +74,30 @@ export default function LandingRoute({ initialAuthMode = null, onAuthenticated }
     <header className="mobile-head">
       <button type="button" aria-label="Open navigation menu"><span aria-hidden="true">☰</span></button>
       <div className="brand"><div className="s-logo" aria-label="S"><span>S</span></div></div>
-      <button type="button" aria-label="Theme" onClick={() => setDarkMode((value) => !value)}><Sparkles size={20}/></button>
+      <button type="button" aria-label="Theme" onClick={() => setDarkMode(value => !value)}><Sparkles size={20}/></button>
     </header>
     <main className="landing-public-home">
-      <div className="feed-tabs" role="tablist" aria-label="Timeline">
-        <button type="button" className="selected" role="tab" aria-selected="true">For you</button>
-        <button type="button" role="tab" aria-selected="false">Following</button>
-        <button type="button" role="tab" aria-selected="false">Latest</button>
-      </div>
-      <button type="button" className="quick landing-login-prompt" onClick={() => setAuthMode("signin")}>
-        <span className="avatar">S</span>
-        <span><b>Log in to post</b></span>
-      </button>
+      <section className="landing-hero">
+        <div className="landing-hero-mark" aria-hidden="true"><span>S</span></div>
+        <div className="landing-hero-copy">
+          <p className="landing-eyebrow">WHERE YOU ARE TRULY SEEN.</p>
+          <h1>Welcome to S.</h1>
+          <p className="landing-lead">A place to share what matters, discover people worth following, and connect without the noise.</p>
+          <div className="landing-actions">
+            <button type="button" className="landing-primary landing-primary-large" onClick={() => setAuthMode("signup")}>Create account <ArrowRight size={18}/></button>
+            <button type="button" className="landing-secondary" onClick={() => setAuthMode("signin")}>Sign in</button>
+          </div>
+          <p className="landing-note">Your attention has value. S can offer optional CPA opportunities — you choose whether to participate.</p>
+        </div>
+      </section>
+      <section className="landing-benefits" aria-label="Why S">
+        {BENEFITS.map(({ icon: Icon, title, text: copy }) => <article key={title}><div className="landing-benefit-icon"><Icon size={19}/></div><div><h2>{title}</h2><p>{copy}</p></div></article>)}
+      </section>
+      <section className="landing-install">
+        <div><strong>Take S with you.</strong><p>On your phone browser, open the three-dot menu and choose <b>Add to Home screen</b> when available.</p></div>
+        <span className="landing-install-logo">S</span>
+      </section>
+      <section className="landing-login-row"><span>Already part of S?</span><button type="button" onClick={() => setAuthMode("signin")}>Sign in</button></section>
     </main>
     {authMode && <AuthPanel initialMode={authMode} onClose={() => setAuthMode(null)} onAuthenticated={() => { setAuthMode(null); onAuthenticated?.(); }} />}
   </div>;
