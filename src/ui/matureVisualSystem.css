@@ -2771,3 +2771,59 @@ body,button,input,textarea,select{
     cursor: pointer;
   }
 }
+
+/* Universal theme control/readability: the feed header owns the same persistent theme action. */
+.mobile-head {
+  background: var(--s-surface) !important;
+  border-bottom: 1px solid var(--s-border) !important;
+}
+.mobile-head .theme-toggle {
+  width: 40px;
+  height: 40px;
+  display: grid !important;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, #1d9bf0 28%, var(--s-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, #1d9bf0 8%, var(--s-surface));
+  color: #1d9bf0 !important;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-head .theme-toggle:hover,
+.mobile-head .theme-toggle:focus-visible {
+  color: #0b84d8 !important;
+  background: color-mix(in srgb, #1d9bf0 14%, var(--s-surface));
+  border-color: color-mix(in srgb, #1d9bf0 48%, var(--s-border));
+  outline: 2px solid color-mix(in srgb, #1d9bf0 20%, transparent);
+  outline-offset: 2px;
+}
+.mobile-head .theme-toggle svg {
+  stroke: currentColor;
+  width: 20px;
+  height: 20px;
+}
+.app.light .mobile-head,
+.app.dark .mobile-head {
+  color: var(--s-text);
+}
+.app.light .top,
+.app.dark .top,
+.app.light .heading,
+.app.dark .heading,
+.app.light .post,
+.app.dark .post,
+.app.light .quick,
+.app.dark .quick,
+.app.light .card,
+.app.dark .card {
+  color: var(--s-text);
+}
+.app.light .post__text,
+.app.dark .post__text {
+  color: var(--s-text);
+}
+.app.light .post__meta,
+.app.dark .post__meta,
+.app.light .post__time,
+.app.dark .post__time {
+  color: var(--s-text-3);
+}
