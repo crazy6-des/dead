@@ -506,8 +506,8 @@ export async function listFeed(request, env) {
         };
         nextCursor = globalThis.btoa(JSON.stringify(cursorPayload))
           .replace(/=/g, "")
-          .replace(/\\+/g, "-")
-          .replace(/\\//g, "_");
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_");
       }
     }
   } else {
