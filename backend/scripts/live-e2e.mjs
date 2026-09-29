@@ -70,6 +70,19 @@ const created = await request("/api/posts", {
 const postId = created.post?.id;
 if (!postId) throw new Error("Post creation persistence contract failed.");
 
+const firstView = await request("/api/posts/" + encodeURIComponent(postId) + "/view", { method: "POST", body: JSON.stringify({}) });
+if (firstView.viewed !== true || !Number.isInteger(Number(firstView.viewCount)) || Number(firstView.viewCount) < 1) {
+  throw new Error("Post view persistence contract failed on first view: " + JSON.stringify(firstView));
+}
+const secondView = await request("/api/posts/" + encodeURIComponent(postId) + "/view", { method: "POST", body: JSON.stringify({}) });
+if (secondView.viewed !== false || Number(secondView.viewCount) !== Number(firstView.viewCount)) {
+  throw new Error("Post view idempotency contract failed: " + JSON.stringify({ firstView, secondView }));
+}
+const viewedPost = await request("/api/posts/" + encodeURIComponent(postId));
+if (Number(viewedPost.post?.views) !== Number(firstView.viewCount) || Number(viewedPost.post?.viewCount) !== Number(firstView.viewCount)) {
+  throw new Error("Post view detail serialization contract failed: " + JSON.stringify(viewedPost.post));
+}
+
 const updatedPost = await request("/api/posts/" + encodeURIComponent(postId), {
   method: "PATCH",
   body: JSON.stringify({ text: "S live persistence E2E edited" }),
@@ -412,5 +425,5 @@ console.log(JSON.stringify({
   postId,
   reportId: report.reportId,
   emailStatus: report.emailStatus,
-  checks: ["sign-up", "session", "media-upload", "media-delivery", "text-only-post", "image-only-post", "music-only-post", "background-only-post", "mixed-post", "feed", "server-media-feed", "like", "bookmark", "profile-read", "profile-update", "messages", "message-image", "message-direction", "personal-notification", "notification-read", "sign-out", "sign-in"],
+  checks: ["sign-up", "session", "media-upload", "media-delivery", "text-only-post", "image-only-post", "music-only-post", "background-only-post", "mixed-post", "post-view", "post-view-idempotency", "feed", "server-media-feed", "like", "bookmark", "profile-read", "profile-update", "messages", "message-image", "message-direction", "personal-notification", "notification-read", "sign-out", "sign-in"],
 }));
