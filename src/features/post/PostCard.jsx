@@ -140,7 +140,6 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
     try {
       const result = await viewRequestRef.current;
       if (Number.isFinite(Number(result?.viewCount))) {
-        post.v = Number(result.viewCount);
         setViewCount(Number(result.viewCount));
       }
       viewRecordedAtRef.current = Date.now();
