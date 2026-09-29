@@ -167,4 +167,9 @@ export const postService = Object.freeze({
     if (!id) return Promise.reject(new TypeError("Post id is required."));
     return apiClient.get(`/api/posts/${encodeURIComponent(id)}`, options).then((result) => result?.post || null);
   },
+  recordView(postId) {
+    const id = String(postId || "").trim();
+    if (!id) return Promise.reject(new TypeError("Post id is required."));
+    return apiClient.post(`/api/posts/${encodeURIComponent(id)}/view`, {}).then((result) => result || null);
+  },
 });
