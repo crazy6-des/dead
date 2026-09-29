@@ -20,11 +20,11 @@ assert.deepEqual(
 );
 assert.ok(HEADER_NAVIGATION.every(hasIconComponent));
 
-assert.equal(MOBILE_NAVIGATION.length, 5);
-assert.equal(MOBILE_NAVIGATION[2].label, "Create");
-assert.equal(MOBILE_NAVIGATION[2].route, null);
-assert.equal(MOBILE_NAVIGATION[3].route, APP_ROUTES.MESSAGES);
-assert.equal(MOBILE_NAVIGATION[4].route, APP_ROUTES.EARN);
+assert.equal(MOBILE_NAVIGATION.length, 4);
+assert.deepEqual(
+  MOBILE_NAVIGATION.map((item) => item.route),
+  [APP_ROUTES.HOME, APP_ROUTES.DISCOVER, APP_ROUTES.MESSAGES, APP_ROUTES.EARN],
+);
 assert.ok(MOBILE_NAVIGATION.filter((item) => item.route).every(hasIconComponent));
 
 assert.deepEqual(
