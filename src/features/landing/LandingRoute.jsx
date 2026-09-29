@@ -69,12 +69,12 @@ function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
 
 export default function LandingRoute({ initialAuthMode = null, onAuthenticated }) {
   const [authMode, setAuthMode] = useState(initialAuthMode);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => { try { return JSON.parse(window.localStorage.getItem("s.settings") || "null")?.theme === "dark"; } catch (error) { void error; return false; } });
   return <div className={"landing " + (darkMode ? "landing--dark" : "landing--light")}>
-    <header className="mobile-head">
+    <header className="mobile-head landing-head">
       <button type="button" aria-label="Open navigation menu"><span aria-hidden="true">☰</span></button>
       <div className="brand"><div className="s-logo" aria-label="S"><span>S</span></div></div>
-      <button type="button" aria-label="Theme" onClick={() => setDarkMode(value => !value)}><Sparkles size={20}/></button>
+      <button type="button" aria-label="Theme" title="Toggle dark and light mode" className="theme-toggle" onClick={() => setDarkMode(value => { const next = !value; try { const stored = JSON.parse(window.localStorage.getItem("s.settings") || "{}"); window.localStorage.setItem("s.settings", JSON.stringify({ ...stored, theme: next ? "dark" : "light" })); } catch (error) { void error; } return next; })}><Sparkles size={20}/></button>
     </header>
     <main className="landing-public-home">
       <section className="landing-hero">
