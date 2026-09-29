@@ -228,6 +228,15 @@ function PostEntityRoute({ postId, initialPost, ...props }) {
       throw cause;
     }
   };
+  useEffect(() => {
+    if (!postId || !post) return undefined;
+    let active = true;
+    postService.recordView(postId).catch(() => {}).finally(() => {
+      if (!active) return;
+    });
+    return () => { active = false; };
+  }, [postId, post]);
+
   useEffect(()=>{ if(initialPost) return undefined; let active=true;
     postService.getById(postId).then((result)=>{if(!active)return;setPost(result||null);if(!result)setError("This post may have been removed or is not available.");}).catch((cause)=>active&&setError(cause?.message||"Post could not be loaded.")).finally(()=>active&&setLoading(false));
     return()=>{active=false;};
