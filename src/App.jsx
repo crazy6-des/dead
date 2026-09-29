@@ -46,7 +46,7 @@ function PageHeader({ onTheme, onMenu, mobileMenuOpen, go }) {
   return <header className="mobile-head">
     <button onClick={onMenu} aria-label="Open navigation menu" aria-expanded={mobileMenuOpen} aria-controls="s-mobile-menu"><Menu size={20}/></button>
     <button className="brand brand-button" onClick={() => go(APP_ROUTES.HOME)} aria-label="S home"><SLogo /></button>
-    <button onClick={onTheme} aria-label="Theme"><Sparkles size={20}/></button>
+    <button type="button" className="theme-toggle" onClick={onTheme} aria-label="Toggle dark and light mode" title="Toggle dark and light mode"><Sparkles size={20}/></button>
   </header>;
 }
 function Sidebar({ route, go, onCreate, user }) {
@@ -221,17 +221,17 @@ export default function App() {
   const toggleTheme = async () => {
     const previous = userSettings;
     const next = { ...previous, theme: previous.theme === "dark" ? "light" : "dark" };
+    // Apply immediately so the control never feels blocked by a network round-trip.
     setUserSettings(next);
-    if (!hasApiBaseUrl()) {
-      try { window.localStorage.setItem("s.settings", JSON.stringify(next)); } catch (storageError) { void storageError; }
-      return;
-    }
+    try { window.localStorage.setItem("s.settings", JSON.stringify(next)); } catch (storageError) { void storageError; }
+    if (!hasApiBaseUrl()) return;
     try {
       const persisted = await settingsService.update({ theme: next.theme });
       setUserSettings(persisted);
+      try { window.localStorage.setItem("s.settings", JSON.stringify(persisted)); } catch (storageError) { void storageError; }
     } catch (error) {
-      setUserSettings(previous);
-      flash(error?.message || "Could not save the theme change");
+      // Keep the already-applied local theme; the next authenticated settings fetch can reconcile it.
+      flash(error?.message || "Theme saved locally");
     }
   };
   const enterApp = () => auth.refreshSession();
