@@ -64,6 +64,7 @@ export function serializePost(row) {
       id: row.author_id,
       username: row.username,
       displayName: row.display_name,
+      avatarUrl: row.avatar_url || null,
     },
     text: row.body,
     kind: row.post_kind || "text",
@@ -251,7 +252,7 @@ export async function createPost(request, env) {
   }
 
   const row = await db.prepare(
-    `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.quoted_post_id, p.poll_json, p.view_count, p.created_at, p.updated_at, u.username, u.display_name,
+    `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.quoted_post_id, p.poll_json, p.view_count, p.created_at, p.updated_at, u.username, u.display_name, u.avatar_url,
       (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id = p.id ORDER BY m.position) AS media,
       0 AS like_count, 0 AS repost_count, 0 AS reply_count, 0 AS bookmark_count,
       (SELECT json_object('id',qp.id,'author',json_object('username',qu.username,'displayName',qu.display_name),'text',qp.body) FROM posts qp JOIN users qu ON qu.id = qp.author_id WHERE qp.id = p.quoted_post_id AND qp.deleted_at IS NULL) AS quoted_post
@@ -272,7 +273,7 @@ export async function updatePost(request, env, postId) {
   if (!text || text.length > MAX_POST_TEXT) return { response: null, error: error("VALIDATION_ERROR", 400, "Post text must contain 1-5000 characters.") };
   const result = await env.DB.prepare("UPDATE posts SET body=?1, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?2 AND author_id=?3 AND deleted_at IS NULL").bind(text, id, session.user_id).run();
   if (!result?.meta?.changes) return { response: null, error: error("POST_NOT_FOUND", 404, "Post was not found or you are not its owner.") };
-  const row = await env.DB.prepare("SELECT p.id,p.author_id,p.body,p.view_count,p.created_at,p.updated_at,p.reply_to_id,u.username,u.display_name,(p.author_id=?1) AS is_owner FROM posts p JOIN users u ON u.id=p.author_id WHERE p.id=?2 AND p.deleted_at IS NULL LIMIT 1").bind(session.user_id, id).first();
+  const row = await env.DB.prepare("SELECT p.id,p.author_id,p.body,p.view_count,p.created_at,p.updated_at,p.reply_to_id,u.username,u.display_name,u.avatar_url,(p.author_id=?1) AS is_owner FROM posts p JOIN users u ON u.id=p.author_id WHERE p.id=?2 AND p.deleted_at IS NULL LIMIT 1").bind(session.user_id, id).first();
   if (row.reply_to_id) return { response: { reply: { id: row.id, postId: row.reply_to_id, author: { id: row.author_id, username: row.username, displayName: row.display_name }, text: row.body, createdAt: row.created_at, updatedAt: row.updated_at, isOwner: Boolean(row.is_owner) }, status: "updated" }, error: null };
   return { response: { post: serializePost(row), status: "updated" }, error: null };
 }
@@ -420,7 +421,7 @@ export async function listFeed(request, env) {
   values.push(limit + 1);
   const rows = await env.DB.prepare(
     `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.view_count, p.created_at, p.updated_at,
-      u.username, u.display_name, (p.author_id = ?1) AS is_owner, p.post_kind, p.background_json, p.quoted_post_id, p.poll_json,
+      u.username, u.display_name, u.avatar_url, (p.author_id = ?1) AS is_owner, p.post_kind, p.background_json, p.quoted_post_id, p.poll_json,
       (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id = p.id ORDER BY m.position) AS media,
       (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id = p.id AND r.reaction_type = 'like') AS like_count,
       (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id = p.id AND r.reaction_type = 'repost') AS repost_count,
