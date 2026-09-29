@@ -83,8 +83,8 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
   const nicheTerms = Object.keys(DISCOVER_NICHES);
 
   return <div className="page discover-page">
-    <section className="discover-intro"><div><small>EXPLORE S</small><h2>Find what is happening.</h2><p>Search people, conversations, topics and music from the community.</p></div></section>
-    <div className="discover-search"><Search aria-hidden="true" /><input value={query} onChange={(event) => { setActiveNiche(""); setQuery(event.target.value); }} placeholder="Search people, posts, topics, music" aria-label="Search discover" /></div>
+    
+    <div className="discover-search"><Search aria-hidden="true" /><input value={query} onChange={(event) => { setActiveNiche(""); setQuery(event.target.value); }} placeholder="Search" aria-label="Search discover" /></div>
     <div className="discover-niches" aria-label="Explore topics">{nicheTerms.map((term) => { const count = nicheStats.find((item) => item.niche === term)?.count || 0; return <button key={term} type="button" className={activeNiche === term ? "active" : ""} onClick={() => { void openNiche(term); }}><strong>{term}</strong><small>{count} {count === 1 ? "post" : "posts"}</small></button>; })}</div>
     <div className="tabs5" role="tablist" aria-label="Discover sections">{["For you", "People", "Posts", "Topics", "Music"].map((item) => <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} onClick={() => { setActiveNiche(""); setTab(item); }}>{item}</button>)}</div>
 
