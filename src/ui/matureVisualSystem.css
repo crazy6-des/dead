@@ -1519,7 +1519,7 @@ select:focus-visible {
 
 /* Phase 10 Performance: let long social surfaces skip off-screen rendering. */
 .feed-list > .post{
-  content-visibility:auto;
+  /* Keep post overflow visible so the three-dot action popover is not paint-contained. */
   contain-intrinsic-size:auto 240px;
 }
 .discover-posts .discover-row,
