@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { ArrowRight, Check, ChevronDown, LockKeyhole, Mail, Moon, ShieldCheck, Sparkles, Sun, Users, WalletCards, X } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowRight, LockKeyhole, Mail, Sparkles, X } from "lucide-react";
 import { authService } from "../../services/authService.js";
 
 const BENEFITS = [
@@ -64,34 +64,23 @@ function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
 
 export default function LandingRoute({ initialAuthMode = null, onAuthenticated }) {
   const [authMode, setAuthMode] = useState(initialAuthMode);
-  const [theme, setTheme] = useState(() => {
-    try { return window.localStorage.getItem("s.landing-theme") === "light" ? "light" : "dark"; }
-    catch { return "dark"; }
-  });
-  const toggleTheme = () => {
-    setTheme((current) => {
-      const next = current === "dark" ? "light" : "dark";
-      try { window.localStorage.setItem("s.landing-theme", next); } catch { /* preference is non-critical */ }
-      return next;
-    });
-  };
-  const steps = useMemo(() => ["Open your browser menu", "Tap Add to Home screen / Add to Home page", "Open S from your home screen"], []);
-  return <div className={"landing landing--" + theme}>
-    <header className="landing-nav"><button className="landing-logo" onClick={()=>window.scrollTo({top:0,behavior:"smooth"})}><span>S</span><b>S</b></button><nav><a href="#why">Why S</a><a href="#community">Community</a><a href="#home-screen">Home screen</a></nav><div className="landing-nav-actions"><button type="button" className="landing-theme-toggle" onClick={toggleTheme} aria-label={"Switch to " + (theme === "dark" ? "light" : "dark") + " mode"} title={"Switch to " + (theme === "dark" ? "light" : "dark") + " mode"}>{theme === "dark" ? <Sun size={16}/> : <Moon size={16}/>}<span>{theme === "dark" ? "Light" : "Dark"}</span></button><button className="landing-ghost" onClick={()=>setAuthMode("signin")}>Sign in</button><button className="landing-primary landing-primary--small" onClick={()=>setAuthMode("signup")}>Join S <ArrowRight size={15}/></button></div></header>
-    <main>
-      <section className="landing-hero">
-        <div className="landing-orbit landing-orbit--one"/><div className="landing-orbit landing-orbit--two"/>
-        <div className="landing-hero-copy"><p className="eyebrow"><Sparkles size={14}/> SOCIAL, WITHOUT THE NOISE</p><h1>Be seen.<br/><em>Stay connected.</em></h1><p className="landing-lead">S is a place for people who want real conversation, good content and a community that feels human. Post what matters. Find your people. Move at your own pace.</p><div className="landing-hero-actions"><button className="landing-primary landing-primary--hero" onClick={()=>setAuthMode("signup")}>Create your S <ArrowRight/></button><button className="landing-text-btn" onClick={()=>setAuthMode("signin")}>I already have an account</button></div><div className="landing-proof"><span><Check/> Your content, your choice</span><span><Check/> Privacy controls</span><span><Check/> Optional earning opportunities</span></div></div>
-        <div className="landing-hero-card"><div className="hero-card-top"><span className="pulse-dot"/> LIVE IN YOUR SPACE <span>•••</span></div><div className="hero-post"><div className="hero-avatar">S</div><div><b>Someone worth following</b><small>@yourcommunity · now</small><p>There is room on the internet for a social space that feels a little more intentional.</p><div className="hero-post-media"><span>✦</span><small>your feed, your rhythm</small></div><div className="hero-actions">♡ <span>Connect</span><span>Reply</span><span>Share</span></div></div></div></div>
-      </section>
-      <section className="landing-marquee"><span>SAFE COMMUNITY</span><i>✦</i><span>CREATIVE POSTS</span><i>✦</i><span>DISCOVER YOUR PEOPLE</span><i>✦</i><span>OPTIONAL CPA EARNINGS</span></section>
-      <section id="why" className="landing-section"><div className="section-kicker">WHY S</div><h2>A social home with room to breathe.</h2><p className="section-intro">Designed to feel alive without feeling chaotic. S gives you the familiar social tools, then gets out of your way.</p><div className="benefit-grid">{BENEFITS.map(({icon:Icon,title,text})=><article key={title}><div className="benefit-icon"><Icon/></div><h3>{title}</h3><p>{text}</p></article>)}</div></section>
-      <section id="community" className="landing-community"><div><div className="section-kicker">THE IDEA</div><h2>Good communities are built by people who care.</h2><p>Follow thoughtfully. Speak respectfully. Use the controls when something crosses a line. S is built around the idea that being social should not mean giving up your sense of safety.</p><div className="community-points"><span><ShieldCheck/> Block, mute and report when needed.</span><span><Users/> Connect around interests, not noise.</span><span><LockKeyhole/> Keep useful privacy choices close.</span></div></div><div className="community-art"><div className="community-ring ring-one"/><div className="community-ring ring-two"/><div className="community-core">S<small>YOU BELONG HERE</small></div></div></section>
-      <section className="landing-earn"><div className="earn-panel"><div><div className="section-kicker">EARN, YOUR WAY</div><h2>Opportunities, never pressure.</h2><p>Some people want to earn from online activities. S can surface CPA opportunities clearly so you can choose whether a particular offer is worth your time. Participation is voluntary. Read the terms. Complete only what you genuinely want to do.</p><button className="landing-outline" onClick={()=>setAuthMode("signup")}>Join and explore later <ArrowRight size={15}/></button></div><div className="earn-stamp"><WalletCards/><b>OPTIONAL</b><span>Choose what you participate in.</span></div></div></section>
-      <section id="home-screen" className="landing-install"><div className="install-copy"><div className="section-kicker">MAKE S FEEL LIKE AN APP</div><h2>One tap away, without an app-store detour.</h2><p>S is a web app. On your phone, open S in your browser, tap the <strong>three dots ⋮ in the upper-right corner</strong>, then choose <strong>Add to Home screen</strong> (wording can vary by browser). Confirm it, and S gets a home-screen icon you can open like an app.</p><div className="install-steps">{steps.map((step,index)=><div key={step}><b>0{index+1}</b><span>{step}</span>{index<2&&<ChevronDown/>}</div>)}</div></div><div className="phone-mock"><div className="phone-notch"/><div className="phone-screen"><div className="phone-top"><b>S</b><span>⋮</span></div><div className="phone-glow"/><div className="phone-icon">S</div><b>Add S to your home screen</b><small>Open S faster, whenever you want.</small><button onClick={()=>setAuthMode("signup")}>Get started</button></div></div></section>
-      <section className="landing-final"><p className="eyebrow"><Sparkles size={14}/> YOUR SPACE IS WAITING</p><h2>Ready to be truly seen?</h2><p>Start with a free account. Explore at your pace.</p><button className="landing-primary landing-primary--hero" onClick={()=>setAuthMode("signup")}>Enter S <ArrowRight/></button></section>
+  return <div className="landing landing--light">
+    <header className="mobile-head">
+      <button type="button" aria-label="Open navigation menu"><span aria-hidden="true">☰</span></button>
+      <div className="brand"><div className="s-logo" aria-label="S"><span>S</span></div></div>
+      <button type="button" aria-label="Theme"><Sparkles size={20}/></button>
+    </header>
+    <main className="landing-public-home">
+      <div className="feed-tabs" role="tablist" aria-label="Timeline">
+        <button type="button" className="selected" role="tab" aria-selected="true">For you</button>
+        <button type="button" role="tab" aria-selected="false">Following</button>
+        <button type="button" role="tab" aria-selected="false">Latest</button>
+      </div>
+      <button type="button" className="quick landing-login-prompt" onClick={() => setAuthMode("signin")}>
+        <span className="avatar">S</span>
+        <span><b>Log in to post</b></span>
+      </button>
     </main>
-    <footer className="landing-footer"><b>S</b><span>Where you are truly seen. Where you connect.</span><button onClick={()=>setAuthMode("signin")}>Sign in</button><button onClick={()=>setAuthMode("signup")}>Sign up</button></footer>
-    {authMode && <AuthPanel initialMode={authMode} onClose={()=>setAuthMode(null)} onAuthenticated={()=>{setAuthMode(null); onAuthenticated?.();}}/>}
+    {authMode && <AuthPanel initialMode={authMode} onClose={() => setAuthMode(null)} onAuthenticated={() => { setAuthMode(null); onAuthenticated?.(); }} />}
   </div>;
 }
