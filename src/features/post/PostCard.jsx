@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { formatFullDateTime } from "../../utils/dateTime.js";
 import { moderationService } from "../../services/moderationService.js";
 import { postService } from "../../services/postService.js";
@@ -133,7 +133,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
     };
   }, [menu]);
 
-  const recordView = async () => {
+  const recordView = useCallback(async () => {
     const now = Date.now();
     if (viewRequestRef.current || now - viewRecordedAtRef.current < 1500) return;
     viewRequestRef.current = postService.recordView(post.id);
@@ -148,7 +148,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
     } finally {
       viewRequestRef.current = null;
     }
-  };
+  }, [post.id]);
 
   useEffect(() => {
     const card = cardRef.current;
@@ -180,7 +180,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
       window.removeEventListener("scroll", onScroll);
       observer?.disconnect();
     };
-  }, [post.id]);
+  }, [post.id, recordView]);
 
 
   useEffect(() => {
