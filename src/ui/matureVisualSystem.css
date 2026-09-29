@@ -2397,3 +2397,14 @@ body,button,input,textarea,select{
 .landing--light .auth-field small {
   color: #536471;
 }
+
+
+/* Native app control polish */
+.app.light .mobile-head button[aria-label="Theme"] svg,
+.app.light .top button[aria-label="Theme"] svg { color:#0f1419 !important; stroke:#0f1419 !important; }
+.app.dark .mobile-head button[aria-label="Theme"] svg,
+.app.dark .top button[aria-label="Theme"] svg { color:#ffffff !important; stroke:#ffffff !important; }
+.x-fab { width:56px !important; height:56px !important; right:16px !important; bottom:69px !important; display:grid !important; align-items:center !important; justify-items:center !important; }
+.x-fab svg { width:28px !important; height:28px !important; stroke-width:2.2 !important; }
+.person-avatar { position:relative; overflow:hidden; }
+.person-avatar img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
