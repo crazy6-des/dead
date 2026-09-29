@@ -43,6 +43,7 @@ export function toFeedPostFromCreatedPost(
     r: Number(post.r ?? post.replies ?? post.stats?.replies ?? 0),
     p: Number(post.p ?? post.reposts ?? post.stats?.reposts ?? 0),
     b: Number(post.b ?? post.bookmarks ?? post.stats?.bookmarks ?? 0),
+    v: Number(post.v ?? post.views ?? post.viewCount ?? post.stats?.views ?? 0),
     liked: Boolean(post.liked),
     saved: Boolean(post.saved),
     following: Boolean(post.following),
