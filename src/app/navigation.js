@@ -18,7 +18,6 @@ export const HEADER_NAVIGATION = Object.freeze([
 export const MOBILE_NAVIGATION = Object.freeze([
   { label: "Home", route: APP_ROUTES.HOME, icon: Home },
   { label: "Search", route: APP_ROUTES.DISCOVER, icon: Compass },
-  { label: "Create", route: null, icon: null },
   { label: "Messages", route: APP_ROUTES.MESSAGES, icon: MessageCircle },
   { label: "Earn", route: APP_ROUTES.EARN, icon: Zap },
 ]);
