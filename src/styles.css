@@ -830,3 +830,8 @@ html,body{background:#fff!important;color:#0F1419}
   .messages.messages--conversation-open .message-row.in .bubble{background:#EFF3F4!important;color:#0F1419!important;border:0!important;}
   .messages.messages--conversation-open .message-row.out .bubble{background:#1D9BF0!important;color:#FFFFFF!important;border:0!important;}
 }
+
+
+/* Persistent profile photos: show the saved identity anywhere a post avatar appears. */
+.post>.avatar img,.detail-post>.avatar img,.reply-row>.avatar img,.conversation .avatar img,.person .avatar img,.quick .avatar img{width:100%;height:100%;display:block;object-fit:cover;border-radius:50%;}
+.post>.avatar,.detail-post>.avatar,.reply-row>.avatar,.conversation .avatar,.person .avatar,.quick .avatar{overflow:hidden;}
