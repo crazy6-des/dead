@@ -29,8 +29,16 @@ export async function search(request, env) {
   const like = "%" + query.replace(/[%_]/g, "\\$&") + "%";
   const nicheFilter = buildNicheClause(niche);
 
-  const people = (type === "all" || type === "people") && query
-    ? await env.DB.prepare("SELECT id, username, display_name, avatar_url FROM users WHERE deleted_at IS NULL AND (LOWER(username) LIKE LOWER(?1) ESCAPE '\\\\' OR LOWER(display_name) LIKE LOWER(?1) ESCAPE '\\\\') ORDER BY username ASC LIMIT ?2").bind(like, limit).all()
+  const people = (type === "all" || type === "people")
+    ? await env.DB.prepare(
+      "SELECT u.id,u.username,u.display_name,u.avatar_url," +
+      "(SELECT COUNT(*) FROM relationships f WHERE f.target_user_id=u.id AND f.relationship_type='follow') AS follower_count," +
+      "EXISTS (SELECT 1 FROM relationships mef WHERE mef.source_user_id=?1 AND mef.target_user_id=u.id AND mef.relationship_type='follow') AS following " +
+      "FROM users u WHERE u.deleted_at IS NULL AND u.id <> ?1 " +
+      (query ? "AND (LOWER(u.username) LIKE LOWER(?2) ESCAPE '\\\\' OR LOWER(u.display_name) LIKE LOWER(?2) ESCAPE '\\\\') " : "") +
+      "ORDER BY follower_count DESC,u.created_at DESC,u.username ASC LIMIT ?" +
+      (query ? "3" : "2")
+    ).bind(...(query ? [session.user_id, like, limit] : [session.user_id, limit])).all()
     : { results: [] };
 
   let postRows = { results: [] };
@@ -65,7 +73,7 @@ export async function search(request, env) {
 
   return { response: {
     items: {
-      people: (people.results || []).map((p) => ({ id:p.id, username:p.username, name:p.display_name, avatarUrl:p.avatar_url || null })),
+      people: (people.results || []).map((p) => ({ id:p.id, username:p.username, name:p.display_name, avatarUrl:p.avatar_url || null, followerCount:Number(p.follower_count || 0), following:Boolean(p.following) })),
       posts: (postRows.results || []).map(serializePost),
       topics: [...topicSet].slice(0, limit),
       music: [],
