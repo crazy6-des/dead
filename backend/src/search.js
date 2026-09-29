@@ -30,14 +30,14 @@ export async function search(request, env) {
   const nicheFilter = buildNicheClause(niche);
 
   const people = (type === "all" || type === "people") && query
-    ? await env.DB.prepare("SELECT id, username, display_name FROM users WHERE deleted_at IS NULL AND (username LIKE ?1 ESCAPE '\\\\' OR display_name LIKE ?1 ESCAPE '\\\\') ORDER BY username ASC LIMIT ?2").bind(like, limit).all()
+    ? await env.DB.prepare("SELECT id, username, display_name, avatar_url FROM users WHERE deleted_at IS NULL AND (LOWER(username) LIKE LOWER(?1) ESCAPE '\\\\' OR LOWER(display_name) LIKE LOWER(?1) ESCAPE '\\\\') ORDER BY username ASC LIMIT ?2").bind(like, limit).all()
     : { results: [] };
 
   let postRows = { results: [] };
   if (type === "all" || type === "posts") {
     const conditions = ["p.deleted_at IS NULL", "u.deleted_at IS NULL", "(p.author_id = ? OR p.visibility = 'public')", nicheFilter.sql];
     const values = [session.user_id, ...nicheFilter.values];
-    if (query) { conditions.push("p.body LIKE ? ESCAPE '\\\\'"); values.push(like); }
+    if (query) { conditions.push("(LOWER(p.body) LIKE LOWER(?) ESCAPE '\\\\' OR LOWER(u.username) LIKE LOWER(?) ESCAPE '\\\\' OR LOWER(u.display_name) LIKE LOWER(?) ESCAPE '\\\\')"); values.push(like, like, like); }
     values.push(limit);
     postRows = await env.DB.prepare(
       "SELECT p.id,p.author_id,p.body,p.visibility,p.reply_policy,p.post_kind,p.background_json,p.quoted_post_id,p.view_count,p.created_at,p.updated_at,u.username,u.display_name,(p.author_id=?1) AS is_owner," +
@@ -65,7 +65,7 @@ export async function search(request, env) {
 
   return { response: {
     items: {
-      people: (people.results || []).map((p) => ({ id:p.id, username:p.username, name:p.display_name })),
+      people: (people.results || []).map((p) => ({ id:p.id, username:p.username, name:p.display_name, avatarUrl:p.avatar_url || null })),
       posts: (postRows.results || []).map(serializePost),
       topics: [...topicSet].slice(0, limit),
       music: [],
