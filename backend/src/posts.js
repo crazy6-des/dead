@@ -255,7 +255,7 @@ export async function createPost(request, env) {
     `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.post_kind, p.background_json, p.quoted_post_id, p.poll_json, p.view_count, p.created_at, p.updated_at, u.username, u.display_name, u.avatar_url,
       (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id = p.id ORDER BY m.position) AS media,
       0 AS like_count, 0 AS repost_count, 0 AS reply_count, 0 AS bookmark_count,
-      (SELECT json_object('id',qp.id,'author',json_object('username',qu.username,'displayName',qu.display_name),'text',qp.body) FROM posts qp JOIN users qu ON qu.id = qp.author_id WHERE qp.id = p.quoted_post_id AND qp.deleted_at IS NULL) AS quoted_post
+      (SELECT json_object('id',qp.id,'author',json_object('username',qu.username,'displayName',qu.display_name,'avatarUrl',qu.avatar_url),'text',qp.body) FROM posts qp JOIN users qu ON qu.id = qp.author_id WHERE qp.id = p.quoted_post_id AND qp.deleted_at IS NULL) AS quoted_post
      FROM posts p JOIN users u ON u.id = p.author_id WHERE p.id = ?1 AND p.deleted_at IS NULL LIMIT 1`
   ).bind(id).first();
   return { response: { post: { ...serializePost(row), isOwner: true }, status: "created" }, error: null };
@@ -369,7 +369,7 @@ export async function getPost(request, env, postId) {
   if (!normalizedId) return { response: null, error: error("VALIDATION_ERROR", 400, "A post id is required.") };
   const values = [session.user_id, normalizedId];
   const visibility = visibilitySql("p").replace(/\?USER\?/g, () => { values.push(session.user_id); return `?${values.length}`; });
-  const row = await env.DB.prepare(`SELECT p.id,p.author_id,p.body,p.visibility,p.reply_policy,p.post_kind,p.background_json,p.quoted_post_id,p.poll_json,p.view_count,p.created_at,p.updated_at,u.username,u.display_name,(p.author_id=?1) AS is_owner,
+  const row = await env.DB.prepare(`SELECT p.id,p.author_id,p.body,p.visibility,p.reply_policy,p.post_kind,p.background_json,p.quoted_post_id,p.poll_json,p.view_count,p.created_at,p.updated_at,u.username,u.display_name,u.avatar_url,(p.author_id=?1) AS is_owner,
     (SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url, '/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id=p.id ORDER BY m.position) AS media,
     (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id=p.id AND r.reaction_type='like') AS like_count,
     (SELECT COUNT(*) FROM post_reactions r WHERE r.post_id=p.id AND r.reaction_type='repost') AS repost_count,
