@@ -836,3 +836,16 @@ html,body{background:#fff!important;color:#0F1419}
 /* Persistent profile photos: show the saved identity anywhere a post avatar appears. */
 .post>.avatar img,.detail-post>.avatar img,.reply-row>.avatar img,.conversation .avatar img,.person .avatar img,.quick .avatar img{width:100%;height:100%;display:block;object-fit:cover;border-radius:50%;}
 .post>.avatar,.detail-post>.avatar,.reply-row>.avatar,.conversation .avatar,.person .avatar,.quick .avatar{overflow:hidden;}
+
+
+/* Mature light-surface readability pass */
+html,body,#root{background:#FFFFFF!important;color:#0F1419!important;}
+.app,.app.light,.main,.mobile-head,.mobile-nav{background:#FFFFFF!important;color:#0F1419!important;}
+.mobile-head{border-bottom-color:#EFF3F4!important;}
+.mobile-head>button{color:#0F1419!important;opacity:1!important;}
+.mobile-head>button:last-child{color:#0F1419!important;}
+.mobile-head>button:last-child svg{color:#0F1419!important;stroke:#0F1419!important;stroke-width:2.25!important;opacity:1!important;}
+.post,.quick,.card,.rail-card,.profile,.messages,.chat,.search-overlay,.create{color:#0F1419!important;}
+.post__text,.post__meta strong,.post__meta b,.profile-info h2,.profile-info p,.heading h2,.card h2,.card h3,.person strong,.search-result,.conversation,.chat-body,.chat>header,.create h2{color:#0F1419!important;}
+.post__meta>span,.post-time,.post__actions button,.post__actions span,.person span,.profile-info>span,.links,.stats,.heading p,.quick span,.rail-card small,.notice span,.empty,.chat>header span,.thread-head span,.reply-row .post__meta .muted{color:#536471!important;opacity:1!important;}
+.feed-tabs,.feed-tabs button,.tabs5 button,.tabs4 button,.tabs3 button{background:#FFFFFF!important;}
