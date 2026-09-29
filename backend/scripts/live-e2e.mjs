@@ -72,14 +72,14 @@ if (!postId) throw new Error("Post creation persistence contract failed.");
 
 const firstView = await request("/api/posts/" + encodeURIComponent(postId) + "/view", { method: "POST", body: JSON.stringify({}) });
 if (firstView.viewed !== true || !Number.isInteger(Number(firstView.viewCount)) || Number(firstView.viewCount) < 1) {
-  throw new Error("Post view persistence contract failed on first view: " + JSON.stringify(firstView));
+  throw new Error("Post view persistence contract failed on first event: " + JSON.stringify(firstView));
 }
 const secondView = await request("/api/posts/" + encodeURIComponent(postId) + "/view", { method: "POST", body: JSON.stringify({}) });
-if (secondView.viewed !== false || Number(secondView.viewCount) !== Number(firstView.viewCount)) {
-  throw new Error("Post view idempotency contract failed: " + JSON.stringify({ firstView, secondView }));
+if (secondView.viewed !== true || Number(secondView.viewCount) !== Number(firstView.viewCount) + 1) {
+  throw new Error("Post view event counting contract failed: " + JSON.stringify({ firstView, secondView }));
 }
 const viewedPost = await request("/api/posts/" + encodeURIComponent(postId));
-if (Number(viewedPost.post?.views) !== Number(firstView.viewCount) || Number(viewedPost.post?.viewCount) !== Number(firstView.viewCount)) {
+if (Number(viewedPost.post?.views) !== Number(secondView.viewCount) || Number(viewedPost.post?.viewCount) !== Number(secondView.viewCount)) {
   throw new Error("Post view detail serialization contract failed: " + JSON.stringify(viewedPost.post));
 }
 
