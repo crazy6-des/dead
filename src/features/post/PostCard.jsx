@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { formatFullDateTime } from "../../utils/dateTime.js";
 import { moderationService } from "../../services/moderationService.js";
 import { postService } from "../../services/postService.js";
+import { resolveApiUrl } from "../../services/apiClient.js";
 import { pollService } from "../../services/pollService.js";
 import { MODERATION_ACTIONS, REPORT_REASONS } from "../moderation/moderationContract.js";
 import { activatePostAudio, deactivatePostAudio, registerPostAudio, togglePostAudio } from "../create/postContract.js";
@@ -111,6 +112,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const reposted = Boolean(post.reposted);
   const isFollowing = Boolean(post.following);
   const author = getAuthorName(post);
+  const avatarUrl = post?.author?.avatarUrl ? resolveApiUrl(post.author.avatarUrl) : "";
   const username = post.username || String(post.h || post.author?.username || "@user").replace("@", "").toLowerCase();
   const text = post.text || post.x || "";
   const [localText, setLocalText] = useState(text);
@@ -273,7 +275,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const immersive = Boolean(audioSource?.url || mediaSources.length > 0 || backgroundStyle);
   const postClassName = "post" + (immersive ? " post--immersive" : "") + (audioPlaying ? " post--audio-playing" : "");
   return <article ref={cardRef} className={postClassName} data-post-id={post.id} onDoubleClick={() => onLike?.(post.id)}>
-    <button className="avatar avatar-button" onClick={() => onOpen?.("/user/" + encodeURIComponent(username))} aria-label="Open profile">{author[0]}</button>
+    <button className="avatar avatar-button" onClick={() => onOpen?.("/user/" + encodeURIComponent(username))} aria-label="Open profile">{avatarUrl ? <img src={avatarUrl} alt="" /> : author[0]}</button>
     <div className="post__body">
       <div className="post__meta">
         <button className="post-author" onClick={() => onOpen?.("/user/" + encodeURIComponent(username))}><strong>{author}</strong>{(post.verified || post.a === "S Team") && <span className="verified"><Check size={10}/></span>}</button>
