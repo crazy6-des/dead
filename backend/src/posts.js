@@ -465,7 +465,7 @@ export async function listFeed(request, env) {
   }
   const items = rankedRows.slice(0, limit).map(serializePost);
   await hydratePollResults(items, env.DB, session.user_id);
-  const last = items.at(-1);
-  const nextCursor = rows.results.length > limit ? encodeCursor(last.createdAt, last.id) : null;
+  const cursorRow = mode === "For You" ? rows.results.at(-1) : items.at(-1);
+  const nextCursor = rows.results.length > limit && cursorRow ? encodeCursor(cursorRow.created_at || cursorRow.createdAt, cursorRow.id) : null;
   return { response: { items, nextCursor }, error: null };
 }
