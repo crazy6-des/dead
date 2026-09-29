@@ -101,6 +101,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const [pollBusy, setPollBusy] = useState(false);
   const [pollError, setPollError] = useState("");
   const [localPoll, setLocalPoll] = useState(null);
+  const [viewCount, setViewCount] = useState(() => Number(post.views ?? post.viewCount ?? post.v ?? post.stats?.views ?? 0));
   const cardRef = useRef(null);
   const viewRecordedRef = useRef(false);
   const audioRef = useRef(null);
@@ -142,6 +143,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
         const result = await postService.recordView(post.id);
         if (Number.isFinite(Number(result?.viewCount))) {
           post.v = Number(result.viewCount);
+          setViewCount(Number(result.viewCount));
         }
       } catch {
         viewRecordedRef.current = false;
@@ -275,7 +277,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
 
       {post.poll && <div className="poll-card"><div className="poll-card__question"><BarChart3 size={17}/><strong>{post.poll.question}</strong></div>{getPollOptions(localPoll || post.poll).map((option, index) => { const poll = localPoll || post.poll; const pollId = post.poll.id || post.id; const selected = Number(poll?.votedOptionIndex ?? pollVotes[pollId]) === index; const votes = getPollOptionVotes(poll, option, index); const total = Array.isArray(poll?.optionVotes) ? poll.optionVotes.reduce((sum, count) => sum + Math.max(0, Number(count || 0)), 0) : Number(poll?.totalVotes || 0); const percent = total > 0 ? Math.round((votes / total) * 100) : 0; const optionText = getPollOptionText(option); return <button className={"poll-option " + (selected ? "is-selected" : "")} key={index} onClick={async () => { if (pollBusy) return; setPollBusy(true); setPollError(""); try { const result = await pollService.vote(pollId, index); if (result?.poll) setLocalPoll(result.poll); setPollVotes((current) => ({ ...current, [pollId]: Number(result?.optionIndex ?? index) })); } catch (err) { setPollError(err?.message || "Could not record your vote."); } finally { setPollBusy(false); } }}><span>{optionText || "Option " + (index + 1)}</span><span>{percent}%</span></button>; })}<small>{pollError || `${(localPoll || post.poll)?.totalVotes || 0} votes`}</small></div>}
 
-      <div className="post__actions"><button onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id) + "/replies")} aria-label="Comment"><MessageCircle size={18.75}/><span>{post.replies ?? post.r ?? 0}</span></button><button className={reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)} aria-label="Repost"><Repeat2 size={18.75}/><span>{post.reposts ?? post.p ?? 0}</span></button><button className={post.liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)} aria-label="Like"><Heart size={18.75} fill={post.liked ? "currentColor" : "none"}/><span>{post.likes ?? post.l ?? 0}</span></button><button onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))} aria-label="Views"><BarChart3 size={18.75}/><span>{post.views ?? post.viewCount ?? post.v ?? 0}</span></button><button onClick={() => onOpen?.("/share/" + post.id)} aria-label="Share"><Send size={18.75}/></button></div>
+      <div className="post__actions"><button onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id) + "/replies")} aria-label="Comment"><MessageCircle size={18.75}/><span>{post.replies ?? post.r ?? 0}</span></button><button className={reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)} aria-label="Repost"><Repeat2 size={18.75}/><span>{post.reposts ?? post.p ?? 0}</span></button><button className={post.liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)} aria-label="Like"><Heart size={18.75} fill={post.liked ? "currentColor" : "none"}/><span>{post.likes ?? post.l ?? 0}</span></button><button onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))} aria-label="Views"><BarChart3 size={18.75}/><span>{viewCount}</span></button><button onClick={() => onOpen?.("/share/" + post.id)} aria-label="Share"><Send size={18.75}/></button></div>
       {moderation === "report" && <div className="moderation-sheet"><strong>Report this post</strong><small>Choose a reason</small><div>{Object.entries(REPORT_REASONS).map(([key, value]) => <button key={value} onClick={() => runModeration(MODERATION_ACTIONS.REPORT, value)} disabled={moderationBusy}>{key.replace("_", " ")}</button>)}</div><button className="outline" onClick={() => setModeration(null)}>Cancel</button></div>}
       {moderationMessage && <div className="inline-notice" role="status">{moderationMessage}</div>}
       <div className="post-foot"><button onClick={() => onFollow?.(post.id)}>{isFollowing ? "Following" : "Follow " + author.split(" ")[0]}</button><button onClick={() => onOpen?.("/topic/" + encodeURIComponent(post.topic || "community"))}>#{post.topic || "community"}</button></div>
