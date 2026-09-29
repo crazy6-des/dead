@@ -5,7 +5,7 @@ import { APP_ROUTES } from "./routes.js";
 // Account actions stay in the header; secondary destinations stay in the menu.
 export const PRIMARY_NAVIGATION = Object.freeze([
   { label: "Home", route: APP_ROUTES.HOME, icon: Home },
-  { label: "Discover", route: APP_ROUTES.DISCOVER, icon: Compass },
+  { label: "Search", route: APP_ROUTES.DISCOVER, icon: Compass },
   { label: "Messages", route: APP_ROUTES.MESSAGES, icon: MessageCircle },
   { label: "Earn", route: APP_ROUTES.EARN, icon: Zap },
 ]);
@@ -17,7 +17,7 @@ export const HEADER_NAVIGATION = Object.freeze([
 
 export const MOBILE_NAVIGATION = Object.freeze([
   { label: "Home", route: APP_ROUTES.HOME, icon: Home },
-  { label: "Discover", route: APP_ROUTES.DISCOVER, icon: Compass },
+  { label: "Search", route: APP_ROUTES.DISCOVER, icon: Compass },
   { label: "Create", route: null, icon: null },
   { label: "Messages", route: APP_ROUTES.MESSAGES, icon: MessageCircle },
   { label: "Earn", route: APP_ROUTES.EARN, icon: Zap },
