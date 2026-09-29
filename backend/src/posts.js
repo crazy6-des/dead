@@ -333,13 +333,21 @@ export async function recordPostView(request, env, postId) {
   ).bind(...values).first();
   if (!row) return { response: null, error: error("POST_NOT_FOUND", 404, "Post was not found or is not available.") };
 
-  await env.DB.prepare(
-    "INSERT INTO post_view_events (post_id, user_id) VALUES (?1, ?2)"
-  ).bind(normalizedId, session.user_id).run();
-
-  await env.DB.prepare(
-    "UPDATE posts SET view_count = view_count + 1 WHERE id=?1 AND deleted_at IS NULL"
-  ).bind(normalizedId).run();
+  // The event row and aggregate counter must commit together. A D1 batch keeps
+  // the durable event log and the displayed counter from drifting apart if one write fails.
+  const viewStatements = [
+    env.DB.prepare(
+      "INSERT INTO post_view_events (post_id, user_id) VALUES (?1, ?2)"
+    ).bind(normalizedId, session.user_id),
+    env.DB.prepare(
+      "UPDATE posts SET view_count = view_count + 1 WHERE id=?1 AND deleted_at IS NULL"
+    ).bind(normalizedId),
+  ];
+  if (typeof env.DB.batch === "function") {
+    await env.DB.batch(viewStatements);
+  } else {
+    for (const statement of viewStatements) await statement.run();
+  }
 
   const count = await env.DB.prepare(
     "SELECT view_count FROM posts WHERE id=?1 AND deleted_at IS NULL LIMIT 1"
