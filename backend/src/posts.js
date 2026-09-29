@@ -306,6 +306,53 @@ function visibilitySql(alias = "p") {
   )`;
 }
 
+export async function recordPostView(request, env, postId) {
+  const session = await requireUser(request, env);
+  if (!session) return { response: null, error: error("UNAUTHORIZED", 401, "Authentication is required.") };
+  if (!env?.DB) return { response: null, error: error("SERVICE_UNAVAILABLE", 503, "Post service is not configured.") };
+  const normalizedId = String(postId || "").trim();
+  if (!normalizedId) return { response: null, error: error("VALIDATION_ERROR", 400, "A post id is required.") };
+
+  const values = [session.user_id, normalizedId];
+  const visibility = visibilitySql("p").replace(/\?USER\?/g, () => {
+    values.push(session.user_id);
+    return `?${values.length}`;
+  });
+  const row = await env.DB.prepare(
+    `SELECT p.id, p.view_count
+     FROM posts p JOIN users u ON u.id = p.author_id
+     WHERE p.id=?2 AND p.deleted_at IS NULL AND u.deleted_at IS NULL
+       AND ${visibility}
+       AND NOT EXISTS (
+         SELECT 1 FROM relationships br
+         WHERE br.relationship_type='block'
+           AND ((br.source_user_id=?1 AND br.target_user_id=p.author_id)
+             OR (br.source_user_id=p.author_id AND br.target_user_id=?1))
+       )
+     LIMIT 1`
+  ).bind(...values).first();
+  if (!row) return { response: null, error: error("POST_NOT_FOUND", 404, "Post was not found or is not available.") };
+
+  const view = await env.DB.prepare(
+    "INSERT OR IGNORE INTO post_views (post_id, user_id) VALUES (?1, ?2)"
+  ).bind(normalizedId, session.user_id).run();
+
+  if (Number(view?.meta?.changes || 0) > 0) {
+    await env.DB.prepare(
+      "UPDATE posts SET view_count = view_count + 1 WHERE id=?1 AND deleted_at IS NULL"
+    ).bind(normalizedId).run();
+  }
+
+  const count = await env.DB.prepare(
+    "SELECT view_count FROM posts WHERE id=?1 AND deleted_at IS NULL LIMIT 1"
+  ).bind(normalizedId).first();
+
+  return {
+    response: { viewed: Number(view?.meta?.changes || 0) > 0, viewCount: Number(count?.view_count || 0) },
+    error: null
+  };
+}
+
 export async function getPost(request, env, postId) {
   const session = await requireUser(request, env);
   if (!session) return { response: null, error: error("UNAUTHORIZED", 401, "Authentication is required.") };
@@ -323,8 +370,6 @@ export async function getPost(request, env, postId) {
     (SELECT json_object('id',qp.id,'author',json_object('username',qu.username,'displayName',qu.display_name),'text',qp.body) FROM posts qp JOIN users qu ON qu.id=qp.author_id WHERE qp.id=p.quoted_post_id AND qp.deleted_at IS NULL) AS quoted_post
     FROM posts p JOIN users u ON u.id=p.author_id WHERE p.id=?2 AND p.deleted_at IS NULL AND u.deleted_at IS NULL AND ${visibility} AND NOT EXISTS (SELECT 1 FROM relationships br WHERE br.relationship_type='block' AND ((br.source_user_id=?1 AND br.target_user_id=p.author_id) OR (br.source_user_id=p.author_id AND br.target_user_id=?1))) LIMIT 1`).bind(...values).first();
   if (!row) return { response: null, error: error("POST_NOT_FOUND",404,"Post was not found or is not available.") };
-  await env.DB.prepare("UPDATE posts SET view_count = view_count + 1 WHERE id = ?1 AND deleted_at IS NULL").bind(normalizedId).run();
-  row.view_count = Number(row.view_count || 0) + 1;
   const post = serializePost(row);
   await hydratePollResults([post], env.DB, session.user_id);
   return { response: { post }, error: null };
