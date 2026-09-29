@@ -103,7 +103,8 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const [localPoll, setLocalPoll] = useState(null);
   const [viewCount, setViewCount] = useState(() => Number(post.views ?? post.viewCount ?? post.v ?? post.stats?.views ?? 0));
   const cardRef = useRef(null);
-  const viewRecordedRef = useRef(false);
+  const viewRecordedAtRef = useRef(0);
+  const viewRequestRef = useRef(null);
   const audioRef = useRef(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
@@ -132,27 +133,50 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
     };
   }, [menu]);
 
+  const recordView = async () => {
+    const now = Date.now();
+    if (viewRequestRef.current || now - viewRecordedAtRef.current < 1500) return;
+    viewRequestRef.current = postService.recordView(post.id);
+    try {
+      const result = await viewRequestRef.current;
+      if (Number.isFinite(Number(result?.viewCount))) {
+        post.v = Number(result.viewCount);
+        setViewCount(Number(result.viewCount));
+      }
+      viewRecordedAtRef.current = Date.now();
+    } catch {
+      // Do not update the UI when the real server event was not recorded.
+    } finally {
+      viewRequestRef.current = null;
+    }
+  };
+
   useEffect(() => {
     const card = cardRef.current;
-    if (!card || !post.id || typeof window.IntersectionObserver === "undefined") return undefined;
-    const observer = new window.IntersectionObserver(async (entries) => {
-      const entry = entries[0];
-      if (!entry?.isIntersecting || entry.intersectionRatio < 0.6 || viewRecordedRef.current) return;
-      viewRecordedRef.current = true;
-      try {
-        const result = await postService.recordView(post.id);
-        if (Number.isFinite(Number(result?.viewCount))) {
-          post.v = Number(result.viewCount);
-          setViewCount(Number(result.viewCount));
-        }
-      } catch {
-        viewRecordedRef.current = false;
-      }
-      observer.disconnect();
-    }, { threshold: [0.6] });
-    observer.observe(card);
-    return () => observer.disconnect();
+    if (!card || !post.id) return undefined;
+    const onPointerDown = () => { void recordView(); };
+    const onTouchStart = () => { void recordView(); };
+    const onFocus = () => { void recordView(); };
+    card.addEventListener("pointerdown", onPointerDown, { passive: true });
+    card.addEventListener("touchstart", onTouchStart, { passive: true });
+    card.addEventListener("focusin", onFocus);
+
+    let observer;
+    if (typeof window.IntersectionObserver === "function") {
+      observer = new window.IntersectionObserver((entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting && entry.intersectionRatio > 0) void recordView();
+      }, { threshold: [0, 0.01] });
+      observer.observe(card);
+    }
+    return () => {
+      card.removeEventListener("pointerdown", onPointerDown);
+      card.removeEventListener("touchstart", onTouchStart);
+      card.removeEventListener("focusin", onFocus);
+      observer?.disconnect();
+    };
   }, [post.id]);
+
 
   useEffect(() => {
     const audio = audioRef.current;
