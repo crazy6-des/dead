@@ -388,7 +388,7 @@ export async function listFeed(request, env) {
   if (!session) return { response: null, error: error("UNAUTHORIZED", 401, "Authentication is required.") };
   if (!env?.DB) return { response: null, error: error("SERVICE_UNAVAILABLE", 503, "Feed service is not configured.") };
   // Feed reads must see a post immediately after publish. Use the current primary when available.
-  const db = typeof db.withSession === "function" ? db.withSession("first-primary") : db;
+  const db = typeof env.DB.withSession === "function" ? env.DB.withSession("first-primary") : env.DB;
 
   const url = new URL(request.url);
   const mode = url.searchParams.get("mode") || "For You";
