@@ -418,7 +418,8 @@ export async function listFeed(request, env) {
     where += ` AND (p.created_at < ?${values.length - 1} OR (p.created_at = ?${values.length - 1} AND p.id < ?${values.length}))`;
   }
 
-  values.push(limit + 1);
+  const candidateLimit = mode === "For You" ? Math.min(Math.max(limit * 5, 50), 150) : limit + 1;
+  values.push(candidateLimit);
   const rows = await env.DB.prepare(
     `SELECT p.id, p.author_id, p.body, p.visibility, p.reply_policy, p.view_count, p.created_at, p.updated_at,
       u.username, u.display_name, u.avatar_url, (p.author_id = ?1) AS is_owner, p.post_kind, p.background_json, p.quoted_post_id, p.poll_json,
@@ -438,7 +439,31 @@ export async function listFeed(request, env) {
      LIMIT ?${values.length}`
   ).bind(...values).all();
 
-  const items = rows.results.slice(0, limit).map(serializePost);
+  let rankedRows = rows.results;
+  if (mode === "For You" && rankedRows.length) {
+    const [likedAuthors, repostedAuthors, savedAuthors] = await Promise.all([
+      env.DB.prepare("SELECT DISTINCT p.author_id FROM post_reactions r JOIN posts p ON p.id=r.post_id WHERE r.user_id=?1 AND r.reaction_type='like' AND p.deleted_at IS NULL").bind(session.user_id).all(),
+      env.DB.prepare("SELECT DISTINCT p.author_id FROM post_reactions r JOIN posts p ON p.id=r.post_id WHERE r.user_id=?1 AND r.reaction_type='repost' AND p.deleted_at IS NULL").bind(session.user_id).all(),
+      env.DB.prepare("SELECT DISTINCT p.author_id FROM bookmarks b JOIN posts p ON p.id=b.post_id WHERE b.user_id=?1 AND p.deleted_at IS NULL").bind(session.user_id).all(),
+    ]);
+    const liked = new Set((likedAuthors.results || []).map((row) => row.author_id));
+    const reposted = new Set((repostedAuthors.results || []).map((row) => row.author_id));
+    const saved = new Set((savedAuthors.results || []).map((row) => row.author_id));
+    const now = Date.now();
+    rankedRows = [...rankedRows].sort((a, b) => {
+      const score = (row) => {
+        const ageHours = Math.max(0, (now - Date.parse(row.created_at || 0)) / 3600000);
+        const freshness = 24 / (1 + ageHours / 12);
+        const relationship = Number(row.following) ? 100 : 0;
+        const affinity = (liked.has(row.author_id) ? 55 : 0) + (reposted.has(row.author_id) ? 42 : 0) + (saved.has(row.author_id) ? 35 : 0);
+        const engagement = Math.log1p(Number(row.like_count || 0)) * 8 + Math.log1p(Number(row.repost_count || 0)) * 11 + Math.log1p(Number(row.reply_count || 0)) * 6 + Math.log1p(Number(row.bookmark_count || 0)) * 5;
+        const personal = Number(row.liked) ? 14 : 0;
+        return relationship + affinity + engagement + freshness + personal;
+      };
+      return score(b) - score(a);
+    });
+  }
+  const items = rankedRows.slice(0, limit).map(serializePost);
   await hydratePollResults(items, env.DB, session.user_id);
   const last = items.at(-1);
   const nextCursor = rows.results.length > limit ? encodeCursor(last.createdAt, last.id) : null;
