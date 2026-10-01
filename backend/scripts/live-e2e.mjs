@@ -484,6 +484,11 @@ if (folderBookmarks.folderId !== bookmarkFolderId || !folderBookmarks.items?.som
 }
 const allBookmarks = await request("/api/bookmarks");
 if (!allBookmarks.items?.some((item) => item.id === postId)) throw new Error("All-bookmarks persistence failed.");
+await request("/api/bookmarks/" + encodeURIComponent(postId), { method: "DELETE" });
+const removedBookmarks = await request("/api/bookmarks");
+if (removedBookmarks.items?.some((item) => item.id === postId)) throw new Error("Bookmark removal persistence contract failed.");
+const emptyFolderBookmarks = await request("/api/bookmarks?folderId=" + encodeURIComponent(bookmarkFolderId));
+if (emptyFolderBookmarks.items?.some((item) => item.id === postId)) throw new Error("Bookmark folder removal persistence contract failed.");
 
 const publicList = await request("/api/lists", {
   method: "POST",
