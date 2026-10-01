@@ -104,7 +104,7 @@ export default function SpacesRoute() {
   const [spaces,setSpaces]=useState([]),[loading,setLoading]=useState(true),[creating,setCreating]=useState(false),[title,setTitle]=useState(""),[scheduledAt,setScheduledAt]=useState(""),[error,setError]=useState(""),[query,setQuery]=useState(""),[active,setActive]=useState(null);
   const load=async()=>{setLoading(true);try{const page=await spaceService.list({q:query});setSpaces(page.items||[]);setError("");}catch(err){setSpaces([]);setError(err?.message||"Could not load Spaces.");}finally{setLoading(false);}};
   useEffect(()=>{const timer=setTimeout(load,250);return()=>clearTimeout(timer);},[query]);
-  const create=async()=>{if(!title.trim())return;try{const created=await spaceService.create({title,scheduledAt:scheduledAt?new Date(scheduledAt).toISOString():null});setTitle("");setScheduledAt("");setCreating(false);setActive(created);load();}catch(err){setError(err?.message||"Could not create the Space.");}};
+  const create=async()=>{if(!title.trim())return;try{const created=await spaceService.create({title,startAt:scheduledAt?new Date(scheduledAt).toISOString():null});setTitle("");setScheduledAt("");setCreating(false);setActive(created);load();}catch(err){setError(err?.message||"Could not create the Space.");}};
   const join=async(space)=>{try{const joined=await spaceService.join(space.id);setActive(joined);load();}catch(err){setError(err?.message||"Could not join that Space.");}};
   if(active)return <div className="page"><SpaceRoom space={active} onBack={()=>setActive(null)} onRefresh={load}/></div>;
   return <div className="page">

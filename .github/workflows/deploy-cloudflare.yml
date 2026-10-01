@@ -80,6 +80,9 @@ jobs:
           grep -q "notifications" /tmp/schema.txt
           grep -q "post_views" /tmp/schema.txt
           grep -q "post_view_events" /tmp/schema.txt
+          grep -q "spaces" /tmp/schema.txt
+          grep -q "space_members" /tmp/schema.txt
+          grep -q "space_messages" /tmp/schema.txt
           npx --yes wrangler d1 execute sss --remote --command "PRAGMA table_info(posts);" > /tmp/posts-schema.txt
           grep -q "view_count" /tmp/posts-schema.txt
           npx --yes wrangler d1 execute sss --remote --command "PRAGMA table_info(post_media);" > /tmp/post-media-schema.txt
