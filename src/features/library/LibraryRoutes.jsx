@@ -23,7 +23,7 @@ function BookmarkFoldersRoute({ onOpen }) {
 export function ListsRoute({ onOpen }) {
  const [lists,setLists]=useState([]),[selected,setSelected]=useState(null),[detail,setDetail]=useState(null),[posts,setPosts]=useState([]),[name,setName]=useState(""),[member,setMember]=useState(""),[loading,setLoading]=useState(true),[error,setError]=useState("");
  const load=async()=>{setLoading(true);try{const p=await listService.list();setLists(p?.items||[]);setError("");}catch(e){setError(e?.message||"Could not load lists.");}finally{setLoading(false);}};
- useEffect(()=>{load();},[]);
+ useEffect(()=>{let active=true;Promise.resolve().then(()=>{if(active) return load();});return()=>{active=false;};},[]);
  const open=async(id)=>{setSelected(id);try{const [d,p]=await Promise.all([listService.get(id),listService.posts(id)]);setDetail(d);setPosts(p?.items||[]);setError("");}catch(e){setError(e?.message||"Could not open list.");}};
  const create=async()=>{const value=name.trim();if(!value)return;try{const l=await listService.create({name:value,description:""});setLists(v=>[l,...v]);setName("");setError("");open(l.id);}catch(e){setError(e?.message||"Could not create list.");}};
  const add=async()=>{if(!selected||!member.trim())return;try{await listService.addMember(selected,member.trim());setMember("");await open(selected);await load();}catch(e){setError(e?.message||"Could not add member.");}};
