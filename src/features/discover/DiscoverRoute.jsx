@@ -14,7 +14,6 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [remoteError, setRemoteError] = useState("");
   const [activeNiche, setActiveNiche] = useState("");
-  const [peopleCursor, setPeopleCursor] = useState(null);
   const [peopleMoreLoading, setPeopleMoreLoading] = useState(false);
   const [personalPosts, setPersonalPosts] = useState([]);
   const [personalLoading, setPersonalLoading] = useState(false);
