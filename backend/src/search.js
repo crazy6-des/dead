@@ -23,6 +23,18 @@ function decodePeopleCursor(value) {
 function encodePeopleCursor(offset) {
   return globalThis.btoa(String(Math.max(0, Number(offset) || 0))).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
+function decodePostCursor(value) {
+  if (!value) return null;
+  try {
+    const raw = String(value).replace(/-/g, "+").replace(/_/g, "/");
+    const padded = raw + "=".repeat((4 - (raw.length % 4)) % 4);
+    const parsed = JSON.parse(globalThis.atob(padded));
+    return parsed?.createdAt && parsed?.id ? { createdAt: String(parsed.createdAt), id: String(parsed.id) } : null;
+  } catch { return null; }
+}
+function encodePostCursor(row) {
+  return globalThis.btoa(JSON.stringify({ createdAt: row.created_at, id: row.id })).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
 function buildNicheClause(niche, column = "p.body") {
   const terms = NICHE_KEYWORDS[niche] || [];
   if (!terms.length) return { sql: "1=1", values: [] };
@@ -38,7 +50,9 @@ export async function search(request, env) {
   const type = String(url.searchParams.get("type") || "all");
   const niche = normalizeNiche(url.searchParams.get("niche"));
   const limit = normalizeLimit(url.searchParams.get("limit"));
-  const peopleOffset = decodePeopleCursor(url.searchParams.get("cursor"));
+  const rawCursor = url.searchParams.get("cursor");
+  const peopleOffset = type === "people" || type === "all" ? decodePeopleCursor(rawCursor) : 0;
+  const postCursor = type === "posts" ? decodePostCursor(rawCursor) : null;
   // Search values are parameterized; strip SQL wildcard characters so a user search
   // remains literal and cannot accidentally turn into a wildcard/escape expression.
   const like = "%" + query.replace(/[%_]/g, "") + "%";
@@ -122,11 +136,18 @@ export async function search(request, env) {
     nicheCount = Number(countRow?.count || 0);
   }
 
+  const rawPostResults = postRows.results || [];
+  const pagePostResults = rawPostResults.slice(0, limit);
+  const postsNextCursor = rawPostResults.length > limit && pagePostResults.length
+    ? encodePostCursor(pagePostResults[pagePostResults.length - 1])
+    : null;
+
   return { response: {
     items: {
       people: (people.results || []).slice(0, limit).map((p) => ({ id:p.id, username:p.username, name:p.display_name, avatarUrl:p.avatar_url || null, followerCount:Number(p.follower_count || 0), following:false })),
       peopleNextCursor: (people.results || []).length > limit ? encodePeopleCursor(peopleOffset + limit) : null,
-      posts: (postRows.results || []).map(serializePost),
+      posts: pagePostResults.map(serializePost),
+      postsNextCursor,
       topics: recentTopics,
       music: (musicRows.results || []).map(serializePost),
     },
