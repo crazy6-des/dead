@@ -511,8 +511,8 @@ const updatedList = await request("/api/lists/" + encodeURIComponent(publicListI
 if (updatedList.name !== "E2E Finance Updated" || updatedList.description !== "Updated live list") {
   throw new Error("List update persistence contract failed.");
 }
-const listPosts = await request("/api/lists/" + encodeURIComponent(publicListId) + "/posts");
-if (!Array.isArray(listPosts.items) || !listPosts.items.some((item) => item.id === postId || item.id === richPostId || item.id === musicPostId)) {
+const listTimeline = await request("/api/lists/" + encodeURIComponent(publicListId) + "/posts");
+if (!Array.isArray(listTimeline.items) || !listTimeline.items.some((item) => item.id === postId || item.id === richPostId || item.id === musicPostId)) {
   throw new Error("List timeline persistence contract failed.");
 }
 
