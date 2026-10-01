@@ -267,10 +267,14 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const runModeration = async (action, reason = null, note = "") => {
     setModerationBusy(true);
     try {
-      await moderationService.act({ targetType: action === MODERATION_ACTIONS.REPORT ? "post" : "user", targetId: action === MODERATION_ACTIONS.REPORT ? post.id : username, action, reason });
+      await moderationService.act({ targetType: action === MODERATION_ACTIONS.REPORT ? "post" : "user", targetId: action === MODERATION_ACTIONS.REPORT ? post.id : username, action, reason, note });
       setModerationMessage(action === MODERATION_ACTIONS.REPORT ? "Thanks. Your report was submitted." : action === MODERATION_ACTIONS.MUTE ? "Author muted." : "Author blocked.");
       setModeration(null);
       setMenu(false);
+      if (action === MODERATION_ACTIONS.REPORT) {
+        setReportReason("");
+        setReportNote("");
+      }
     } catch (err) { setModerationMessage(err?.message || "Could not complete that action."); }
     finally { setModerationBusy(false); }
   };
