@@ -126,7 +126,7 @@ export default { async fetch(request, env) {
     if (request.method === "POST") { if (!mutationOriginAllowed(request,env)) return originRejected(request,env); const result = await createSpace(request,env); if (result.error) return errorResponse(result.error.code,result.error.status,result.error.message,request,env); return json(result.response,201,request,env); }
     return methodNotAllowed(request,env);
   }
-  const spaceMatch = url.pathname.match(/^\/api\/spaces\/([^/]+)(?:\/(join|leave|heartbeat|end|members|messages|websocket|role\/([^/]+)))?$/);
+  const spaceMatch = url.pathname.match(/^\/api\/spaces\/([^/]+)(?:\/(join|leave|heartbeat|end|delete|members|messages|websocket|role\/([^/]+)))?$/);
   if (spaceMatch) {
     const spaceId=decodeURIComponent(spaceMatch[1]), action=spaceMatch[2] || "";
     if (action === "websocket") { if (request.method !== "GET") return methodNotAllowed(request,env); const upgraded=await upgradeSpaceWebSocket(request,env,spaceId); return upgraded.response; }
