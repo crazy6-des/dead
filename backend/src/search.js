@@ -58,6 +58,7 @@ export async function search(request, env) {
   const like = "%" + query.replace(/[%_]/g, "") + "%";
   const nicheFilter = buildNicheClause(niche);
 
+  const peopleFollowFilter = query ? "" : "AND NOT EXISTS (SELECT 1 FROM relationships existing_follow WHERE existing_follow.source_user_id=?1 AND existing_follow.target_user_id=u.id AND existing_follow.relationship_type='follow') ";
   const people = (type === "all" || type === "people")
     ? await env.DB.prepare(
       "SELECT u.id,u.username,u.display_name,u.avatar_url," +
@@ -66,7 +67,7 @@ export async function search(request, env) {
       "(SELECT COUNT(*) FROM post_reactions lr JOIN posts lp ON lp.id=lr.post_id WHERE lr.user_id=?1 AND lr.reaction_type='like' AND lp.author_id=u.id AND lp.deleted_at IS NULL) AS liked_author_count," +
       "EXISTS (SELECT 1 FROM relationships mef WHERE mef.source_user_id=?1 AND mef.target_user_id=u.id AND mef.relationship_type='follow') AS following " +
       "FROM users u WHERE u.deleted_at IS NULL AND u.id <> ?1 " +
-      "AND NOT EXISTS (SELECT 1 FROM relationships existing_follow WHERE existing_follow.source_user_id=?1 AND existing_follow.target_user_id=u.id AND existing_follow.relationship_type='follow') " +
+      peopleFollowFilter +
       "AND NOT EXISTS (SELECT 1 FROM relationships blocked WHERE blocked.relationship_type='block' AND ((blocked.source_user_id=?1 AND blocked.target_user_id=u.id) OR (blocked.source_user_id=u.id AND blocked.target_user_id=?1))) " +
       (query ? "AND (LOWER(u.username) LIKE LOWER(?2) OR LOWER(u.display_name) LIKE LOWER(?2)) " : "") +
       "ORDER BY (mutual_count * 100 + MIN(liked_author_count, 5) * 40 + follower_count) DESC,u.created_at DESC,u.username ASC LIMIT ?" +
@@ -78,7 +79,7 @@ export async function search(request, env) {
   if (type === "all" || type === "posts") {
     const conditions = ["p.deleted_at IS NULL", "u.deleted_at IS NULL", "(p.author_id = ? OR p.visibility = 'public')", nicheFilter.sql];
     const values = [session.user_id, ...nicheFilter.values];
-    if (query) { conditions.push("(LOWER(p.body) LIKE LOWER(?) ESCAPE '\\\\' OR LOWER(u.username) LIKE LOWER(?) ESCAPE '\\\\' OR LOWER(u.display_name) LIKE LOWER(?) ESCAPE '\\\\')"); values.push(like, like, like); }
+    if (query) { conditions.push("(LOWER(p.body) LIKE LOWER(?) OR LOWER(u.username) LIKE LOWER(?) OR LOWER(u.display_name) LIKE LOWER(?) OR EXISTS (SELECT 1 FROM post_media sm WHERE sm.post_id=p.id AND LOWER(COALESCE(sm.metadata_json,'')) LIKE LOWER(?)))"); values.push(like, like, like, like); }
     values.push(limit);
     postRows = await env.DB.prepare(
       "SELECT p.id,p.author_id,p.body,p.visibility,p.reply_policy,p.post_kind,p.background_json,p.quoted_post_id,p.view_count,p.created_at,p.updated_at,u.username,u.display_name,u.avatar_url,(p.author_id=?1) AS is_owner," +
@@ -144,7 +145,7 @@ export async function search(request, env) {
 
   return { response: {
     items: {
-      people: (people.results || []).slice(0, limit).map((p) => ({ id:p.id, username:p.username, name:p.display_name, avatarUrl:p.avatar_url || null, followerCount:Number(p.follower_count || 0), following:false })),
+      people: (people.results || []).slice(0, limit).map((p) => ({ id:p.id, username:p.username, name:p.display_name, avatarUrl:p.avatar_url || null, followerCount:Number(p.follower_count || 0), following:Boolean(p.following) })),
       peopleNextCursor: (people.results || []).length > limit ? encodePeopleCursor(peopleOffset + limit) : null,
       posts: pagePostResults.map(serializePost),
       postsNextCursor,
