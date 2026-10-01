@@ -39,12 +39,7 @@ export default function SearchOverlay({ posts = [], onOpen, onClose, onFollow, f
 
   useEffect(() => {
     let active = true;
-    if (!q) {
-      setRemote(null);
-      setCatalogMusic([]);
-      setMusicLoading(false);
-      return () => { active = false; };
-    }
+    if (!q) return () => { active = false; };
     const timer = window.setTimeout(() => {
       setMusicLoading(true);
       Promise.allSettled([searchApi.search(q), musicApi.search(q, { limit: 12 })]).then(([searchResult, musicResult]) => {
