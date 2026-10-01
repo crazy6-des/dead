@@ -460,6 +460,78 @@ if (!Array.isArray(listPosts.items)) throw new Error("List timeline contract fai
 const listReload = await request("/api/lists");
 if (!listReload.items?.some((item) => item.id === list.id && Number(item.memberCount) === 1)) throw new Error("List reload persistence contract failed.");
 
+
+cookie = primaryCookie;
+const bookmarkFolder = await request("/api/bookmarks/folders", {
+  method: "POST",
+  body: JSON.stringify({ name: "E2E Saved", description: "Live persistence folder" }),
+});
+const bookmarkFolderId = bookmarkFolder.id;
+if (!bookmarkFolderId) throw new Error("Bookmark folder creation persistence contract failed.");
+const bookmarkSaved = await request("/api/bookmarks", {
+  method: "POST",
+  body: JSON.stringify({ postId, folderId: bookmarkFolderId }),
+});
+if (!bookmarkSaved.ok || bookmarkSaved.postId !== postId || bookmarkSaved.folderId !== bookmarkFolderId) {
+  throw new Error("Bookmark folder save contract failed: " + JSON.stringify(bookmarkSaved));
+}
+const foldersAfterSave = await request("/api/bookmarks/folders");
+const savedFolder = foldersAfterSave.items?.find((folder) => folder.id === bookmarkFolderId);
+if (!savedFolder || Number(savedFolder.itemCount) !== 1) throw new Error("Bookmark folder count persistence failed.");
+const folderBookmarks = await request("/api/bookmarks?folderId=" + encodeURIComponent(bookmarkFolderId));
+if (folderBookmarks.folderId !== bookmarkFolderId || !folderBookmarks.items?.some((item) => item.id === postId)) {
+  throw new Error("Bookmark folder timeline persistence failed.");
+}
+const allBookmarks = await request("/api/bookmarks");
+if (!allBookmarks.items?.some((item) => item.id === postId)) throw new Error("All-bookmarks persistence failed.");
+
+const publicList = await request("/api/lists", {
+  method: "POST",
+  body: JSON.stringify({ name: "E2E Finance", description: "Live list persistence", visibility: "public" }),
+});
+const publicListId = publicList.id;
+if (!publicListId) throw new Error("Public list creation persistence contract failed.");
+await request("/api/lists/" + encodeURIComponent(publicListId) + "/members", {
+  method: "POST",
+  body: JSON.stringify({ username: username2 }),
+});
+const publicListDetail = await request("/api/lists/" + encodeURIComponent(publicListId));
+if (publicListDetail.name !== "E2E Finance" || !publicListDetail.members?.some((member) => member.username === username2)) {
+  throw new Error("List member persistence contract failed: " + JSON.stringify(publicListDetail));
+}
+const updatedList = await request("/api/lists/" + encodeURIComponent(publicListId), {
+  method: "PATCH",
+  body: JSON.stringify({ name: "E2E Finance Updated", description: "Updated live list", visibility: "public" }),
+});
+if (updatedList.name !== "E2E Finance Updated" || updatedList.description !== "Updated live list") {
+  throw new Error("List update persistence contract failed.");
+}
+const listPosts = await request("/api/lists/" + encodeURIComponent(publicListId) + "/posts");
+if (!Array.isArray(listPosts.items) || !listPosts.items.some((item) => item.id === postId || item.id === richPostId || item.id === musicPostId)) {
+  throw new Error("List timeline persistence contract failed.");
+}
+
+const privateList = await request("/api/lists", {
+  method: "POST",
+  body: JSON.stringify({ name: "E2E Private", description: "Private live list", visibility: "private" }),
+});
+const privateListId = privateList.id;
+if (!privateListId) throw new Error("Private list creation persistence contract failed.");
+cookie = partnerCookie;
+let privateListHidden = false;
+try {
+  await request("/api/lists/" + encodeURIComponent(privateListId));
+} catch (error) {
+  privateListHidden = String(error?.message || error).includes("404");
+}
+if (!privateListHidden) throw new Error("Private list visibility contract failed.");
+cookie = primaryCookie;
+
+const primaryListAfterReload = await request("/api/lists/" + encodeURIComponent(publicListId));
+if (primaryListAfterReload.name !== "E2E Finance Updated" || primaryListAfterReload.members?.length !== 1) {
+  throw new Error("List reload persistence contract failed.");
+}
+
 await request("/api/auth/sign-out", { method: "POST" });
 const signedOut = await request("/api/auth/session");
 if (signedOut.authenticated) throw new Error("Sign-out persistence contract failed.");
