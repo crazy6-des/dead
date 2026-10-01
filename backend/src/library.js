@@ -23,8 +23,11 @@ export async function addBookmark(request,env){
  const postId=clean(b?.postId,120);const folderId=b?.folderId?clean(b.folderId,120):null;if(!postId)return failure("VALIDATION_ERROR",400,"A post id is required.");
  const post=await env.DB.prepare("SELECT id,author_id,visibility,deleted_at FROM posts WHERE id=?1 LIMIT 1").bind(postId).first();if(!post||post.deleted_at)return failure("POST_NOT_FOUND",404,"Post was not found.");
  if(post.author_id!==session.user_id&&post.visibility!=="public"){const ok=post.visibility==="followers"&&await env.DB.prepare("SELECT 1 FROM relationships WHERE source_user_id=?1 AND target_user_id=?2 AND relationship_type='follow'").bind(session.user_id,post.author_id).first();if(!ok)return failure("FORBIDDEN",403,"This post is not available.");}
- await env.DB.prepare("INSERT OR IGNORE INTO bookmarks(user_id,post_id) VALUES(?1,?2)").bind(session.user_id,postId).run();
- if(folderId){const folder=await env.DB.prepare("SELECT id FROM bookmark_folders WHERE id=?1 AND user_id=?2").bind(folderId,session.user_id).first();if(!folder)return failure("FOLDER_NOT_FOUND",404,"Bookmark folder was not found.");await env.DB.prepare("INSERT OR IGNORE INTO bookmark_folder_items(folder_id,user_id,post_id) VALUES(?1,?2,?3)").bind(folderId,session.user_id,postId).run();}
+ if(folderId){const folder=await env.DB.prepare("SELECT id FROM bookmark_folders WHERE id=?1 AND user_id=?2").bind(folderId,session.user_id).first();if(!folder)return failure("FOLDER_NOT_FOUND",404,"Bookmark folder was not found.");}
+ await env.DB.batch([
+  env.DB.prepare("INSERT OR IGNORE INTO bookmarks(user_id,post_id) VALUES(?1,?2)").bind(session.user_id,postId),
+  ...(folderId?[env.DB.prepare("INSERT OR IGNORE INTO bookmark_folder_items(folder_id,user_id,post_id) VALUES(?1,?2,?3)").bind(folderId,session.user_id,postId)]:[]),
+ ]);
  return {response:{ok:true,postId,folderId},error:null};
 }
 export async function removeBookmark(request,env,postId){
