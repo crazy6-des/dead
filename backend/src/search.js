@@ -39,18 +39,23 @@ export async function search(request, env) {
   const niche = normalizeNiche(url.searchParams.get("niche"));
   const limit = normalizeLimit(url.searchParams.get("limit"));
   const peopleOffset = decodePeopleCursor(url.searchParams.get("cursor"));
-  const like = "%" + query.replace(/[%_]/g, "\\$&") + "%";
+  // Search values are parameterized; strip SQL wildcard characters so a user search
+  // remains literal and cannot accidentally turn into a wildcard/escape expression.
+  const like = "%" + query.replace(/[%_]/g, "") + "%";
   const nicheFilter = buildNicheClause(niche);
 
   const people = (type === "all" || type === "people")
     ? await env.DB.prepare(
       "SELECT u.id,u.username,u.display_name,u.avatar_url," +
       "(SELECT COUNT(*) FROM relationships f WHERE f.target_user_id=u.id AND f.relationship_type='follow') AS follower_count," +
+      "(SELECT COUNT(*) FROM relationships mutual WHERE mutual.source_user_id IN (SELECT target_user_id FROM relationships mine WHERE mine.source_user_id=?1 AND mine.relationship_type='follow') AND mutual.target_user_id=u.id AND mutual.relationship_type='follow') AS mutual_count," +
+      "(SELECT COUNT(*) FROM post_reactions lr JOIN posts lp ON lp.id=lr.post_id WHERE lr.user_id=?1 AND lr.reaction_type='like' AND lp.author_id=u.id AND lp.deleted_at IS NULL) AS liked_author_count," +
       "EXISTS (SELECT 1 FROM relationships mef WHERE mef.source_user_id=?1 AND mef.target_user_id=u.id AND mef.relationship_type='follow') AS following " +
       "FROM users u WHERE u.deleted_at IS NULL AND u.id <> ?1 " +
       "AND NOT EXISTS (SELECT 1 FROM relationships existing_follow WHERE existing_follow.source_user_id=?1 AND existing_follow.target_user_id=u.id AND existing_follow.relationship_type='follow') " +
-      (query ? "AND (LOWER(u.username) LIKE LOWER(?2) ESCAPE '\\\\' OR LOWER(u.display_name) LIKE LOWER(?2) ESCAPE '\\\\') " : "") +
-      "ORDER BY follower_count DESC,u.created_at DESC,u.username ASC LIMIT ?" +
+      "AND NOT EXISTS (SELECT 1 FROM relationships blocked WHERE blocked.relationship_type='block' AND ((blocked.source_user_id=?1 AND blocked.target_user_id=u.id) OR (blocked.source_user_id=u.id AND blocked.target_user_id=?1))) " +
+      (query ? "AND (LOWER(u.username) LIKE LOWER(?2) OR LOWER(u.display_name) LIKE LOWER(?2)) " : "") +
+      "ORDER BY (mutual_count * 100 + MIN(liked_author_count, 5) * 40 + follower_count) DESC,u.created_at DESC,u.username ASC LIMIT ?" +
       (query ? "3" : "2") + " OFFSET ?" 
     ).bind(...(query ? [session.user_id, like, limit + 1, peopleOffset] : [session.user_id, limit + 1, peopleOffset])).all()
     : { results: [] };
@@ -76,9 +81,9 @@ export async function search(request, env) {
   const topicRows = (type === "all" || type === "topics")
     ? await env.DB.prepare(
       "SELECT body,p.created_at FROM posts p JOIN users u ON u.id=p.author_id WHERE p.deleted_at IS NULL AND p.visibility='public' AND u.deleted_at IS NULL " +
-      (query ? "AND LOWER(p.body) LIKE LOWER(?1) ESCAPE '\\\\' " : "") +
-      "ORDER BY p.created_at DESC,p.id DESC LIMIT ?"
-    ).bind(...(query ? [like, Math.max(limit * 8, 50)] : [Math.max(limit * 8, 50)])).all()
+      (query ? "AND LOWER(p.body) LIKE LOWER(?1) " : "") +
+      "ORDER BY p.created_at DESC,p.id DESC"
+    ).bind(...(query ? [like] : [])).all()
     : { results: [] };
   const topicStats = new Map();
   for (const row of topicRows.results || []) {
