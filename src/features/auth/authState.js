@@ -1,28 +1,29 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { authService } from "../../services/authService.js";
 import { AUTH_STATUSES, getAuthUser } from "./authContract.js";
 
-// Compatibility alias for existing consumers; AUTH_STATUSES is canonical.
 export const AUTH_STATUS = AUTH_STATUSES;
 
 export function useAuthState({ enabled = true } = {}) {
   const [status, setStatus] = useState(enabled ? AUTH_STATUS.LOADING : AUTH_STATUS.ANONYMOUS);
   const [user, setUser] = useState(null);
   const [error, setError] = useState(null);
+  const operationRef = useRef(0);
 
   const refreshSession = useCallback(async ({ signal } = {}) => {
     if (!enabled) return null;
-
+    const operation = ++operationRef.current;
     setStatus(AUTH_STATUS.LOADING);
     setError(null);
-
     try {
       const result = await authService.getSession({ signal });
+      if (operation !== operationRef.current) return null;
       const nextUser = getAuthUser(result);
       setUser(nextUser);
       setStatus(nextUser ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.ANONYMOUS);
       return nextUser;
     } catch (cause) {
+      if (operation !== operationRef.current) return null;
       setUser(null);
       if (cause?.status === 401) {
         setError(null);
@@ -47,16 +48,18 @@ export function useAuthState({ enabled = true } = {}) {
   }, [enabled, refreshSession]);
 
   const signIn = useCallback(async (credentials, { signal } = {}) => {
+    const operation = ++operationRef.current;
     setStatus(AUTH_STATUS.LOADING);
     setError(null);
-
     try {
       const result = await authService.signIn(credentials, { signal });
+      if (operation !== operationRef.current) return result;
       const nextUser = getAuthUser(result);
       setUser(nextUser);
       setStatus(nextUser ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.ANONYMOUS);
       return result;
     } catch (cause) {
+      if (operation !== operationRef.current) throw cause;
       setError(cause);
       setStatus(AUTH_STATUS.ERROR);
       throw cause;
@@ -64,16 +67,18 @@ export function useAuthState({ enabled = true } = {}) {
   }, []);
 
   const signUp = useCallback(async (input, { signal } = {}) => {
+    const operation = ++operationRef.current;
     setStatus(AUTH_STATUS.LOADING);
     setError(null);
-
     try {
       const result = await authService.signUp(input, { signal });
+      if (operation !== operationRef.current) return result;
       const nextUser = getAuthUser(result);
       setUser(nextUser);
       setStatus(nextUser ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.ANONYMOUS);
       return result;
     } catch (cause) {
+      if (operation !== operationRef.current) throw cause;
       setError(cause);
       setStatus(AUTH_STATUS.ERROR);
       throw cause;
@@ -81,15 +86,17 @@ export function useAuthState({ enabled = true } = {}) {
   }, []);
 
   const signOut = useCallback(async ({ signal } = {}) => {
+    const operation = ++operationRef.current;
     setStatus(AUTH_STATUS.LOADING);
     setError(null);
-
     try {
       const result = await authService.signOut({ signal });
+      if (operation !== operationRef.current) return result;
       setUser(null);
       setStatus(AUTH_STATUS.ANONYMOUS);
       return result;
     } catch (cause) {
+      if (operation !== operationRef.current) throw cause;
       setError(cause);
       setStatus(AUTH_STATUS.ERROR);
       throw cause;
