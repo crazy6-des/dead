@@ -408,24 +408,6 @@ const endedSpace = await request("/api/spaces/" + encodeURIComponent(spaceId));
 if (endedSpace.space?.status !== "ended") throw new Error("Spaces end contract failed.");
 const deletedSpace = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/delete", { method: "DELETE" });
 if (!deletedSpace.ok) throw new Error("Spaces delete contract failed.");
-const spaceCreated = await request("/api/spaces", { method: "POST", body: JSON.stringify({ title: "S live Spaces E2E" }) });
-const spaceId = spaceCreated.space?.id;
-if (!spaceId || spaceCreated.space?.status !== "live" || spaceCreated.space?.role !== "host") throw new Error("Spaces creation contract failed.");
-const listedSpaces = await request("/api/spaces?q=Spaces%20E2E");
-if (!listedSpaces.items?.some((item) => item.id === spaceId)) throw new Error("Spaces listing contract failed.");
-cookie = partnerCookie;
-const joinedSpace = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/join", { method: "POST" });
-if (joinedSpace.space?.role !== "listener") throw new Error("Spaces join contract failed.");
-const spaceMessage = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/messages", { method: "POST", body: JSON.stringify({ text: "S live Spaces E2E chat" }) });
-if (spaceMessage.message?.text !== "S live Spaces E2E chat") throw new Error("Spaces chat write contract failed.");
-const spaceMessages = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/messages");
-if (!spaceMessages.items?.some((message) => message.id === spaceMessage.message?.id)) throw new Error("Spaces chat persistence contract failed.");
-cookie = primaryCookie;
-await request("/api/spaces/" + encodeURIComponent(spaceId) + "/end", { method: "POST" });
-const endedSpace = await request("/api/spaces/" + encodeURIComponent(spaceId));
-if (endedSpace.space?.status !== "ended") throw new Error("Spaces end contract failed.");
-const deletedSpace = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/delete", { method: "DELETE" });
-if (!deletedSpace.ok) throw new Error("Spaces delete contract failed.");
 const reportTarget = await request("/api/posts", {
   method: "POST",
   body: JSON.stringify({
