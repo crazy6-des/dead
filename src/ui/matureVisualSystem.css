@@ -2842,3 +2842,27 @@ body,button,input,textarea,select{
 
 /* Canonical theme contract */
 .app.light{--bg:#fff;--surface:#fff;--surface2:#f7f9f9;--line:#eff3f4;--text:#0f1419;--muted:#536471;--brand:#1d9bf0;--ink:#fff}.app.dark{--bg:#000;--surface:#0f0f10;--surface2:#17181c;--line:#2f3336;--text:#f7f9f9;--muted:#aab2ba;--brand:#1d9bf0;--ink:#000}.app,.app .main,.app .sidebar,.app .rail,.app .mobile-head,.app .top,.app .feed-tabs,.app .quick,.app .post,.app .card,.app .rail-card,.app .settings,.app .messages,.app .chat{background-color:var(--s-surface);color:var(--s-text)}.app{background-color:var(--s-bg)}.app .main,.app .sidebar,.app .post,.app .quick,.app .feed-tabs,.app .conversation,.app .chat>header,.app .chat>footer,.app .setting-row{border-color:var(--s-border)}.app input,.app textarea,.app select{background-color:var(--s-surface-soft);color:var(--s-text);border-color:var(--s-border)}.app input::placeholder,.app textarea::placeholder{color:var(--s-text-3)}.app .popover{background:var(--s-surface);color:var(--s-text);border-color:var(--s-border)}.app .popover button{color:var(--s-text)}.app .popover button:hover,.app .nav:hover,.app .nav.active,.app .conversation:hover,.app .conversation.active,.app .quick:hover{background:var(--s-surface-soft)}.app .mobile-nav{background:color-mix(in srgb,var(--s-surface) 94%,transparent);border-color:var(--s-border)}
+
+/* Stable conversation viewport: only the message history scrolls; the composer never leaves the chat viewport. */
+.messages{height:100%;min-height:0;overflow:hidden}
+.chat{height:100%;min-height:0;overflow:hidden}
+.chat-body{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:stable}
+.chat>header{flex:0 0 auto}
+.chat>footer{flex:0 0 auto;position:relative;z-index:4;background:var(--s-surface)}
+.chat-image-preview{flex:0 0 auto;position:relative;z-index:4;background:var(--s-surface-soft)}
+
+/* Report controls use the canonical S theme tokens in every theme. */
+.moderation-sheet,.message-report-form{color:var(--s-text);background:var(--s-surface);border-color:var(--s-border)}
+.moderation-sheet{margin-top:12px;padding:14px;border:1px solid var(--s-border);border-radius:14px;display:grid;gap:10px}
+.moderation-sheet small,.message-report-form small{color:var(--s-text-3)}
+.moderation-reasons,.message-report-reasons{display:flex;flex-wrap:wrap;gap:7px}
+.moderation-reasons button,.message-report-reasons button{border:1px solid var(--s-border);background:var(--s-surface-soft);color:var(--s-text);border-radius:999px;padding:7px 10px}
+.moderation-reasons button.selected,.message-report-reasons button.active{background:var(--s-accent);border-color:var(--s-accent);color:#fff}
+.moderation-note,.message-report-form textarea{width:100%;min-height:76px;box-sizing:border-box;resize:vertical;border:1px solid var(--s-border);border-radius:10px;background:var(--s-surface-soft);color:var(--s-text);padding:9px 10px}
+.moderation-note::placeholder,.message-report-form textarea::placeholder{color:var(--s-text-3)}
+.moderation-actions,.message-report-form>div:last-child{display:flex;justify-content:flex-end;gap:8px}
+.moderation-actions button,.message-report-form>div:last-child button{min-height:36px;padding:8px 13px;border-radius:9px;border:1px solid var(--s-border-strong);background:var(--s-surface);color:var(--s-text)}
+.moderation-actions .moderation-send,.message-report-form>div:last-child button:last-child{background:var(--s-accent);border-color:var(--s-accent);color:#fff;font-weight:750}
+.moderation-actions .moderation-send:hover:not(:disabled),.message-report-form>div:last-child button:last-child:hover:not(:disabled){background:var(--s-accent-strong)}
+.moderation-actions button:disabled,.message-report-form>div:last-child button:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:720px){.messages{height:100%;min-height:0}.chat-body{min-height:0;padding-bottom:14px}.chat>footer{min-height:56px}}
