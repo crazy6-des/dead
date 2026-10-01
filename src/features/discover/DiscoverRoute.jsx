@@ -96,6 +96,7 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
     }
   };
   const remotePeople = remote?.items?.people || [];
+  const peopleNextCursor = remote?.items?.peopleNextCursor || null;
   const remotePosts = (remote?.items?.posts || []).map((post) => toFeedPostFromCreatedPost(post));
   const remoteTopics = remote?.items?.topics || [];
   const remoteMusic = remote?.items?.music || [];
