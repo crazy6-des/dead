@@ -13,7 +13,7 @@ function Field({ label, id, hint, ...props }) {
   return <label className="auth-field" htmlFor={id}><span>{label}</span><input id={id} aria-describedby={hintId} {...props}/>{hint && <small id={hintId}>{hint}</small>}</label>;
 }
 
-function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
+function AuthPanel({ initialMode = "signin", onClose, onAuthenticated, auth }) {
   const [mode, setMode] = useState(() => initialMode === "reset" && new URLSearchParams(window.location.search).get("token") ? "reset-confirm" : initialMode);
   const [form, setForm] = useState({ username: "", displayName: "", email: "", password: "" });
   const [busy, setBusy] = useState(false);
@@ -24,8 +24,8 @@ function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
     event.preventDefault(); setBusy(true); setError(""); setMessage("");
     try {
       const result = mode === "signin"
-        ? await authService.signIn({ identifier: form.email || form.username, password: form.password })
-        : await authService.signUp({ username: form.username, displayName: form.displayName, email: form.email, password: form.password });
+        ? await (auth?.signIn ? auth.signIn({ identifier: form.email || form.username, password: form.password }) : authService.signIn({ identifier: form.email || form.username, password: form.password }))
+        : await (auth?.signUp ? auth.signUp({ username: form.username, displayName: form.displayName, email: form.email, password: form.password }) : authService.signUp({ username: form.username, displayName: form.displayName, email: form.email, password: form.password }));
       if (result?.authenticated) onAuthenticated?.();
     } catch (cause) { setError(cause?.message || "We could not complete that request."); }
     finally { setBusy(false); }
@@ -67,7 +67,7 @@ function AuthPanel({ initialMode = "signin", onClose, onAuthenticated }) {
   </section></div>;
 }
 
-export default function LandingRoute({ initialAuthMode = null, onAuthenticated }) {
+export default function LandingRoute({ initialAuthMode = null, onAuthenticated, auth }) {
   const [authMode, setAuthMode] = useState(initialAuthMode);
   const [darkMode, setDarkMode] = useState(() => { try { return JSON.parse(window.localStorage.getItem("s.settings") || "null")?.theme === "dark"; } catch (error) { void error; return false; } });
   return <div className={"landing " + (darkMode ? "landing--dark" : "landing--light")}>
@@ -99,6 +99,6 @@ export default function LandingRoute({ initialAuthMode = null, onAuthenticated }
       </section>
       <section className="landing-login-row"><span>Already part of S?</span><button type="button" onClick={() => setAuthMode("signin")}>Sign in</button></section>
     </main>
-    {authMode && <AuthPanel initialMode={authMode} onClose={() => setAuthMode(null)} onAuthenticated={() => { setAuthMode(null); onAuthenticated?.(); }} />}
+    {authMode && <AuthPanel initialMode={authMode} onClose={() => setAuthMode(null)} auth={auth} onAuthenticated={() => { setAuthMode(null); onAuthenticated?.(); }} />}
   </div>;
 }
