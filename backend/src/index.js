@@ -22,6 +22,7 @@ import { requestPasswordReset, confirmPasswordReset } from "./passwordReset.js";
 import { votePoll } from "./polls.js";
 import { moderationAction } from "./moderation.js";
 import { createSpace, getSpaceDetail, listSpaces, joinSpace, leaveSpace, heartbeatSpace, endSpace, deleteSpace, listSpaceMembers, listSpaceMessages, createSpaceMessage, setSpaceRole } from "./spaces.js";
+import { listBookmarkFolders, createBookmarkFolder, addBookmark, removeBookmark, listBookmarks, listLists, createList, updateList, deleteList, addListMember, removeListMember, getList, listListPosts } from "./library.js";
 import { upgradeSpaceWebSocket } from "./spaceRealtime.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
@@ -100,7 +101,34 @@ export default { async fetch(request, env) {
   if (url.pathname === "/api/social/relationships") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await setRelationship(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
   const postShare = url.pathname.match(/^\/api\/social\/posts\/([^/]+)\/share$/);
   if (postShare) { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await sharePostWithFollowers(request, env, decodeURIComponent(postShare[1])); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
-  if (url.pathname === "/api/bookmarks") { if (request.method !== "GET") return methodNotAllowed(request, env); const result = await listSavedPosts(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
+  if (url.pathname === "/api/bookmarks/folders") {
+    if (request.method === "GET") { const result = await listBookmarkFolders(request,env); if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env); return json(result.response,200,request,env); }
+    if (request.method === "POST") { if(!mutationOriginAllowed(request,env))return originRejected(request,env); const result=await createBookmarkFolder(request,env); if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env); return json(result.response,201,request,env); }
+    return methodNotAllowed(request,env);
+  }
+  const bookmarkItemMatch=url.pathname.match(/^\/api\/bookmarks\/([^/]+)$/);
+  if(bookmarkItemMatch && request.method==="DELETE"){if(!mutationOriginAllowed(request,env))return originRejected(request,env);const result=await removeBookmark(request,env,decodeURIComponent(bookmarkItemMatch[1]));if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env);return json(result.response,200,request,env);}
+  if(url.pathname==="/api/bookmarks"){
+    if(request.method==="GET"){const result=await listBookmarks(request,env);if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env);return json(result.response,200,request,env);}
+    if(request.method==="POST"){if(!mutationOriginAllowed(request,env))return originRejected(request,env);const result=await addBookmark(request,env);if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env);return json(result.response,200,request,env);}
+    return methodNotAllowed(request,env);
+  }
+  if(url.pathname==="/api/lists"){
+    if(request.method==="GET"){const result=await listLists(request,env);if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env);return json(result.response,200,request,env);}
+    if(request.method==="POST"){if(!mutationOriginAllowed(request,env))return originRejected(request,env);const result=await createList(request,env);if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env);return json(result.response,201,request,env);}
+    return methodNotAllowed(request,env);
+  }
+  const listMatch=url.pathname.match(/^\/api\/lists\/([^/]+)(?:\/(members|posts))?$/);
+  if(listMatch){
+    const listId=decodeURIComponent(listMatch[1]), action=listMatch[2]||"";
+    if(!action && request.method==="GET"){const result=await getList(request,env,listId);if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env);return json(result.response,200,request,env);}
+    if(!action && request.method==="PATCH"){if(!mutationOriginAllowed(request,env))return originRejected(request,env);const result=await updateList(request,env,listId);if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env);return json(result.response,200,request,env);}
+    if(!action && request.method==="DELETE"){if(!mutationOriginAllowed(request,env))return originRejected(request,env);const result=await deleteList(request,env,listId);if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env);return json(result.response,200,request,env);}
+    if(action==="members" && request.method==="POST"){if(!mutationOriginAllowed(request,env))return originRejected(request,env);const result=await addListMember(request,env,listId);if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env);return json(result.response,200,request,env);}
+    if(action==="members" && request.method==="DELETE"){if(!mutationOriginAllowed(request,env))return originRejected(request,env);const body=await readJson(request);const userId=body.value?.userId;const result=await removeListMember(request,env,listId,String(userId||""));if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env);return json(result.response,200,request,env);}
+    if(action==="posts" && request.method==="GET"){const result=await listListPosts(request,env,listId);if(result.error)return errorResponse(result.error.code,result.error.status,result.error.message,request,env);return json(result.response,200,request,env);}
+    return methodNotAllowed(request,env);
+  }
   if (url.pathname === "/api/search") { if (request.method !== "GET") return methodNotAllowed(request, env); const result = await search(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
   if (url.pathname === "/api/music/search") { if (request.method !== "GET") return methodNotAllowed(request, env); const result = await searchMusic(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
   if (url.pathname === "/api/music/browse") { if (request.method !== "GET") return methodNotAllowed(request, env); const result = await browseMusic(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
