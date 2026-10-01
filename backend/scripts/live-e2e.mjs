@@ -141,8 +141,8 @@ const musicCreated = await request("/api/posts", {
     media: [],
     audio: {
       source: "catalog",
-      musicId: "e2e-catalog-track",
-      url: "https://cdn.example.invalid/e2e-catalog-track.mp3",
+      musicId: "e2e-catalog-track-" + username,
+      url: baseUrl + "/api/music/stream/e2e-catalog-track-" + encodeURIComponent(username),
       title: "E2E Catalog Track",
       artist: "S E2E",
       type: "audio/mpeg",
@@ -155,7 +155,7 @@ const musicCreated = await request("/api/posts", {
   }),
 });
 const musicPostId = musicCreated.post?.id;
-if (!musicPostId || musicCreated.post?.audio?.musicId !== "e2e-catalog-track") {
+if (!musicPostId || musicCreated.post?.audio?.musicId !== "e2e-catalog-track-" + username) {
   throw new Error("Music-only catalog post persistence contract failed.");
 }
 
@@ -191,8 +191,8 @@ const mixedCreated = await request("/api/posts", {
     media: [{ mediaId: mixedMediaId }],
     audio: {
       source: "catalog",
-      musicId: "e2e-mixed-track",
-      url: "https://cdn.example.invalid/e2e-mixed-track.mp3",
+      musicId: "e2e-mixed-track-" + username,
+      url: baseUrl + "/api/music/stream/e2e-mixed-track-" + encodeURIComponent(username),
       title: "E2E Mixed Track",
       artist: "S E2E",
       type: "audio/mpeg",
@@ -205,7 +205,7 @@ const mixedCreated = await request("/api/posts", {
   }),
 });
 const mixedPostId = mixedCreated.post?.id;
-if (!mixedPostId || mixedCreated.post?.media?.[0]?.id !== mixedMediaId || mixedCreated.post?.audio?.musicId !== "e2e-mixed-track") {
+if (!mixedPostId || mixedCreated.post?.media?.[0]?.id !== mixedMediaId || mixedCreated.post?.audio?.musicId !== "e2e-mixed-track-" + username) {
   throw new Error("Mixed rich post persistence contract failed.");
 }
 
@@ -217,7 +217,7 @@ for (const [label, id] of [["music-only", musicPostId], ["background-only", back
   if (!feed.items?.some((item) => item.id === id)) throw new Error(label + " post feed persistence contract failed.");
 }
 const mixedFeedPost = feed.items?.find((item) => item.id === mixedPostId);
-if (mixedFeedPost?.audio?.musicId !== "e2e-mixed-track" || mixedFeedPost?.background?.value !== "#654321") {
+if (mixedFeedPost?.audio?.musicId !== "e2e-mixed-track-" + username || mixedFeedPost?.background?.value !== "#654321") {
   throw new Error("Mixed post server-backed fields feed contract failed: music=" + String(mixedFeedPost?.audio?.musicId) + " bg=" + String(mixedFeedPost?.background?.value));
 }
 
