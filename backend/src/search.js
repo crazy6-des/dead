@@ -75,22 +75,29 @@ export async function search(request, env) {
 
   const topicRows = (type === "all" || type === "topics")
     ? await env.DB.prepare(
-      "SELECT body FROM posts p JOIN users u ON u.id=p.author_id WHERE p.deleted_at IS NULL AND p.visibility='public' AND u.deleted_at IS NULL " +
+      "SELECT body,p.created_at FROM posts p JOIN users u ON u.id=p.author_id WHERE p.deleted_at IS NULL AND p.visibility='public' AND u.deleted_at IS NULL " +
       (query ? "AND LOWER(p.body) LIKE LOWER(?1) ESCAPE '\\\\' " : "") +
       "ORDER BY p.created_at DESC,p.id DESC LIMIT ?"
     ).bind(...(query ? [like, Math.max(limit * 8, 50)] : [Math.max(limit * 8, 50)])).all()
     : { results: [] };
-  const topicCounts = new Map();
+  const topicStats = new Map();
   for (const row of topicRows.results || []) {
+    const createdAt = String(row.created_at || "");
     for (const match of String(row.body || "").matchAll(/#[a-z0-9_]+/gi)) {
       const tag = match[0];
-      topicCounts.set(tag, (topicCounts.get(tag) || 0) + 1);
+      const key = tag.toLowerCase();
+      const current = topicStats.get(key);
+      topicStats.set(key, {
+        tag: current?.tag || tag,
+        count: (current?.count || 0) + 1,
+        latest: current?.latest && current.latest > createdAt ? current.latest : createdAt,
+      });
     }
   }
-  const recentTopics = [...topicCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
+  const recentTopics = [...topicStats.values()]
+    .sort((a, b) => String(b.latest).localeCompare(String(a.latest)))
     .slice(0, limit)
-    .map(([tag, count]) => ({ tag, count }));
+    .map(({ tag, count }) => ({ tag, count }));
 
   let musicRows = { results: [] };
   if (type === "music" || type === "all") {
