@@ -9,7 +9,7 @@ export function createApiListAdapter(client = apiClient) {
     update(id, input) { return client.patch("/api/lists/" + encodeURIComponent(String(id)), createList({ ...input, id })).then(createList); },
     remove(id) { return client.delete("/api/lists/" + encodeURIComponent(String(id))); },
     addMember(id, username) { return client.post("/api/lists/" + encodeURIComponent(String(id)) + "/members", { username }); },
-    removeMember(id, userId) { return client.delete("/api/lists/" + encodeURIComponent(String(id)) + "/members", { userId }); },
+    removeMember(id, userId) { return client.delete("/api/lists/" + encodeURIComponent(String(id)) + "/members", { body: { userId } }); },
   };
 }
 export function createUnavailableListAdapter() { const unavailable = () => Promise.reject(new Error("Lists require the Cloudflare backend.")); return { list: unavailable,get: unavailable,posts: unavailable,create: unavailable,update: unavailable,remove: unavailable,addMember: unavailable,removeMember: unavailable }; }
