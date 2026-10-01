@@ -435,6 +435,57 @@ if (!report.ok || !report.submitted || report.emailStatus !== "sent" || !report.
   throw new Error("Production moderation report email contract failed: " + JSON.stringify(report));
 }
 
+
+// Spaces: production persistence + membership + chat + lifecycle + owner delete.
+cookie = primaryCookie;
+const createdSpace = await request("/api/spaces", {
+  method: "POST",
+  body: JSON.stringify({ title: "S live Spaces E2E" }),
+});
+const spaceId = createdSpace.space?.id;
+if (!spaceId || createdSpace.space?.status !== "live" || createdSpace.space?.role !== "host") {
+  throw new Error("Live Spaces creation persistence contract failed: " + JSON.stringify(createdSpace));
+}
+const listedSpaces = await request("/api/spaces?q=S%20live%20Spaces%20E2E");
+if (!listedSpaces.items?.some((item) => item.id === spaceId && item.status === "live")) {
+  throw new Error("Live Spaces listing/search persistence contract failed.");
+}
+
+cookie = partnerCookie;
+const joinedSpace = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/join", { method: "POST" });
+if (joinedSpace.space?.id !== spaceId || joinedSpace.space?.role !== "listener") {
+  throw new Error("Live Spaces partner join persistence contract failed: " + JSON.stringify(joinedSpace));
+}
+const joinedMembers = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/members");
+if (!joinedMembers.items?.some((item) => item.username === username2 && item.role === "listener")) {
+  throw new Error("Live Spaces member persistence contract failed.");
+}
+const spaceMessage = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/messages", {
+  method: "POST",
+  body: JSON.stringify({ text: "S live Spaces chat E2E" }),
+});
+if (!spaceMessage.message?.id || spaceMessage.message?.text !== "S live Spaces chat E2E") {
+  throw new Error("Live Spaces chat write persistence contract failed.");
+}
+const partnerSpaceMessages = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/messages");
+if (!partnerSpaceMessages.items?.some((item) => item.id === spaceMessage.message.id && item.text === "S live Spaces chat E2E")) {
+  throw new Error("Live Spaces chat read persistence contract failed.");
+}
+
+cookie = primaryCookie;
+const spaceDetail = await request("/api/spaces/" + encodeURIComponent(spaceId));
+if (spaceDetail.space?.id !== spaceId || Number(spaceDetail.space?.participantCount) < 2) {
+  throw new Error("Live Spaces detail/presence persistence contract failed: " + JSON.stringify(spaceDetail));
+}
+const endedSpace = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/end", { method: "POST" });
+if (!endedSpace.ok) throw new Error("Live Spaces end persistence contract failed.");
+const endedDetail = await request("/api/spaces/" + encodeURIComponent(spaceId));
+if (endedDetail.space?.status !== "ended") throw new Error("Live Spaces ended-state persistence contract failed.");
+const deletedSpace = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/delete", { method: "DELETE" });
+if (!deletedSpace.ok) throw new Error("Live Spaces owner delete contract failed.");
+const remainingSpaces = await request("/api/spaces?q=S%20live%20Spaces%20E2E");
+if (remainingSpaces.items?.some((item) => item.id === spaceId)) throw new Error("Live Spaces delete visibility contract failed.");
+
 await request("/api/auth/sign-out", { method: "POST" });
 const signedOut = await request("/api/auth/session");
 if (signedOut.authenticated) throw new Error("Sign-out persistence contract failed.");
