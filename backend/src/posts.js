@@ -99,6 +99,19 @@ async function requireUser(request, env) {
   const session = await resolveSession(request, env);
   return session?.user_id ? session : null;
 }
+async function requireStagedMedia(db, env, mediaId) {
+  const id = String(mediaId || "").trim();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const row = await db.prepare("SELECT id, source, owner_id, object_key FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(id).first();
+    if (row) return row;
+    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+  }
+  if (env?.DB && env.DB !== db) {
+    return env.DB.prepare("SELECT id, source, owner_id, object_key FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(id).first();
+  }
+  return null;
+}
+
 async function hydratePollResults(items, db, userId) {
   const pollItems = items.filter((item) => item?.poll && item.id);
   if (!pollItems.length) return items;
@@ -190,7 +203,7 @@ export async function createPost(request, env) {
   const id = globalThis.crypto.randomUUID();
   const storedMedia = [];
   for (const item of media) {
-    const stored = await db.prepare("SELECT id, source, owner_id, object_key FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(item.mediaId).first();
+    const stored = await requireStagedMedia(db, env, item.mediaId);
     if (!stored) return { response: null, error: error("MEDIA_NOT_FOUND", 400, "Referenced media was not found or is already attached.") };
     if (stored.source !== "upload" || (stored.owner_id && stored.owner_id !== session.user_id)) {
       return { response: null, error: error("FORBIDDEN", 403, "You can only attach media that you own.") };
@@ -200,7 +213,7 @@ export async function createPost(request, env) {
 
   let storedAudio = null;
   if (audio?.mediaId) {
-    storedAudio = await db.prepare("SELECT id, source, owner_id, object_key FROM post_media WHERE id = ?1 AND post_id IS NULL LIMIT 1").bind(audio.mediaId).first();
+    storedAudio = await requireStagedMedia(db, env, audio.mediaId);
     if (!storedAudio || storedAudio.source !== "upload" || (storedAudio.owner_id && storedAudio.owner_id !== session.user_id)) {
       return { response: null, error: error("AUDIO_NOT_FOUND", 400, "Uploaded music was not found or is not owned by this user.") };
     }
