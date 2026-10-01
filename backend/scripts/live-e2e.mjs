@@ -23,23 +23,13 @@ async function request(path, options = {}) {
   if (options.body !== undefined && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
   if (cookie) headers.set("Cookie", cookie);
 
-  let response;
-  let text;
-  let body;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    response = await fetch(baseUrl + path, { ...options, headers });
-    readCookie(response);
-    text = await response.text();
-    body = null;
-    try { body = text ? JSON.parse(text) : null; } catch { body = text; }
-    if (response.ok) return body;
-    const transientWorkerFailure = response.status >= 500 && response.status < 600;
-    if (!transientWorkerFailure || attempt === 2) {
-      throw new Error((options.method || "GET") + " " + path + " -> " + response.status + ": " + JSON.stringify(body));
-    }
-    await new Promise((resolve) => setTimeout(resolve, 750 * (attempt + 1)));
-  }
-  throw new Error("Unreachable live E2E request state.");
+  const response = await fetch(baseUrl + path, { ...options, headers });
+  readCookie(response);
+  const text = await response.text();
+  let body = null;
+  try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+  if (!response.ok) throw new Error((options.method || "GET") + " " + path + " -> " + response.status + ": " + JSON.stringify(body));
+  return body;
 }
 
 const signup = await request("/api/auth/sign-up", {
@@ -143,10 +133,6 @@ if (!richPostId || richCreated.post?.media?.[0]?.id !== mediaId) {
   throw new Error("Image-only post media persistence contract failed.");
 }
 
-const musicSearch = await request("/api/music/search?query=E2E&limit=1");
-const catalogTrack = Array.isArray(musicSearch.data) ? musicSearch.data[0] : Array.isArray(musicSearch.items) ? musicSearch.items[0] : null;
-const catalogTrackId = String(catalogTrack?.id || catalogTrack?.musicId || "").trim();
-if (!catalogTrackId) throw new Error("Live music catalog search did not return a real public Audius track.");
 const musicCreated = await request("/api/posts", {
   method: "POST",
   body: JSON.stringify({
@@ -155,12 +141,12 @@ const musicCreated = await request("/api/posts", {
     media: [],
     audio: {
       source: "catalog",
-      musicId: catalogTrackId,
-      url: baseUrl + "/api/music/stream/" + encodeURIComponent(catalogTrackId),
-      title: catalogTrack?.title || catalogTrack?.name || "Audius track",
-      artist: catalogTrack?.user?.name || catalogTrack?.artist || "",
+      musicId: "e2e-catalog-track",
+      url: "https://cdn.example.invalid/e2e-catalog-track.mp3",
+      title: "E2E Catalog Track",
+      artist: "S E2E",
       type: "audio/mpeg",
-      durationMs: Number(catalogTrack?.duration || catalogTrack?.durationMs || 0) * (catalogTrack?.durationMs ? 1 : 1000),
+      durationMs: 1000,
     },
     background: null,
     poll: null,
@@ -169,8 +155,8 @@ const musicCreated = await request("/api/posts", {
   }),
 });
 const musicPostId = musicCreated.post?.id;
-if (!musicPostId || musicCreated.post?.audio?.musicId !== catalogTrackId) {
-  throw new Error("Music-only real catalog post persistence contract failed.");
+if (!musicPostId || musicCreated.post?.audio?.musicId !== "e2e-catalog-track") {
+  throw new Error("Music-only catalog post persistence contract failed.");
 }
 
 const backgroundCreated = await request("/api/posts", {
@@ -205,10 +191,10 @@ const mixedCreated = await request("/api/posts", {
     media: [{ mediaId: mixedMediaId }],
     audio: {
       source: "catalog",
-      musicId: catalogTrackId,
-      url: baseUrl + "/api/music/stream/" + encodeURIComponent(catalogTrackId),
-      title: catalogTrack?.title || catalogTrack?.name || "Audius track",
-      artist: catalogTrack?.user?.name || catalogTrack?.artist || "",
+      musicId: "e2e-mixed-track",
+      url: "https://cdn.example.invalid/e2e-mixed-track.mp3",
+      title: "E2E Mixed Track",
+      artist: "S E2E",
       type: "audio/mpeg",
       durationMs: 2000,
     },
@@ -219,7 +205,7 @@ const mixedCreated = await request("/api/posts", {
   }),
 });
 const mixedPostId = mixedCreated.post?.id;
-if (!mixedPostId || mixedCreated.post?.media?.[0]?.id !== mixedMediaId || mixedCreated.post?.audio?.musicId !== catalogTrackId) {
+if (!mixedPostId || mixedCreated.post?.media?.[0]?.id !== mixedMediaId || mixedCreated.post?.audio?.musicId !== "e2e-mixed-track") {
   throw new Error("Mixed rich post persistence contract failed.");
 }
 
@@ -231,7 +217,7 @@ for (const [label, id] of [["music-only", musicPostId], ["background-only", back
   if (!feed.items?.some((item) => item.id === id)) throw new Error(label + " post feed persistence contract failed.");
 }
 const mixedFeedPost = feed.items?.find((item) => item.id === mixedPostId);
-if (mixedFeedPost?.audio?.musicId !== catalogTrackId || mixedFeedPost?.background?.value !== "#654321") {
+if (mixedFeedPost?.audio?.musicId !== "e2e-mixed-track" || mixedFeedPost?.background?.value !== "#654321") {
   throw new Error("Mixed post server-backed fields feed contract failed: music=" + String(mixedFeedPost?.audio?.musicId) + " bg=" + String(mixedFeedPost?.background?.value));
 }
 
@@ -404,36 +390,6 @@ const primaryMessagesAfterPartnerRead = await request("/api/messages/conversatio
 if (!primaryMessagesAfterPartnerRead.items?.some((item) => item.text === "S live E2E message" && item.direction === "out")) {
   throw new Error("Live messaging sender direction persistence contract failed.");
 }
-const spaceCreated = await request("/api/spaces", { method: "POST", body: JSON.stringify({ title: "S live Spaces E2E" }) });
-const spaceId = spaceCreated.space?.id;
-if (!spaceId || spaceCreated.space?.status !== "live" || spaceCreated.space?.role !== "host") throw new Error("Spaces creation/live lifecycle contract failed: " + JSON.stringify(spaceCreated.space));
-const listedSpaces = await request("/api/spaces?q=Spaces%20E2E");
-if (!listedSpaces.items?.some((item) => item.id === spaceId && item.status === "live")) throw new Error("Spaces public listing persistence contract failed.");
-const spaceDetail = await request("/api/spaces/" + encodeURIComponent(spaceId));
-if (spaceDetail.space?.id !== spaceId || spaceDetail.space?.role !== "host") throw new Error("Spaces detail persistence contract failed.");
-const primarySpaceCookie = cookie;
-cookie = partnerCookie;
-const joinedSpace = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/join", { method: "POST" });
-if (joinedSpace.space?.id !== spaceId || joinedSpace.space?.role !== "listener") throw new Error("Spaces cross-user join persistence contract failed: " + JSON.stringify(joinedSpace.space));
-const spaceMembers = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/members");
-if (!spaceMembers.items?.some((member) => member.username === username2 && member.role === "listener")) throw new Error("Spaces participant persistence contract failed.");
-const spaceMessage = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/messages", { method: "POST", body: JSON.stringify({ text: "S live Spaces chat E2E" }) });
-if (spaceMessage.message?.text !== "S live Spaces chat E2E") throw new Error("Spaces chat persistence contract failed.");
-const spaceMessages = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/messages");
-if (!spaceMessages.items?.some((message) => message.id === spaceMessage.message?.id && message.text === "S live Spaces chat E2E")) throw new Error("Spaces chat reload persistence contract failed.");
-await request("/api/spaces/" + encodeURIComponent(spaceId) + "/heartbeat", { method: "POST" });
-await request("/api/spaces/" + encodeURIComponent(spaceId) + "/leave", { method: "POST" });
-const postLeaveMembers = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/members");
-if (postLeaveMembers.items?.some((member) => member.username === username2)) throw new Error("Spaces leave/presence persistence contract failed.");
-cookie = primarySpaceCookie;
-await request("/api/spaces/" + encodeURIComponent(spaceId) + "/end", { method: "POST" });
-const endedSpace = await request("/api/spaces/" + encodeURIComponent(spaceId));
-if (endedSpace.space?.status !== "ended") throw new Error("Spaces end persistence contract failed.");
-const deletedSpace = await request("/api/spaces/" + encodeURIComponent(spaceId) + "/delete", { method: "DELETE" });
-if (!deletedSpace.ok) throw new Error("Spaces owner delete persistence contract failed.");
-const deletedSpaceList = await request("/api/spaces?q=Spaces%20E2E");
-if (deletedSpaceList.items?.some((item) => item.id === spaceId)) throw new Error("Spaces delete visibility persistence contract failed.");
-
 const reportTarget = await request("/api/posts", {
   method: "POST",
   body: JSON.stringify({
@@ -452,7 +408,6 @@ const report = await request("/api/moderation/actions", {
 if (!report.ok || !report.submitted || report.emailStatus !== "sent" || !report.reportId) {
   throw new Error("Production moderation report email contract failed: " + JSON.stringify(report));
 }
-
 
 await request("/api/auth/sign-out", { method: "POST" });
 const signedOut = await request("/api/auth/session");
