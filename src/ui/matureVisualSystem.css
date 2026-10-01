@@ -2827,3 +2827,14 @@ body,button,input,textarea,select{
 .app.dark .post__time {
   color: var(--s-text-3);
 }
+
+.moderation-reasons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}
+.moderation-reasons button{min-height:38px;border:1px solid var(--s-border);border-radius:10px;background:var(--s-surface);color:var(--s-text-2);font:inherit;font-size:13px;font-weight:650;text-transform:capitalize;cursor:pointer}
+.moderation-reasons button:hover,.moderation-reasons button.selected{border-color:#1d9bf0;background:color-mix(in srgb,#1d9bf0 10%,var(--s-surface));color:#1d9bf0}
+.moderation-note{width:100%;min-height:88px;box-sizing:border-box;resize:vertical;padding:11px 12px;border:1px solid var(--s-border);border-radius:10px;background:var(--s-surface);color:var(--s-text);font:inherit;font-size:14px;line-height:1.45}
+.moderation-note::placeholder{color:var(--s-text-3)}
+.moderation-note:focus{outline:2px solid color-mix(in srgb,#1d9bf0 24%,transparent);border-color:#1d9bf0}
+.moderation-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:12px}
+.moderation-actions .moderation-send{background:#1d9bf0;color:#fff;border:1px solid #1d9bf0}
+.moderation-actions .moderation-send:hover:not(:disabled){background:#0b84d8;border-color:#0b84d8}
+.moderation-actions button:disabled{opacity:.55;cursor:not-allowed}
