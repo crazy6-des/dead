@@ -205,10 +205,10 @@ const mixedCreated = await request("/api/posts", {
     media: [{ mediaId: mixedMediaId }],
     audio: {
       source: "catalog",
-      musicId: "e2e-mixed-track",
-      url: "https://cdn.example.invalid/e2e-mixed-track.mp3",
-      title: "E2E Mixed Track",
-      artist: "S E2E",
+      musicId: catalogTrackId,
+      url: baseUrl + "/api/music/stream/" + encodeURIComponent(catalogTrackId),
+      title: catalogTrack?.title || catalogTrack?.name || "Audius track",
+      artist: catalogTrack?.user?.name || catalogTrack?.artist || "",
       type: "audio/mpeg",
       durationMs: 2000,
     },
@@ -219,7 +219,7 @@ const mixedCreated = await request("/api/posts", {
   }),
 });
 const mixedPostId = mixedCreated.post?.id;
-if (!mixedPostId || mixedCreated.post?.media?.[0]?.id !== mixedMediaId || mixedCreated.post?.audio?.musicId !== "e2e-mixed-track") {
+if (!mixedPostId || mixedCreated.post?.media?.[0]?.id !== mixedMediaId || mixedCreated.post?.audio?.musicId !== catalogTrackId) {
   throw new Error("Mixed rich post persistence contract failed.");
 }
 
@@ -231,7 +231,7 @@ for (const [label, id] of [["music-only", musicPostId], ["background-only", back
   if (!feed.items?.some((item) => item.id === id)) throw new Error(label + " post feed persistence contract failed.");
 }
 const mixedFeedPost = feed.items?.find((item) => item.id === mixedPostId);
-if (mixedFeedPost?.audio?.musicId !== "e2e-mixed-track" || mixedFeedPost?.background?.value !== "#654321") {
+if (mixedFeedPost?.audio?.musicId !== catalogTrackId || mixedFeedPost?.background?.value !== "#654321") {
   throw new Error("Mixed post server-backed fields feed contract failed: music=" + String(mixedFeedPost?.audio?.musicId) + " bg=" + String(mixedFeedPost?.background?.value));
 }
 
