@@ -73,11 +73,36 @@ export async function search(request, env) {
     ).bind(...values).all();
   }
 
-  const topics = (type === "all" || type === "topics") && query
-    ? await env.DB.prepare("SELECT body FROM posts WHERE deleted_at IS NULL AND visibility='public' AND body LIKE ?1 ESCAPE '\\\\' ORDER BY created_at DESC LIMIT ?2").bind(like, limit).all()
+  const topicRows = (type === "all" || type === "topics")
+    ? await env.DB.prepare(
+      "SELECT body FROM posts p JOIN users u ON u.id=p.author_id WHERE p.deleted_at IS NULL AND p.visibility='public' AND u.deleted_at IS NULL " +
+      (query ? "AND LOWER(p.body) LIKE LOWER(?1) ESCAPE '\\\\' " : "") +
+      "ORDER BY p.created_at DESC,p.id DESC LIMIT ?"
+    ).bind(...(query ? [like, Math.max(limit * 8, 50)] : [Math.max(limit * 8, 50)])).all()
     : { results: [] };
-  const topicSet = new Set();
-  for (const row of topics.results || []) for (const match of String(row.body || "").matchAll(/#[a-z0-9_]+/gi)) topicSet.add(match[0]);
+  const topicCounts = new Map();
+  for (const row of topicRows.results || []) {
+    for (const match of String(row.body || "").matchAll(/#[a-z0-9_]+/gi)) {
+      const tag = match[0];
+      topicCounts.set(tag, (topicCounts.get(tag) || 0) + 1);
+    }
+  }
+  const recentTopics = [...topicCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([tag, count]) => ({ tag, count }));
+
+  let musicRows = { results: [] };
+  if (type === "music" || type === "all") {
+    musicRows = await env.DB.prepare(
+      "SELECT DISTINCT p.id,p.author_id,p.body,p.visibility,p.reply_policy,p.post_kind,p.background_json,p.quoted_post_id,p.view_count,p.created_at,p.updated_at,u.username,u.display_name,u.avatar_url," +
+      "(SELECT json_group_array(json_object('id',m.id,'mediaType',m.media_type,'mimeType',m.mime_type,'url',COALESCE(m.external_url,'/api/media/' || m.id),'source',m.source,'metadata',m.metadata_json,'durationMs',m.duration_ms)) FROM post_media m WHERE m.post_id=p.id ORDER BY m.position) AS media " +
+      "FROM posts p JOIN users u ON u.id=p.author_id JOIN post_media pm ON pm.post_id=p.id " +
+      "WHERE p.deleted_at IS NULL AND p.visibility='public' AND u.deleted_at IS NULL AND (LOWER(pm.media_type)='audio' OR LOWER(COALESCE(pm.mime_type,'')) LIKE 'audio/%') " +
+      (query ? "AND (LOWER(p.body) LIKE LOWER(?) OR LOWER(COALESCE(pm.metadata_json,'')) LIKE LOWER(?)) " : "") +
+      "ORDER BY p.created_at DESC,p.id DESC LIMIT ?"
+    ).bind(...(query ? [like, like, limit] : [limit])).all();
+  }
 
   let nicheCount = 0;
   if (niche) {
@@ -90,8 +115,8 @@ export async function search(request, env) {
       people: (people.results || []).slice(0, limit).map((p) => ({ id:p.id, username:p.username, name:p.display_name, avatarUrl:p.avatar_url || null, followerCount:Number(p.follower_count || 0), following:false })),
       peopleNextCursor: (people.results || []).length > limit ? encodePeopleCursor(peopleOffset + limit) : null,
       posts: (postRows.results || []).map(serializePost),
-      topics: [...topicSet].slice(0, limit),
-      music: [],
+      topics: recentTopics,
+      music: (musicRows.results || []).map(serializePost),
     },
     query, type, niche, nicheCount,
   }, error: null };
