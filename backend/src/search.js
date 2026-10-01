@@ -11,6 +11,18 @@ const NICHE_KEYWORDS = Object.freeze({
 function failure(code, status, message) { return { response: null, error: { code, status, message } }; }
 function normalizeLimit(value) { const n = Number(value); return Number.isInteger(n) ? Math.min(Math.max(n, 1), MAX_LIMIT) : 20; }
 function normalizeNiche(value) { const name = String(value || "").trim(); return Object.prototype.hasOwnProperty.call(NICHE_KEYWORDS, name) ? name : ""; }
+function decodePeopleCursor(value) {
+  if (!value) return 0;
+  try {
+    const raw = String(value).replace(/-/g, "+").replace(/_/g, "/");
+    const padded = raw + "=".repeat((4 - (raw.length % 4)) % 4);
+    const offset = Number(globalThis.atob(padded));
+    return Number.isInteger(offset) && offset >= 0 ? offset : 0;
+  } catch { return 0; }
+}
+function encodePeopleCursor(offset) {
+  return globalThis.btoa(String(Math.max(0, Number(offset) || 0))).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
 function buildNicheClause(niche, column = "p.body") {
   const terms = NICHE_KEYWORDS[niche] || [];
   if (!terms.length) return { sql: "1=1", values: [] };
@@ -26,6 +38,7 @@ export async function search(request, env) {
   const type = String(url.searchParams.get("type") || "all");
   const niche = normalizeNiche(url.searchParams.get("niche"));
   const limit = normalizeLimit(url.searchParams.get("limit"));
+  const peopleOffset = decodePeopleCursor(url.searchParams.get("cursor"));
   const like = "%" + query.replace(/[%_]/g, "\\$&") + "%";
   const nicheFilter = buildNicheClause(niche);
 
@@ -35,10 +48,11 @@ export async function search(request, env) {
       "(SELECT COUNT(*) FROM relationships f WHERE f.target_user_id=u.id AND f.relationship_type='follow') AS follower_count," +
       "EXISTS (SELECT 1 FROM relationships mef WHERE mef.source_user_id=?1 AND mef.target_user_id=u.id AND mef.relationship_type='follow') AS following " +
       "FROM users u WHERE u.deleted_at IS NULL AND u.id <> ?1 " +
+      "AND NOT EXISTS (SELECT 1 FROM relationships existing_follow WHERE existing_follow.source_user_id=?1 AND existing_follow.target_user_id=u.id AND existing_follow.relationship_type='follow') " +
       (query ? "AND (LOWER(u.username) LIKE LOWER(?2) ESCAPE '\\\\' OR LOWER(u.display_name) LIKE LOWER(?2) ESCAPE '\\\\') " : "") +
       "ORDER BY follower_count DESC,u.created_at DESC,u.username ASC LIMIT ?" +
-      (query ? "3" : "2")
-    ).bind(...(query ? [session.user_id, like, limit] : [session.user_id, limit])).all()
+      (query ? "3" : "2") + " OFFSET ?" 
+    ).bind(...(query ? [session.user_id, like, limit + 1, peopleOffset] : [session.user_id, limit + 1, peopleOffset])).all()
     : { results: [] };
 
   let postRows = { results: [] };
@@ -73,7 +87,8 @@ export async function search(request, env) {
 
   return { response: {
     items: {
-      people: (people.results || []).map((p) => ({ id:p.id, username:p.username, name:p.display_name, avatarUrl:p.avatar_url || null, followerCount:Number(p.follower_count || 0), following:Boolean(p.following) })),
+      people: (people.results || []).slice(0, limit).map((p) => ({ id:p.id, username:p.username, name:p.display_name, avatarUrl:p.avatar_url || null, followerCount:Number(p.follower_count || 0), following:false })),
+      peopleNextCursor: (people.results || []).length > limit ? encodePeopleCursor(peopleOffset + limit) : null,
       posts: (postRows.results || []).map(serializePost),
       topics: [...topicSet].slice(0, limit),
       music: [],
