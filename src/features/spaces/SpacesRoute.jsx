@@ -15,7 +15,7 @@ const LiveAudio = forwardRef(function LiveAudio({ space, userRole, onRoleChange,
   const [error, setError] = useState("");
   const createPeer = async (remoteId, initiator) => {
     if (peersRef.current.has(remoteId)) return peersRef.current.get(remoteId);
-    const pc = new RTCPeerConnection();
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }] });
     peersRef.current.set(remoteId, pc);
     pc.onicecandidate = (event) => { if (event.candidate && wsRef.current?.readyState === WebSocket.OPEN) wsRef.current.send(JSON.stringify({type:"signal",kind:"ice",targetUserId:remoteId,data:event.candidate})); };
     pc.ontrack = (event) => {
