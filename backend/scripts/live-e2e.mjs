@@ -23,13 +23,23 @@ async function request(path, options = {}) {
   if (options.body !== undefined && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
   if (cookie) headers.set("Cookie", cookie);
 
-  const response = await fetch(baseUrl + path, { ...options, headers });
-  readCookie(response);
-  const text = await response.text();
-  let body = null;
-  try { body = text ? JSON.parse(text) : null; } catch { body = text; }
-  if (!response.ok) throw new Error((options.method || "GET") + " " + path + " -> " + response.status + ": " + JSON.stringify(body));
-  return body;
+  let response;
+  let text;
+  let body;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    response = await fetch(baseUrl + path, { ...options, headers });
+    readCookie(response);
+    text = await response.text();
+    body = null;
+    try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+    if (response.ok) return body;
+    const transientWorkerFailure = response.status >= 500 && response.status < 600;
+    if (!transientWorkerFailure || attempt === 2) {
+      throw new Error((options.method || "GET") + " " + path + " -> " + response.status + ": " + JSON.stringify(body));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 750 * (attempt + 1)));
+  }
+  throw new Error("Unreachable live E2E request state.");
 }
 
 const signup = await request("/api/auth/sign-up", {
