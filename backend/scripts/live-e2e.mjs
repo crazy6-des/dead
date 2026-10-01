@@ -427,6 +427,39 @@ if (!report.ok || !report.submitted || report.emailStatus !== "sent" || !report.
   throw new Error("Production moderation report email contract failed: " + JSON.stringify(report));
 }
 
+
+cookie = primaryCookie;
+const folder = await request("/api/bookmarks/folders", {
+  method: "POST",
+  body: JSON.stringify({ name: "E2E Research", description: "Live E2E bookmark folder" }),
+});
+if (!folder.id || folder.name !== "E2E Research") throw new Error("Bookmark folder creation persistence contract failed.");
+await request("/api/bookmarks", {
+  method: "POST",
+  body: JSON.stringify({ postId, folderId: folder.id }),
+});
+const folderBookmarks = await request("/api/bookmarks?folderId=" + encodeURIComponent(folder.id));
+if (!folderBookmarks.items?.some((item) => item.id === postId)) throw new Error("Bookmark folder membership persistence contract failed.");
+const foldersAfterReload = await request("/api/bookmarks/folders");
+const persistedFolder = foldersAfterReload.items?.find((item) => item.id === folder.id);
+if (!persistedFolder || Number(persistedFolder.itemCount) < 1) throw new Error("Bookmark folder reload persistence contract failed.");
+
+const list = await request("/api/lists", {
+  method: "POST",
+  body: JSON.stringify({ name: "E2E Finance", description: "Live E2E list", visibility: "private" }),
+});
+if (!list.id || list.visibility !== "private") throw new Error("List creation persistence contract failed.");
+await request("/api/lists/" + encodeURIComponent(list.id) + "/members", {
+  method: "POST",
+  body: JSON.stringify({ username: username2 }),
+});
+const listDetail = await request("/api/lists/" + encodeURIComponent(list.id));
+if (!listDetail.members?.some((member) => member.username === username2)) throw new Error("List member persistence contract failed.");
+const listPosts = await request("/api/lists/" + encodeURIComponent(list.id) + "/posts");
+if (!Array.isArray(listPosts.items)) throw new Error("List timeline contract failed.");
+const listReload = await request("/api/lists");
+if (!listReload.items?.some((item) => item.id === list.id && Number(item.memberCount) === 1)) throw new Error("List reload persistence contract failed.");
+
 await request("/api/auth/sign-out", { method: "POST" });
 const signedOut = await request("/api/auth/session");
 if (signedOut.authenticated) throw new Error("Sign-out persistence contract failed.");
