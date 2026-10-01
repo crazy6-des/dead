@@ -239,7 +239,7 @@ export default function App() {
     return <div className="app app-auth-loading" aria-busy="true"><main className="main"><div className="empty" role="status" aria-live="polite"><h3>Loading S…</h3><p>Restoring your session.</p></div></main></div>;
   }
   if (hasApiBaseUrl() && (auth.isAnonymous || isResetRoute)) {
-    return <LandingRoute initialAuthMode={isResetRoute ? "reset" : null} onAuthenticated={enterApp}/>;
+    return <LandingRoute initialAuthMode={isResetRoute ? "reset" : null} auth={auth} onAuthenticated={enterApp}/>;
   }
   const open = (path) => go(path);
   const openSearch = () => { startTransition(() => setSearchOpen(true)); };
