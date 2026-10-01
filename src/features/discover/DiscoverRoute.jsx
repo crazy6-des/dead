@@ -28,8 +28,10 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
   useEffect(() => {
     if (tab !== "For you" || query.trim() || activeNiche || !hasApiBaseUrl()) return undefined;
     let active = true;
-    setPersonalLoading(true);
-    feedApi.list({ mode: "For You", limit: 20, cursor: null }).then((page) => {
+    Promise.resolve().then(() => {
+      if (active) setPersonalLoading(true);
+      return feedApi.list({ mode: "For You", limit: 20, cursor: null });
+    }).then((page) => {
       if (active) setPersonalPosts(page?.items || []);
     }).catch((error) => {
       if (active) setRemoteError(error?.message || "Your personalized Discover feed could not be loaded.");
