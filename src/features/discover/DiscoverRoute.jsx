@@ -15,6 +15,7 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
   const [remoteError, setRemoteError] = useState("");
   const [activeNiche, setActiveNiche] = useState("");
   const [peopleMoreLoading, setPeopleMoreLoading] = useState(false);
+  const [postsMoreLoading, setPostsMoreLoading] = useState(false);
   const [personalPosts, setPersonalPosts] = useState([]);
   const [personalLoading, setPersonalLoading] = useState(false);
   const [liveNicheStats, setLiveNicheStats] = useState(() => Object.fromEntries(DISCOVER_NICHES ? Object.keys(DISCOVER_NICHES).map((niche) => [niche, 0]) : []));
@@ -111,6 +112,7 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
   };
   const remotePeople = remote?.items?.people || [];
   const peopleNextCursor = remote?.items?.peopleNextCursor || null;
+  const postsNextCursor = remote?.items?.postsNextCursor || null;
   const remotePosts = (remote?.items?.posts || []).map((post) => toFeedPostFromCreatedPost(post));
   const remoteTopics = remote?.items?.topics || [];
   const remoteMusic = remote?.items?.music || [];
@@ -133,6 +135,25 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
       setPeopleMoreLoading(false);
     }
   };
+  const loadMorePosts = async () => {
+    if (!postsNextCursor || postsMoreLoading || tab !== "Posts") return;
+    setPostsMoreLoading(true);
+    try {
+      const result = await searchApi.search(query, "posts", postsNextCursor, activeNiche, 20);
+      setRemote((current) => current ? {
+        ...current,
+        items: {
+          ...current.items,
+          posts: [...(current.items?.posts || []), ...(result?.items?.posts || [])],
+          postsNextCursor: result?.items?.postsNextCursor || null,
+        },
+      } : result);
+    } catch (error) {
+      setRemoteError(error?.message || "More posts could not be loaded.");
+    } finally {
+      setPostsMoreLoading(false);
+    }
+  };
   const nicheTerms = Object.keys(DISCOVER_NICHES);
 
   return <div className="page discover-page">
@@ -141,11 +162,11 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
     <div className="discover-niches" aria-label="Explore topics">{nicheTerms.map((term) => { const count = nicheStats.find((item) => item.niche === term)?.count || 0; return <button key={term} type="button" className={activeNiche === term ? "active" : ""} onClick={() => { void openNiche(term); }}><strong>{term}</strong><small>{count} {count === 1 ? "post" : "posts"}</small></button>; })}</div>
     <div className="tabs5" role="tablist" aria-label="Discover sections">{["For you", "People", "Posts", "Topics", "Music"].map((item) => <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} onClick={() => { setActiveNiche(""); setTab(item); }}>{item}</button>)}</div>
 
-    {(tab === "For you" || tab === "Topics") && <section className="card"><header><div><small>FROM THE COMMUNITY</small><h2>Trending hashtags</h2></div><Hash size={18} aria-hidden="true" /></header>{(tab === "Topics" && remote ? remoteTopics : trends).length ? (tab === "Topics" && remote ? remoteTopics : trends).map(({ tag, count }) => <button className="discover-row" key={tag} type="button" onClick={() => { setQuery(tag); setTab("Posts"); }}><span><strong>{tag}</strong><small>{count ? `${count} ${count === 1 ? "post" : "posts"}` : "Explore conversation"}</small></span></button>) : <div className="empty"><p>Hashtags from published posts will appear here.</p></div>}</section>}
+    {(tab === "For you" || tab === "Topics") && <section className="card"><header><div><small>FROM THE COMMUNITY</small><h2>Trending hashtags</h2></div><Hash size={18} aria-hidden="true" /></header>{(tab === "Topics" && remote ? remoteTopics : trends).length ? (tab === "Topics" && remote ? remoteTopics : trends).map(({ tag, count }) => <button className="discover-row" key={tag} type="button" onClick={() => { setActiveNiche(""); setQuery(tag); setTab("Posts"); }}><span><strong>{tag}</strong><small>{count ? `${count} ${count === 1 ? "post" : "posts"}` : "Explore conversation"}</small></span></button>) : <div className="empty"><p>Hashtags from published posts will appear here.</p></div>}</section>}
 
     {(tab === "For you" || tab === "People") && <section className="card"><header><div><small>WHO TO FOLLOW</small><h2>Who to follow</h2></div><Users size={18} aria-hidden="true" /></header>{remoteLoading && tab !== "For you" ? <div className="empty" role="status"><p>Searching…</p></div> : remoteError ? <div className="empty" role="alert"><p>{remoteError}</p></div> : (((tab === "People" || tab === "For you") && remote) ? remotePeople : people).length ? ((tab === "People" || tab === "For you") && remote ? remotePeople : people).map(({ username, name, avatarUrl, following: serverFollowing, location, interests }) => <div className="person" key={username}><button type="button" className="avatar avatar--small person-avatar" onClick={() => onOpen?.("/user/" + username)} aria-label={"Open " + name}><span>{String(name || username).charAt(0).toUpperCase()}</span>{avatarUrl && <img src={resolveApiUrl(avatarUrl)} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} />}</button><div><strong>{name}</strong><span>@{username}{location ? " · " + location : interests?.length ? " · " + interests.slice(0, 2).join(", ") : ""}</span></div><button type="button" className="follow" onClick={async () => { await onFollow?.(username); setRemote((current) => current ? { ...current, items: { ...current.items, people: (current.items.people || []).filter((person) => person.username !== username) } } : current); }}>{serverFollowing || followingUsers.has(String(username).toLowerCase()) ? "Following" : "Follow"}</button></div>) : <div className="empty"><p>There are no more accounts to connect with right now.</p></div>}\n    {(tab === "For you" || tab === "People") && peopleNextCursor && <div className="discover-more"><button type="button" onClick={() => { void loadMorePeople(); }} disabled={peopleMoreLoading}>{peopleMoreLoading ? "Loading…" : "More people"}</button></div>}</section>}
 
-    {(tab === "For you" || tab === "Posts") && <section className="card discover-posts"><header><div><small>POSTS</small><h2>Explore posts</h2></div></header>{(tab === "For you" && !query.trim() && !activeNiche ? personalPosts : ((query.trim() || activeNiche) && tab === "Posts" ? (remotePosts.length ? remotePosts : localNichePosts) : filtered)).length ? (tab === "For you" && !query.trim() && !activeNiche ? personalPosts : ((query.trim() || activeNiche) && tab === "Posts" ? (remotePosts.length ? remotePosts : localNichePosts) : filtered)).slice(0, 20).map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onFollow={() => onFollow?.(String(post.h || post.username || "").replace("@", "").toLowerCase())} onOpen={onOpen} />) : <div className="empty"><p>No posts match your search yet.</p></div>}</section>}
+    {(tab === "For you" || tab === "Posts") && <section className="card discover-posts"><header><div><small>POSTS</small><h2>Explore posts</h2></div></header>{(tab === "For you" && !query.trim() && !activeNiche ? personalPosts : ((query.trim() || activeNiche) && tab === "Posts" ? (remotePosts.length ? remotePosts : localNichePosts) : filtered)).length ? (tab === "For you" && !query.trim() && !activeNiche ? personalPosts : ((query.trim() || activeNiche) && tab === "Posts" ? (remotePosts.length ? remotePosts : localNichePosts) : filtered)).slice(0, 20).map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onFollow={() => onFollow?.(String(post.h || post.username || "").replace("@", "").toLowerCase())} onOpen={onOpen} />) : <div className="empty"><p>No posts match your search yet.</p></div>}{tab === "Posts" && postsNextCursor && <div className="discover-more"><button type="button" onClick={() => { void loadMorePosts(); }} disabled={postsMoreLoading}>{postsMoreLoading ? "Loading…" : "More posts"}</button></div>}</section>}
     {tab === "For you" && !query.trim() && !activeNiche && personalLoading && <div className="empty" role="status"><p>Personalizing your Discover feed…</p></div>}
     {tab === "Music" && <section className="card"><header><div><small>MUSIC</small><h2>Music discovery</h2></div></header>{remoteLoading ? <div className="empty" role="status"><p>Loading recent music posts…</p></div> : remoteError ? <div className="empty" role="alert"><p>{remoteError}</p></div> : remoteMusic.length ? remoteMusic.map((post) => <PostCard key={post.id} post={post} onLike={onLike} onSave={onSave} onRepost={onRepost} onFollow={() => onFollow?.(String(post.h || post.username || "").replace("@", "").toLowerCase())} onOpen={onOpen} />) : <div className="empty"><p>No public posts with music are available yet.</p></div>}</section>}
   </div>;
