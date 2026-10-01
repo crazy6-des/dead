@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { formatFullDateTime } from "../../utils/dateTime.js";
 import { moderationService } from "../../services/moderationService.js";
+import { bookmarkService } from "../../services/bookmarkService.js";
 import { postService } from "../../services/postService.js";
 import { resolveApiUrl } from "../../services/apiClient.js";
 import { pollService } from "../../services/pollService.js";
@@ -95,6 +96,9 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const [reportReason, setReportReason] = useState("");
   const [reportNote, setReportNote] = useState("");
   const [menu, setMenu] = useState(false);
+  const [folderPicker, setFolderPicker] = useState(false);
+  const [bookmarkFolders, setBookmarkFolders] = useState([]);
+  const [folderBusy, setFolderBusy] = useState(false);
   const menuRef = useRef(null);
   const [editing, setEditing] = useState(false);
   const [editBusy, setEditBusy] = useState(false);
@@ -227,6 +231,31 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   };
   const background = post.background || post.bg || null;
   const backgroundStyle = getBackgroundStyle(background);
+  const openFolderPicker = async () => {
+    setFolderBusy(true);
+    try {
+      const result = await bookmarkService.listFolders();
+      setBookmarkFolders(result?.items || []);
+      setFolderPicker(true);
+    } catch (error) {
+      setModerationMessage(error?.message || "Could not load bookmark folders.");
+    } finally {
+      setFolderBusy(false);
+    }
+  };
+  const saveToFolder = async (folderId) => {
+    setFolderBusy(true);
+    try {
+      await bookmarkService.save({ postId: post.id, folderId });
+      setFolderPicker(false);
+      setMenu(false);
+      setModerationMessage("Saved to bookmark folder.");
+    } catch (error) {
+      setModerationMessage(error?.message || "Could not save to that folder.");
+    } finally {
+      setFolderBusy(false);
+    }
+  };
   const downloadMedia = () => {
     const source = mediaSources[0] || audioSource?.url;
     if (!source) return;
@@ -288,7 +317,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
         <span>@{username}</span><span>·</span>
         <button className="post-time" title={formatFullDateTime(post.createdAt || post.t)} onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))}>{getRelativeTime(post.createdAt || post.t)}</button>
         <div ref={menuRef} className="post-menu"><button type="button" className="icon-btn" onClick={(event) => { event.stopPropagation(); setMenu((v) => !v); }} aria-label="More"><MoreHorizontal size={18}/></button>
-          {menu && <div className="popover"><button onClick={() => { navigator.clipboard?.writeText(window.location.origin + "/post/" + encodeURIComponent(post.id)); setMenu(false); }}><Copy size={16}/>Copy link</button>{post.isOwner && <><button onClick={() => { setEditText(localText); setEditing(true); setMenu(false); }}><span aria-hidden="true">✎</span>Edit post</button><button className="danger" onClick={deleteOwnedPost} disabled={editBusy || deleteBusy}><X size={16}/>{deleteBusy ? "Deleting…" : "Delete post"}</button></>}<button onClick={() => { onRepost?.(post.id); setMenu(false); }}><Repeat2 size={16}/>Repost</button><button onClick={() => { onOpen?.("/post/" + encodeURIComponent(post.id) + "/quote"); setMenu(false); }}><Repeat2 size={16}/>Quote</button><button onClick={() => { onSave?.(post.id); setMenu(false); }}><Bookmark size={16}/> {post.saved ? "Remove from favourites" : "Add to favourites"}</button><button onClick={() => { setMenu(false); onOpen?.("/share/" + encodeURIComponent(post.id)); }}><Send size={16}/>Share</button>{(mediaSources.length > 0 || audioSource?.url) && <button onClick={downloadMedia}><Download size={16}/>Download media</button>}<button onClick={() => runModeration(MODERATION_ACTIONS.MUTE)} disabled={moderationBusy}><Shield size={16}/>Mute author</button><button onClick={() => runModeration(MODERATION_ACTIONS.BLOCK)} disabled={moderationBusy}><X size={16}/>Block author</button><button className="danger" onClick={() => setModeration("report")}><Flag size={16}/>Report post</button></div>}
+          {menu && <div className="popover"><button onClick={() => { navigator.clipboard?.writeText(window.location.origin + "/post/" + encodeURIComponent(post.id)); setMenu(false); }}><Copy size={16}/>Copy link</button>{post.isOwner && <><button onClick={() => { setEditText(localText); setEditing(true); setMenu(false); }}><span aria-hidden="true">✎</span>Edit post</button><button className="danger" onClick={deleteOwnedPost} disabled={editBusy || deleteBusy}><X size={16}/>{deleteBusy ? "Deleting…" : "Delete post"}</button></>}<button onClick={() => { onRepost?.(post.id); setMenu(false); }}><Repeat2 size={16}/>Repost</button><button onClick={() => { onOpen?.("/post/" + encodeURIComponent(post.id) + "/quote"); setMenu(false); }}><Repeat2 size={16}/>Quote</button><button onClick={() => { onSave?.(post.id); setMenu(false); }}><Bookmark size={16}/> {post.saved ? "Remove from favourites" : "Add to favourites"}</button><button onClick={() => { setMenu(false); onOpen?.("/share/" + encodeURIComponent(post.id)); }}><Send size={16}/>Share</button><button onClick={openFolderPicker} disabled={folderBusy}><Bookmark size={16}/>{folderBusy ? "Loading folders…" : "Add to bookmark folder"}</button>{(mediaSources.length > 0 || audioSource?.url) && <button onClick={downloadMedia}><Download size={16}/>Download media</button>}<button onClick={() => runModeration(MODERATION_ACTIONS.MUTE)} disabled={moderationBusy}><Shield size={16}/>Mute author</button><button onClick={() => runModeration(MODERATION_ACTIONS.BLOCK)} disabled={moderationBusy}><X size={16}/>Block author</button><button className="danger" onClick={() => setModeration("report")}><Flag size={16}/>Report post</button></div>}
         </div>
       </div>
       {editing ? <div className="post-edit-box"><textarea value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={5000} aria-label="Edit post"/><div><span>{editText.length}/5000</span><button type="button" className="outline" onClick={() => { setEditing(false); setEditText(localText); }} disabled={editBusy}>Cancel</button><button type="button" className="primary" onClick={saveEdit} disabled={editBusy || !editText.trim()}>{editBusy ? "Saving…" : "Save"}</button></div></div> : localText && !backgroundStyle && <button className="post-content-hit" onClick={() => onOpen?.("/post/" + post.id)}><p className="post__text">{localText}</p></button>}
@@ -315,6 +344,12 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
       {post.poll && <div className="poll-card"><div className="poll-card__question"><BarChart3 size={17}/><strong>{post.poll.question}</strong></div>{getPollOptions(localPoll || post.poll).map((option, index) => { const poll = localPoll || post.poll; const pollId = post.poll.id || post.id; const selected = Number(poll?.votedOptionIndex ?? pollVotes[pollId]) === index; const votes = getPollOptionVotes(poll, option, index); const total = Array.isArray(poll?.optionVotes) ? poll.optionVotes.reduce((sum, count) => sum + Math.max(0, Number(count || 0)), 0) : Number(poll?.totalVotes || 0); const percent = total > 0 ? Math.round((votes / total) * 100) : 0; const optionText = getPollOptionText(option); return <button className={"poll-option " + (selected ? "is-selected" : "")} key={index} onClick={async () => { if (pollBusy) return; setPollBusy(true); setPollError(""); try { const result = await pollService.vote(pollId, index); if (result?.poll) setLocalPoll(result.poll); setPollVotes((current) => ({ ...current, [pollId]: Number(result?.optionIndex ?? index) })); } catch (err) { setPollError(err?.message || "Could not record your vote."); } finally { setPollBusy(false); } }}><span>{optionText || "Option " + (index + 1)}</span><span>{percent}%</span></button>; })}<small>{pollError || `${(localPoll || post.poll)?.totalVotes || 0} votes`}</small></div>}
 
       <div className="post__actions"><button onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id) + "/replies")} aria-label="Comment"><MessageCircle size={18.75}/><span>{post.replies ?? post.r ?? 0}</span></button><button className={reposted ? "is-active" : ""} onClick={() => onRepost?.(post.id)} aria-label="Repost"><Repeat2 size={18.75}/><span>{post.reposts ?? post.p ?? 0}</span></button><button className={post.liked ? "is-liked" : ""} onClick={() => onLike?.(post.id)} aria-label="Like"><Heart size={18.75} fill={post.liked ? "currentColor" : "none"}/><span>{post.likes ?? post.l ?? 0}</span></button><button onClick={() => onOpen?.("/post/" + encodeURIComponent(post.id))} aria-label="Views"><BarChart3 size={18.75}/><span>{viewCount}</span></button><button onClick={() => onOpen?.("/share/" + post.id)} aria-label="Share"><Send size={18.75}/></button></div>
+      {folderPicker && <div className="moderation-sheet" role="dialog" aria-modal="true" aria-label="Save to bookmark folder">
+        <strong>Save to bookmark folder</strong><small>Choose a private folder for this saved post.</small>
+        <div className="moderation-reasons">{bookmarkFolders.map((folder) => <button type="button" key={folder.id} onClick={() => saveToFolder(folder.id)} disabled={folderBusy}>{folder.name}</button>)}</div>
+        {!bookmarkFolders.length && <small>You have no folders yet. Open Bookmarks to create one.</small>}
+        <div className="moderation-actions"><button className="outline" type="button" onClick={() => setFolderPicker(false)} disabled={folderBusy}>Cancel</button></div>
+      </div>}
       {moderation === "report" && <div className="moderation-sheet" role="dialog" aria-modal="true" aria-labelledby={"report-post-title-" + post.id}>
         <strong id={"report-post-title-" + post.id}>Report this post</strong>
         <small>Choose a reason, add details if needed, then send your report.</small>
