@@ -141,4 +141,7 @@ jobs:
           DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}'));
           DELETE FROM relationships WHERE source_user_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}')) OR target_user_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}'));
           DELETE FROM conversations WHERE created_by IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}'));
+          DELETE FROM space_messages WHERE sender_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}'));
+          DELETE FROM space_members WHERE user_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}'));
+          DELETE FROM spaces WHERE host_id IN (SELECT id FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}'));
           DELETE FROM users WHERE username IN ('${TEST_USERNAME}', '${TEST_USERNAME_2}');"
