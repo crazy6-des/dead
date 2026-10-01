@@ -44,10 +44,13 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
     if (activeNiche) return undefined;
     if (tab === "Topics" || tab === "Music") {
       let active = true;
-      setRemoteLoading(true);
-      setRemoteError("");
-      setRemote(null);
-      searchApi.search(query, tab === "Topics" ? "topics" : "music").then((result) => { if (active) setRemote(result); }).catch((error) => { if (active) setRemoteError(error?.message || "Discover results could not be loaded."); }).finally(() => { if (active) setRemoteLoading(false); });
+      Promise.resolve().then(() => {
+        if (!active) return null;
+        setRemoteLoading(true);
+        setRemoteError("");
+        setRemote(null);
+        return searchApi.search(query, tab === "Topics" ? "topics" : "music");
+      }).then((result) => { if (active) setRemote(result); }).catch((error) => { if (active) setRemoteError(error?.message || "Discover results could not be loaded."); }).finally(() => { if (active) setRemoteLoading(false); });
       return () => { active = false; };
     }
     if (tab === "Posts" && !query.trim()) return undefined;
