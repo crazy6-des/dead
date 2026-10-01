@@ -395,7 +395,7 @@ const spaceId = spaceCreated.space?.id;
 if (!spaceId || spaceCreated.space?.status !== "live" || spaceCreated.space?.role !== "host") throw new Error("Spaces creation/live lifecycle contract failed: " + JSON.stringify(spaceCreated.space));
 const listedSpaces = await request("/api/spaces?q=Spaces%20E2E");
 if (!listedSpaces.items?.some((item) => item.id === spaceId && item.status === "live")) throw new Error("Spaces public listing persistence contract failed.");
-const spaceDetail = await request("/api/spaces/" + encodeURIComponent(spaceId));
+const spaceDetail = await request("/api/spaces/" + encodeURIComponent(spacesSmokeId));
 if (spaceDetail.space?.id !== spaceId || spaceDetail.space?.role !== "host") throw new Error("Spaces detail persistence contract failed.");
 const primarySpaceCookie = cookie;
 cookie = partnerCookie;
@@ -442,7 +442,7 @@ const createdSpace = await request("/api/spaces", {
   method: "POST",
   body: JSON.stringify({ title: "S live Spaces E2E" }),
 });
-const spaceId = createdSpace.space?.id;
+const spacesSmokeId = createdSpace.space?.id;
 if (!spaceId || createdSpace.space?.status !== "live" || createdSpace.space?.role !== "host") {
   throw new Error("Live Spaces creation persistence contract failed: " + JSON.stringify(createdSpace));
 }
