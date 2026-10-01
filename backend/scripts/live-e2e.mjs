@@ -143,6 +143,10 @@ if (!richPostId || richCreated.post?.media?.[0]?.id !== mediaId) {
   throw new Error("Image-only post media persistence contract failed.");
 }
 
+const musicSearch = await request("/api/music/search?query=E2E&limit=1");
+const catalogTrack = Array.isArray(musicSearch.data) ? musicSearch.data[0] : Array.isArray(musicSearch.items) ? musicSearch.items[0] : null;
+const catalogTrackId = String(catalogTrack?.id || catalogTrack?.musicId || "").trim();
+if (!catalogTrackId) throw new Error("Live music catalog search did not return a real public Audius track.");
 const musicCreated = await request("/api/posts", {
   method: "POST",
   body: JSON.stringify({
@@ -151,12 +155,12 @@ const musicCreated = await request("/api/posts", {
     media: [],
     audio: {
       source: "catalog",
-      musicId: "e2e-catalog-track",
-      url: "https://cdn.example.invalid/e2e-catalog-track.mp3",
-      title: "E2E Catalog Track",
-      artist: "S E2E",
+      musicId: catalogTrackId,
+      url: baseUrl + "/api/music/stream/" + encodeURIComponent(catalogTrackId),
+      title: catalogTrack?.title || catalogTrack?.name || "Audius track",
+      artist: catalogTrack?.user?.name || catalogTrack?.artist || "",
       type: "audio/mpeg",
-      durationMs: 1000,
+      durationMs: Number(catalogTrack?.duration || catalogTrack?.durationMs || 0) * (catalogTrack?.durationMs ? 1 : 1000),
     },
     background: null,
     poll: null,
@@ -165,8 +169,8 @@ const musicCreated = await request("/api/posts", {
   }),
 });
 const musicPostId = musicCreated.post?.id;
-if (!musicPostId || musicCreated.post?.audio?.musicId !== "e2e-catalog-track") {
-  throw new Error("Music-only catalog post persistence contract failed.");
+if (!musicPostId || musicCreated.post?.audio?.musicId !== catalogTrackId) {
+  throw new Error("Music-only real catalog post persistence contract failed.");
 }
 
 const backgroundCreated = await request("/api/posts", {
