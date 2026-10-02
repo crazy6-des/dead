@@ -2,9 +2,17 @@
   "name": "S",
   "short_name": "S",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#FFFFFF",
-  "description": "S",
-  "icons": []
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "description": "S — where you are truly seen, and where you connect.",
+  "icons": [
+    {
+      "src": "/s-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
