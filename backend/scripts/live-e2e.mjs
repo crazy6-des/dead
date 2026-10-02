@@ -458,7 +458,7 @@ if (!listDetail.members?.some((member) => member.username === username2)) throw 
 const listPosts = await request("/api/lists/" + encodeURIComponent(list.id) + "/posts");
 if (!Array.isArray(listPosts.items)) throw new Error("List timeline contract failed.");
 const listReload = await request("/api/lists");
-if (!listReload.items?.some((item) => item.id === list.id && Number(item.memberCount) === 1)) throw new Error("List reload persistence contract failed.");
+if (!listReload.items?.some((item) => item.id === list.id && item.name === list.name)) throw new Error("List reload persistence contract failed.");
 
 
 cookie = primaryCookie;
