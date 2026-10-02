@@ -423,8 +423,8 @@ const report = await request("/api/moderation/actions", {
   method: "POST",
   body: JSON.stringify({ action: "report", targetType: "post", targetId: reportTargetPostId, reason: "spam", note: "S live moderation email E2E" }),
 });
-if (!report.ok || !report.submitted || report.emailStatus !== "sent" || !report.reportId) {
-  throw new Error("Production moderation report email contract failed: " + JSON.stringify(report));
+if (!report.ok || !report.submitted || report.emailStatus !== "sent" || !report.reportId || !report.messageId) {
+  throw new Error("Production moderation report email delivery contract failed: " + JSON.stringify(report));
 }
 
 
