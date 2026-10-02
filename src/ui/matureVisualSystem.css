@@ -2876,3 +2876,270 @@ body,button,input,textarea,select{
 .moderation-actions .moderation-send:hover:not(:disabled),.message-report-form>div:last-child button:last-child:hover:not(:disabled){background:var(--s-accent-strong)}
 .moderation-actions button:disabled,.message-report-form>div:last-child button:disabled{opacity:.55;cursor:not-allowed}
 @media(max-width:720px){.messages{height:100%;min-height:0}.chat-body{min-height:0;padding-bottom:14px}.chat>footer{min-height:56px}}
+
+
+/* TARGETED THEME RECONCILIATION — dark mode must override the final light-only calibration.
+   The existing light specification is preserved; this scope fixes only the dark variant. */
+.app.dark,
+.app.dark .main,
+.app.dark .page,
+.app.dark .feed-list,
+.app.dark .messages,
+.app.dark .chat,
+.app.dark .mobile-menu,
+.app.dark .mobile-nav,
+.app.dark .mobile-head,
+.app.dark .feed-tabs,
+.app.dark .quick,
+.app.dark .post,
+.app.dark .card,
+.app.dark .rail-card,
+.app.dark .earn,
+.app.dark .earn-grid>div,
+.app.dark .settings,
+.app.dark .detail-post,
+.app.dark .entity-hero,
+.app.dark .empty {
+  --s-x-bg:#000000;
+  --s-x-surface:#16181C;
+  --s-x-soft:#202327;
+  --s-x-border:#2F3336;
+  --s-x-text:#E7E9EA;
+  --s-x-muted:#71767B;
+  --s-x-blue:#1D9BF0;
+  background-color:var(--s-x-bg)!important;
+  color:var(--s-x-text)!important;
+}
+.app.dark .main{border-color:var(--s-x-border)!important}
+.app.dark .mobile-head,
+.app.dark .feed-tabs{
+  background:rgba(0,0,0,.85)!important;
+  border-color:var(--s-x-border)!important;
+}
+.app.dark .post,
+.app.dark .quick,
+.app.dark .feed-list,
+.app.dark .page,
+.app.dark .card,
+.app.dark .rail-card,
+.app.dark .messages,
+.app.dark .chat,
+.app.dark .earn,
+.app.dark .earn-grid>div,
+.app.dark .settings{
+  background:#000!important;
+  border-color:var(--s-x-border)!important;
+}
+.app.dark .post:hover,
+.app.dark .quick:hover,
+.app.dark .discover-row:hover,
+.app.dark .person:hover,
+.app.dark .notice:hover,
+.app.dark .conversation:hover,
+.app.dark .conversation.active,
+.app.dark .mobile-menu-links .nav:hover{
+  background:#16181C!important;
+}
+.app.dark .post__meta .post-author,
+.app.dark .post__text,
+.app.dark .post__meta strong,
+.app.dark .heading h2,
+.app.dark .heading p,
+.app.dark .profile-info h2,
+.app.dark .profile-info p,
+.app.dark .settings button,
+.app.dark .detail-post>div:nth-child(2)>p,
+.app.dark .entity-hero h2,
+.app.dark .entity-hero p,
+.app.dark .earn h2,
+.app.dark .earn-grid b,
+.app.dark .mobile-menu-links .nav,
+.app.dark .mobile-account-identity strong{
+  color:#E7E9EA!important;
+}
+.app.dark .post__meta>span,
+.app.dark .post-time,
+.app.dark .post-foot span,
+.app.dark .post__actions button,
+.app.dark .post__actions span,
+.app.dark .heading p,
+.app.dark .profile-info>span,
+.app.dark .links,
+.app.dark .settings button span,
+.app.dark .settings h3,
+.app.dark .earn>small,
+.app.dark .earn p,
+.app.dark .earn-grid small,
+.app.dark .earn-grid span,
+.app.dark .mobile-account-identity span,
+.app.dark .mobile-account-counts,
+.app.dark .mobile-account-counts span{
+  color:#71767B!important;
+}
+.app.dark .post__actions button:hover,
+.app.dark .post__actions .is-liked,
+.app.dark .post__actions .is-saved,
+.app.dark .post__actions .is-active{
+  color:#E7E9EA!important;
+  background:transparent!important;
+}
+.app.dark .post-media,
+.app.dark .post-background-card,
+.app.dark .post-audio-card,
+.app.dark .poll-card,
+.app.dark .conversation,
+.app.dark .chat>header,
+.app.dark .chat>footer,
+.app.dark .discover-row,
+.app.dark .person,
+.app.dark .notice{
+  border-color:var(--s-x-border)!important;
+}
+.app.dark .post-media,
+.app.dark .post-background-card,
+.app.dark .post-audio-card,
+.app.dark .poll-card,
+.app.dark .canvas,
+.app.dark .chat>footer input,
+.app.dark .discover-search{
+  background:#202327!important;
+  color:#E7E9EA!important;
+}
+.app.dark input,
+.app.dark textarea,
+.app.dark select,
+.app.dark .chat>footer input{
+  color:#E7E9EA!important;
+  -webkit-text-fill-color:#E7E9EA!important;
+}
+.app.dark input::placeholder,
+.app.dark textarea::placeholder{color:#71767B!important}
+.app.dark .outline{
+  background:#16181C!important;
+  border-color:#2F3336!important;
+  color:#E7E9EA!important;
+}
+.app.dark .mobile-nav{
+  background:rgba(0,0,0,.95)!important;
+  border-top-color:#2F3336!important;
+}
+.app.dark .mobile-nav button,
+.app.dark .mobile-head>button{
+  color:#E7E9EA!important;
+}
+.app.dark .mobile-nav button.active svg{
+  fill:#E7E9EA!important;
+}
+.app.dark .mobile-menu{
+  background:#000!important;
+  color:#E7E9EA!important;
+  border-color:#2F3336!important;
+}
+.app.dark .mobile-menu-links{border-color:#2F3336!important}
+.app.dark .mobile-menu-links .nav{background:#000!important;color:#E7E9EA!important}
+.app.dark .mobile-menu-links .nav svg{stroke:#E7E9EA!important}
+.app.dark .profile .cover{background:#202327!important}
+.app.dark .profile-avatar{border-color:#000!important;background:#202327!important}
+.app.dark .profile-actions .outline{background:#16181C!important;border-color:#2F3336!important;color:#E7E9EA!important}
+.app.dark .profile .tabs4{background:#000!important;border-color:#2F3336!important}
+.app.dark .feed-tabs button,
+.app.dark .tabs3 button,
+.app.dark .tabs4 button,
+.app.dark .tabs5 button{color:#71767B!important}
+.app.dark .feed-tabs button.selected,
+.app.dark .tabs3 button.active,
+.app.dark .tabs4 button.active,
+.app.dark .tabs5 button.active{color:#E7E9EA!important}
+.app.dark .feed-tabs button.selected:after,
+.app.dark .tabs3 button.active:after,
+.app.dark .tabs4 button.active:after,
+.app.dark .tabs5 button.active:after{background:#1D9BF0!important}
+.app.dark .create{
+  background:#16181C!important;
+  border-color:#2F3336!important;
+  color:#E7E9EA!important;
+}
+.app.dark .create h2,
+.app.dark .create-modes button.active,
+.app.dark .create-modes button:hover{color:#E7E9EA!important}
+.app.dark .create-modes button{color:#71767B!important}
+.app.dark .create>footer>button:not(.primary){color:#71767B!important}
+.app.dark .create select{background:#202327!important;color:#E7E9EA!important;border-color:#2F3336!important}
+
+/* Logged-out landing: same theme contract, without changing auth behavior. */
+.landing--dark,
+.landing--dark .landing-public-home,
+.landing--dark .landing-hero,
+.landing--dark .landing-benefits,
+.landing--dark .landing-install,
+.landing--dark .landing-login-row{
+  --landing-bg:#000;
+  --landing-surface:#16181C;
+  --landing-soft:#202327;
+  --landing-border:#2F3336;
+  --landing-text:#E7E9EA;
+  --landing-muted:#71767B;
+  background-color:var(--landing-bg)!important;
+  color:var(--landing-text)!important;
+}
+.landing--dark .landing-head{
+  background:rgba(0,0,0,.85)!important;
+  border-color:#2F3336!important;
+}
+.landing--dark .landing-hero,
+.landing--dark .landing-benefits,
+.landing--dark .landing-install,
+.landing--dark .landing-login-row{border-color:#2F3336!important}
+.landing--dark .landing-hero-copy h1,
+.landing--dark .landing-benefits h2,
+.landing--dark .landing-install strong{
+  color:#E7E9EA!important;
+}
+.landing--dark .landing-eyebrow,
+.landing--dark .landing-lead,
+.landing--dark .landing-note,
+.landing--dark .landing-benefits p,
+.landing--dark .landing-install p,
+.landing--dark .landing-login-row,
+.landing--dark .landing-auth-brand small,
+.landing--dark .auth-helper,
+.landing--dark .auth-switch,
+.landing--dark .auth-field>span{
+  color:#71767B!important;
+}
+.landing--dark .landing-benefit-icon{
+  background:#202327!important;
+  color:#E7E9EA!important;
+}
+.landing--dark .landing-secondary{
+  background:#16181C!important;
+  border-color:#2F3336!important;
+  color:#E7E9EA!important;
+}
+.landing--dark .landing-primary,
+.landing--dark .landing-primary-large{background:#1D9BF0!important;color:#fff!important}
+.landing--dark .landing-login-row button,
+.landing--dark .auth-link,
+.landing--dark .auth-switch button{color:#1D9BF0!important}
+.landing--dark .landing-install-logo,
+.landing--dark .landing-hero-mark{background:#000!important;color:#fff!important}
+.landing--dark .landing-auth-layer{
+  background:rgba(0,0,0,.85)!important;
+}
+.landing--dark .landing-auth{
+  background:#16181C!important;
+  border-color:#2F3336!important;
+  color:#E7E9EA!important;
+  box-shadow:0 8px 32px rgba(0,0,0,.5)!important;
+}
+.landing--dark .landing-auth-brand b,
+.landing--dark .landing-auth-close{color:#E7E9EA!important}
+.landing--dark .auth-field input{
+  background:#202327!important;
+  border-color:#2F3336!important;
+  color:#E7E9EA!important;
+  -webkit-text-fill-color:#E7E9EA!important;
+}
+.landing--dark .auth-field input::placeholder{color:#71767B!important}
+.landing--dark .auth-error{color:#ff7181!important}
+.landing--dark .auth-success{color:#65d391!important}
