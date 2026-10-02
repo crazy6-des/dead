@@ -26,13 +26,20 @@ import { listBookmarkFolders, createBookmarkFolder, addBookmark, removeBookmark,
 import { upgradeSpaceWebSocket } from "./spaceRealtime.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
+const PRODUCTION_FRONTEND_ORIGIN = "https://siterx.netlify.app";
+function normalizeOrigin(value) { return String(value || "").trim().replace(/\/$/, ""); }
+function frontendOriginAllowed(request, env) {
+  const origin = normalizeOrigin(request.headers.get("Origin"));
+  const configured = normalizeOrigin(env?.FRONTEND_ORIGIN);
+  return Boolean(origin) && (origin === PRODUCTION_FRONTEND_ORIGIN || (configured && origin === configured));
+}
 const MAX_BODY_BYTES = 16 * 1024;
 
-function corsHeaders(request, env) { const origin = request.headers.get("Origin"); const headers = new Headers(JSON_HEADERS); if (origin && env?.FRONTEND_ORIGIN && origin === env.FRONTEND_ORIGIN) { headers.set("access-control-allow-origin", origin); headers.set("access-control-allow-credentials", "true"); headers.set("vary", "Origin"); } return headers; }
+function corsHeaders(request, env) { const origin = normalizeOrigin(request.headers.get("Origin")); const headers = new Headers(JSON_HEADERS); if (frontendOriginAllowed(request, env)) { headers.set("access-control-allow-origin", origin); headers.set("access-control-allow-credentials", "true"); headers.set("vary", "Origin"); } return headers; }
 function json(data, status = 200, request, env, extraHeaders = {}) { const headers = corsHeaders(request, env); Object.entries(extraHeaders).forEach(([name, value]) => headers.set(name, value)); return new Response(JSON.stringify(data), { status, headers }); }
 function errorResponse(code, status, message, request, env, details) { return json({ error: { code, status, message, ...(details === undefined ? {} : { details }) } }, status, request, env); }
 function methodNotAllowed(request, env) { return errorResponse("METHOD_NOT_ALLOWED", 405, "Method not allowed.", request, env); }
-function mutationOriginAllowed(request, env) { return !env?.FRONTEND_ORIGIN || request.headers.get("Origin") === env.FRONTEND_ORIGIN; }
+function mutationOriginAllowed(request, env) { return !request.headers.get("Origin") ? !env?.FRONTEND_ORIGIN : frontendOriginAllowed(request, env); }
 function originRejected(request, env) { return errorResponse("FORBIDDEN_ORIGIN", 403, "Request origin is not allowed.", request, env); }
 async function readJson(request) { const contentLength = Number(request.headers.get("Content-Length")); if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) return { error: "PAYLOAD_TOO_LARGE" }; const text = await request.text(); if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) return { error: "PAYLOAD_TOO_LARGE" }; if (!text.trim()) return { value: {} }; try { return { value: JSON.parse(text) }; } catch { return { error: "INVALID_JSON" }; } }
 function userPayload(user) { return { id: user.id, username: user.username, displayName: user.display_name }; }
