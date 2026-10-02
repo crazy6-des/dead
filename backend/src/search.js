@@ -69,7 +69,7 @@ export async function search(request, env) {
       "FROM users u WHERE u.deleted_at IS NULL AND u.id <> ?1 " +
       peopleFollowFilter +
       "AND NOT EXISTS (SELECT 1 FROM relationships blocked WHERE blocked.relationship_type='block' AND ((blocked.source_user_id=?1 AND blocked.target_user_id=u.id) OR (blocked.source_user_id=u.id AND blocked.target_user_id=?1))) " +
-      (query ? "AND (LOWER(u.username) LIKE LOWER(?2) OR LOWER(u.display_name) LIKE LOWER(?2)) " : "") +
+      (query ? "AND (LOWER(u.username) LIKE LOWER(?2) OR LOWER(u.display_name) LIKE LOWER(?2) OR LOWER(COALESCE(u.bio,'')) LIKE LOWER(?2) OR LOWER(COALESCE(u.website,'')) LIKE LOWER(?2) OR LOWER(COALESCE(u.location,'')) LIKE LOWER(?2)) " : "") +
       "ORDER BY (mutual_count * 100 + MIN(liked_author_count, 5) * 40 + follower_count) DESC,u.created_at DESC,u.username ASC LIMIT ?" +
       (query ? "3" : "2") + " OFFSET ?" 
     ).bind(...(query ? [session.user_id, like, limit + 1, peopleOffset] : [session.user_id, limit + 1, peopleOffset])).all()
@@ -83,7 +83,7 @@ export async function search(request, env) {
       conditions.push("(p.created_at < ? OR (p.created_at = ? AND p.id < ?))");
       values.push(postCursor.createdAt, postCursor.createdAt, postCursor.id);
     }
-    if (query) { conditions.push("(LOWER(p.body) LIKE LOWER(?) OR LOWER(u.username) LIKE LOWER(?) OR LOWER(u.display_name) LIKE LOWER(?) OR EXISTS (SELECT 1 FROM post_media sm WHERE sm.post_id=p.id AND LOWER(COALESCE(sm.metadata_json,'')) LIKE LOWER(?)))"); values.push(like, like, like, like); }
+    if (query) { conditions.push("(LOWER(p.body) LIKE LOWER(?) OR LOWER(u.username) LIKE LOWER(?) OR LOWER(u.display_name) LIKE LOWER(?) OR LOWER(COALESCE(p.background_json,'')) LIKE LOWER(?) OR EXISTS (SELECT 1 FROM post_media sm WHERE sm.post_id=p.id AND (LOWER(COALESCE(sm.metadata_json,'')) LIKE LOWER(?) OR LOWER(COALESCE(sm.external_url,'')) LIKE LOWER(?))))"); values.push(like, like, like, like, like, like); }
     values.push(limit);
     postRows = await env.DB.prepare(
       "SELECT p.id,p.author_id,p.body,p.visibility,p.reply_policy,p.post_kind,p.background_json,p.quoted_post_id,p.view_count,p.created_at,p.updated_at,u.username,u.display_name,u.avatar_url,(p.author_id=?1) AS is_owner," +
