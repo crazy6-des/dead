@@ -446,7 +446,7 @@ if (!persistedFolder || Number(persistedFolder.itemCount) < 1) throw new Error("
 
 const list = await request("/api/lists", {
   method: "POST",
-  body: JSON.stringify({ name: "E2E Finance", description: "Live E2E list", visibility: "private" }),
+  body: JSON.stringify({ name: "E2E Finance " + username, description: "Live E2E list", visibility: "private" }),
 });
 if (!list.id || list.visibility !== "private") throw new Error("List creation persistence contract failed.");
 await request("/api/lists/" + encodeURIComponent(list.id) + "/members", {
@@ -464,7 +464,7 @@ if (!listReload.items?.some((item) => item.id === list.id && Number(item.memberC
 cookie = primaryCookie;
 const bookmarkFolder = await request("/api/bookmarks/folders", {
   method: "POST",
-  body: JSON.stringify({ name: "E2E Saved", description: "Live persistence folder" }),
+  body: JSON.stringify({ name: "E2E Saved " + username, description: "Live persistence folder" }),
 });
 const bookmarkFolderId = bookmarkFolder.id;
 if (!bookmarkFolderId) throw new Error("Bookmark folder creation persistence contract failed.");
@@ -492,7 +492,7 @@ if (emptyFolderItemsAfterRemove.items?.some((item) => item.id === postId)) throw
 
 const publicList = await request("/api/lists", {
   method: "POST",
-  body: JSON.stringify({ name: "E2E Finance", description: "Live list persistence", visibility: "public" }),
+  body: JSON.stringify({ name: "E2E Finance " + username, description: "Live list persistence", visibility: "public" }),
 });
 const publicListId = publicList.id;
 if (!publicListId) throw new Error("Public list creation persistence contract failed.");
@@ -501,7 +501,7 @@ await request("/api/lists/" + encodeURIComponent(publicListId) + "/members", {
   body: JSON.stringify({ username: username2 }),
 });
 const publicListDetail = await request("/api/lists/" + encodeURIComponent(publicListId));
-if (publicListDetail.name !== "E2E Finance" || !publicListDetail.members?.some((member) => member.username === username2)) {
+if (publicListDetail.name !== "E2E Finance " + username || !publicListDetail.members?.some((member) => member.username === username2)) {
   throw new Error("List member persistence contract failed: " + JSON.stringify(publicListDetail));
 }
 const updatedList = await request("/api/lists/" + encodeURIComponent(publicListId), {
@@ -518,7 +518,7 @@ if (!Array.isArray(listTimeline.items) || !listTimeline.items.some((item) => ite
 
 const privateList = await request("/api/lists", {
   method: "POST",
-  body: JSON.stringify({ name: "E2E Private", description: "Private live list", visibility: "private" }),
+  body: JSON.stringify({ name: "E2E Private " + username, description: "Private live list", visibility: "private" }),
 });
 const privateListId = privateList.id;
 if (!privateListId) throw new Error("Private list creation persistence contract failed.");
