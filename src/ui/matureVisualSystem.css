@@ -3258,3 +3258,141 @@ body,button,input,textarea,select{
     border-color: var(--s-border);
   }
 }
+
+
+/* FINAL THEME EDGE RECONCILIATION — remove legacy light-only hard-coded surfaces.
+   The X-style light shell remains unchanged; dark mode gets the same hierarchy without
+   white child surfaces leaking through. Landing keeps the same contract. */
+.app.dark {
+  --s-x-bg:#000000;
+  --s-x-surface:#16181C;
+  --s-x-soft:#202327;
+  --s-x-border:#2F3336;
+  --s-x-text:#F1F3F4;
+  --s-x-muted:#8B98A5;
+  --s-x-blue:#1D9BF0;
+}
+.app.dark .discover-niches,
+.app.dark .discover-niches button,
+.app.dark .discover-row,
+.app.dark .person,
+.app.dark .conversation,
+.app.dark .notice,
+.app.dark .profile .tabs4,
+.app.dark .tabs5,
+.app.dark .tabs4,
+.app.dark .tabs3 {
+  background:#000000!important;
+  color:#F1F3F4!important;
+  border-color:#2F3336!important;
+}
+.app.dark .discover-niches button:hover,
+.app.dark .discover-row:hover,
+.app.dark .person:hover,
+.app.dark .conversation:hover,
+.app.dark .conversation.active,
+.app.dark .notice:hover {
+  background:#16181C!important;
+}
+.app.dark .discover-row strong,
+.app.dark .person strong,
+.app.dark .conversation b,
+.app.dark .conversation strong,
+.app.dark .notice p {
+  color:#F1F3F4!important;
+}
+.app.dark .discover-row small,
+.app.dark .person span,
+.app.dark .conversation span,
+.app.dark .notice span,
+.app.dark .empty,
+.app.dark .card>header small {
+  color:#8B98A5!important;
+  opacity:1!important;
+}
+.app.dark .tabs5 button,
+.app.dark .tabs4 button,
+.app.dark .tabs3 button {
+  background:#000000!important;
+  color:#8B98A5!important;
+  border-color:#2F3336!important;
+}
+.app.dark .tabs5 button.active,
+.app.dark .tabs4 button.active,
+.app.dark .tabs3 button.active {
+  color:#F1F3F4!important;
+}
+.app.dark .discover-search {
+  background:#202327!important;
+  color:#F1F3F4!important;
+}
+.app.dark .discover-search input {
+  background:transparent!important;
+  color:#F1F3F4!important;
+  -webkit-text-fill-color:#F1F3F4!important;
+}
+.app.dark .discover-search input::placeholder {
+  color:#8B98A5!important;
+}
+.app.dark .messages > aside {
+  background:#000000!important;
+  border-color:#2F3336!important;
+}
+.app.dark .chat > header,
+.app.dark .chat > footer {
+  background:#000000!important;
+  border-color:#2F3336!important;
+}
+.app.dark .chat-body {
+  background:#000000!important;
+  color:#F1F3F4!important;
+}
+.app.dark .chat-body > small,
+.app.dark .chat > header span {
+  color:#8B98A5!important;
+}
+.landing--dark,
+.landing--dark .landing-public-home,
+.landing--dark .landing-hero,
+.landing--dark .landing-benefits,
+.landing--dark .landing-install,
+.landing--dark .landing-login-row,
+.landing--dark .landing-auth {
+  --landing-text:#F1F3F4;
+  --landing-muted:#8B98A5;
+  --landing-surface:#16181C;
+  --landing-soft:#202327;
+  --landing-line:#2F3336;
+}
+.landing--dark .landing-lead,
+.landing--dark .landing-note,
+.landing--dark .landing-benefits p,
+.landing--dark .landing-install p,
+.landing--dark .landing-login-row span,
+.landing--dark .auth-helper,
+.landing--dark .auth-field>span {
+  color:#8B98A5!important;
+}
+.landing--dark .landing-benefits article,
+.landing--dark .landing-hero-card,
+.landing--dark .earn-panel,
+.landing--dark .landing-auth {
+  background:#16181C!important;
+  border-color:#2F3336!important;
+}
+.landing--light {
+  --landing-text:#0F1419;
+  --landing-muted:#536471;
+  --landing-surface:#FFFFFF;
+  --landing-soft:#F7F9F9;
+  --landing-line:#EFF3F4;
+}
+.landing--light .landing-lead,
+.landing--light .landing-note,
+.landing--light .landing-benefits p,
+.landing--light .landing-install p,
+.landing--light .landing-login-row span,
+.landing--light .auth-helper,
+.landing--light .auth-field>span {
+  color:#536471!important;
+}
