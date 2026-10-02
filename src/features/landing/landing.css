@@ -25,3 +25,188 @@
 
 /* Canonical landing theme: every landing surface follows the same light/dark state. */
 .landing--dark{--landing-bg:#000;--landing-surface:#0f0f10;--landing-line:#2f3336;--landing-text:#f7f9f9;--landing-muted:#aab2ba;--landing-brand:#1d9bf0;--landing-field:#17181c;--landing-soft:#17181c;background:#000;color:var(--landing-text)}.landing--light{--landing-bg:#fff;--landing-surface:#fff;--landing-line:#eff3f4;--landing-text:#0f1419;--landing-muted:#536471;--landing-brand:#1d9bf0;--landing-field:#f7f9f9;--landing-soft:#f7f9f9;background:#fff;color:var(--landing-text)}.landing,.landing *{border-color:var(--landing-line)}.landing .landing-nav,.landing .landing-auth,.landing .benefit-grid article,.landing .landing-hero-card,.landing .earn-panel,.landing .phone-screen,.landing .landing-install{background-color:var(--landing-surface);color:var(--landing-text)}.landing .landing-lead,.landing .benefit-grid p,.landing .landing-community p,.landing .install-copy>p,.landing .earn-panel p,.landing .landing-final>p:not(.eyebrow),.landing .landing-footer,.landing .landing-nav nav a,.landing .landing-footer button,.landing .auth-field span,.landing .auth-helper{color:var(--landing-muted)}.landing .hero-post{background:var(--landing-soft);border-color:var(--landing-line)}.landing .hero-post p,.landing .community-points span,.landing .install-steps>div{color:var(--landing-text)}.landing .hero-post small,.landing .hero-actions,.landing .hero-card-top,.landing .landing-marquee{color:var(--landing-muted)}.landing .landing-primary{background:var(--landing-brand);color:#fff}.landing .landing-outline,.landing .landing-secondary,.landing .landing-theme-toggle{background:var(--landing-surface);color:var(--landing-text);border-color:var(--landing-line)}.landing .auth-field input{background:var(--landing-field);color:var(--landing-text);border-color:var(--landing-line)}.landing .landing-auth-backdrop{background:#000b}.landing .phone-mock{background:var(--landing-field);border-color:var(--landing-line)}.landing .phone-screen{background:var(--landing-surface)}.landing .landing-logo span,.landing .hero-avatar,.landing .community-core,.landing .phone-icon{background:var(--landing-brand);color:#fff}.landing .landing-footer{border-color:var(--landing-line)}
+
+/* Final landing-route alignment: the current public landing markup must use the same
+   explicit theme contract as the authenticated app. This intentionally overrides
+   legacy landing rules above instead of changing layout or auth behavior. */
+.landing.landing--light{
+  background:#fff !important;
+  color:#0f1419 !important;
+  --landing-bg:#fff;
+  --landing-surface:#fff;
+  --landing-line:#eff3f4;
+  --landing-text:#0f1419;
+  --landing-muted:#536471;
+  --landing-brand:#1d9bf0;
+  --landing-field:#f7f9f9;
+  --landing-soft:#f7f9f9;
+}
+.landing.landing--dark{
+  background:#000 !important;
+  color:#f7f9f9 !important;
+  --landing-bg:#000;
+  --landing-surface:#0f0f10;
+  --landing-line:#2f3336;
+  --landing-text:#f7f9f9;
+  --landing-muted:#aab2ba;
+  --landing-brand:#1d9bf0;
+  --landing-field:#17181c;
+  --landing-soft:#17181c;
+}
+.landing.landing--light .landing-head,
+.landing.landing--light .landing-hero,
+.landing.landing--light .landing-benefits,
+.landing.landing--light .landing-install,
+.landing.landing--light .landing-login-row{
+  background:#fff !important;
+  color:#0f1419 !important;
+}
+.landing.landing--dark .landing-head,
+.landing.landing--dark .landing-hero,
+.landing.landing--dark .landing-benefits,
+.landing.landing--dark .landing-install,
+.landing.landing--dark .landing-login-row{
+  background:#000 !important;
+  color:#f7f9f9 !important;
+}
+.landing .landing-head{
+  border-bottom:1px solid var(--landing-line) !important;
+}
+.landing .landing-head .theme-toggle{
+  color:var(--landing-text) !important;
+  background:var(--landing-surface) !important;
+  border:1px solid var(--landing-line) !important;
+}
+.landing .landing-head .theme-toggle:hover{
+  color:var(--landing-text) !important;
+  background:var(--landing-soft) !important;
+}
+.landing .landing-hero-mark{
+  width:280px;
+  height:280px;
+  margin:0 auto 34px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#000 !important;
+  color:#fff !important;
+  font-size:118px;
+  font-weight:900;
+  line-height:1;
+}
+.landing.landing--dark .landing-hero-mark{
+  background:#000 !important;
+  color:#fff !important;
+  box-shadow:0 0 0 1px #2f3336;
+}
+.landing .landing-hero-copy{
+  color:var(--landing-text) !important;
+}
+.landing .landing-eyebrow,
+.landing .landing-hero-copy h1,
+.landing .landing-hero-copy .landing-lead,
+.landing .landing-note{
+  color:var(--landing-text) !important;
+}
+.landing .landing-hero-copy .landing-lead,
+.landing .landing-note{
+  color:var(--landing-muted) !important;
+}
+.landing .landing-primary{
+  background:var(--landing-brand) !important;
+  border-color:var(--landing-brand) !important;
+  color:#fff !important;
+}
+.landing .landing-secondary{
+  background:var(--landing-surface) !important;
+  border:1px solid var(--landing-line) !important;
+  color:var(--landing-text) !important;
+}
+.landing .landing-benefits article{
+  background:var(--landing-surface) !important;
+  border-color:var(--landing-line) !important;
+  color:var(--landing-text) !important;
+}
+.landing .landing-benefits article h2,
+.landing .landing-benefits article p{
+  color:var(--landing-text) !important;
+}
+.landing .landing-benefits article p{
+  color:var(--landing-muted) !important;
+}
+.landing .landing-install{
+  border-color:var(--landing-line) !important;
+}
+.landing .landing-install p,
+.landing .landing-install strong,
+.landing .landing-login-row{
+  color:var(--landing-text) !important;
+}
+.landing .landing-login-row span{
+  color:var(--landing-muted) !important;
+}
+.landing .landing-login-row button{
+  color:var(--landing-brand) !important;
+}
+.landing .landing-auth{
+  background:var(--landing-surface) !important;
+  color:var(--landing-text) !important;
+  border-color:var(--landing-line) !important;
+}
+.landing .auth-field span,
+.landing .auth-helper{
+  color:var(--landing-muted) !important;
+}
+.landing .auth-field input{
+  background:var(--landing-field) !important;
+  color:var(--landing-text) !important;
+  border-color:var(--landing-line) !important;
+}
+.landing .auth-switch{
+  border-color:var(--landing-line) !important;
+}
+.landing .auth-switch button,
+.landing .auth-link{
+  color:var(--landing-brand) !important;
+}
+@media(max-width:720px){
+  .landing .landing-hero{
+    display:block;
+    min-height:auto;
+    padding:54px 18px 44px;
+    text-align:center;
+  }
+  .landing .landing-hero-mark{
+    width:280px;
+    height:280px;
+    margin:34px auto 30px;
+  }
+  .landing .landing-actions{
+    display:flex;
+    gap:12px;
+    align-items:stretch;
+    justify-content:center;
+  }
+  .landing .landing-primary-large,
+  .landing .landing-secondary{
+    min-height:52px;
+    flex:1 1 0;
+  }
+  .landing .landing-hero-copy h1{
+    font-size:clamp(46px,13vw,72px);
+    letter-spacing:-.06em;
+  }
+  .landing .landing-hero-copy .landing-lead{
+    font-size:18px;
+    line-height:1.55;
+  }
+}
+@media(max-width:480px){
+  .landing .landing-actions{
+    flex-direction:row;
+  }
+  .landing .landing-primary-large,
+  .landing .landing-secondary{
+    width:auto;
+  }
+}
