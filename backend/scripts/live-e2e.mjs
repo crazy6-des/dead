@@ -534,7 +534,7 @@ if (!privateListHidden) throw new Error("Private list visibility contract failed
 cookie = primaryCookie;
 
 const primaryListAfterReload = await request("/api/lists/" + encodeURIComponent(publicListId));
-if (primaryListAfterReload.name !== "E2E Finance Updated" || primaryListAfterReload.members?.length !== 1) {
+if (primaryListAfterReload.name !== "E2E Public Updated" || primaryListAfterReload.members?.length !== 1) {
   throw new Error("List reload persistence contract failed.");
 }
 
