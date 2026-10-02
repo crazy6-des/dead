@@ -492,7 +492,7 @@ if (emptyFolderItemsAfterRemove.items?.some((item) => item.id === postId)) throw
 
 const publicList = await request("/api/lists", {
   method: "POST",
-  body: JSON.stringify({ name: "E2E Finance " + username, description: "Live list persistence", visibility: "public" }),
+  body: JSON.stringify({ name: "E2E Finance Public " + username, description: "Live list persistence", visibility: "public" }),
 });
 const publicListId = publicList.id;
 if (!publicListId) throw new Error("Public list creation persistence contract failed.");
@@ -501,14 +501,14 @@ await request("/api/lists/" + encodeURIComponent(publicListId) + "/members", {
   body: JSON.stringify({ username: username2 }),
 });
 const publicListDetail = await request("/api/lists/" + encodeURIComponent(publicListId));
-if (publicListDetail.name !== "E2E Finance " + username || !publicListDetail.members?.some((member) => member.username === username2)) {
+if (publicListDetail.name !== "E2E Finance Public " + username || !publicListDetail.members?.some((member) => member.username === username2)) {
   throw new Error("List member persistence contract failed: " + JSON.stringify(publicListDetail));
 }
 const updatedList = await request("/api/lists/" + encodeURIComponent(publicListId), {
   method: "PATCH",
-  body: JSON.stringify({ name: "E2E Finance Updated", description: "Updated live list", visibility: "public" }),
+  body: JSON.stringify({ name: "E2E Finance Public Updated", description: "Updated live list", visibility: "public" }),
 });
-if (updatedList.name !== "E2E Finance Updated" || updatedList.description !== "Updated live list") {
+if (updatedList.name !== "E2E Finance Public Updated" || updatedList.description !== "Updated live list") {
   throw new Error("List update persistence contract failed.");
 }
 const listTimeline = await request("/api/lists/" + encodeURIComponent(publicListId) + "/posts");
