@@ -506,9 +506,9 @@ if (publicListDetail.name !== publicList.name || !publicListDetail.members?.some
 }
 const updatedList = await request("/api/lists/" + encodeURIComponent(publicListId), {
   method: "PATCH",
-  body: JSON.stringify({ name: "E2E Finance Public Updated", description: "Updated live list", visibility: "public" }),
+  body: JSON.stringify({ name: "E2E Public Updated", description: "Updated live list", visibility: "public" }),
 });
-if (updatedList.name !== "E2E Finance Public Updated" || updatedList.description !== "Updated live list") {
+if (updatedList.name !== "E2E Public Updated" || updatedList.description !== "Updated live list") {
   throw new Error("List update persistence contract failed.");
 }
 const listTimeline = await request("/api/lists/" + encodeURIComponent(publicListId) + "/posts");
