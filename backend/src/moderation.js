@@ -5,11 +5,19 @@ const TARGET_TYPES = new Set(["post","user","message"]);
 const REASONS = new Set(["spam","abuse","hate","harassment","violence","sexual","misinformation","other"]);
 const REPORT_RECIPIENT = "growthmedia70@gmail.com";
 function failure(code,status,message){return {response:null,error:{code,status,message}};}
+function escapeHtml(value){return String(value??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/\x27/g,"&#39;");}
 async function sendReportEmail(env,report){
   const apiKey=String(env?.BREVO_API_KEY||"").trim(), senderEmail=String(env?.BREVO_SENDER_EMAIL||"").trim(), senderName=String(env?.BREVO_SENDER_NAME||"sphere").trim()||"sphere";
-  if(!apiKey||!senderEmail)return false;
-  const response=await fetch("https://api.brevo.com/v3/smtp/email",{method:"POST",headers:{"accept":"application/json","content-type":"application/json","api-key":apiKey},body:JSON.stringify({sender:{email:senderEmail,name:senderName},to:[{email:REPORT_RECIPIENT}],subject:`S report: ${report.reason} / ${report.targetType}`,textContent:`S moderation report\nReport ID: ${report.id}\nReporter: @${report.reporterUsername}\nReported username: @${report.targetUsername||"unknown"}\nTarget: ${report.targetType} / ${report.targetId}\nContent timestamp: ${report.targetCreatedAt||"unknown"}\nReason: ${report.reason}\nNote: ${report.note||""}\nSubmitted: ${report.createdAt}\nURL: ${report.url||""}`})});
-  return response.ok;
+  if(!apiKey||!senderEmail)return null;
+  const subject=`S report: ${report.reason} / ${report.targetType}`;
+  const textContent=`S moderation report\nReport ID: ${report.id}\nReporter: @${report.reporterUsername}\nReported username: @${report.targetUsername||"unknown"}\nTarget: ${report.targetType} / ${report.targetId}\nContent timestamp: ${report.targetCreatedAt||"unknown"}\nReason: ${report.reason}\nNote: ${report.note||""}\nSubmitted: ${report.createdAt}\nURL: ${report.url||""}`;
+  const htmlContent=`<!doctype html><html><body><h2>S moderation report</h2><p><b>Report ID:</b> ${escapeHtml(report.id)}</p><p><b>Reporter:</b> @${escapeHtml(report.reporterUsername)}</p><p><b>Reported username:</b> @${escapeHtml(report.targetUsername||"unknown")}</p><p><b>Target:</b> ${escapeHtml(report.targetType)} / ${escapeHtml(report.targetId)}</p><p><b>Content timestamp:</b> ${escapeHtml(report.targetCreatedAt||"unknown")}</p><p><b>Reason:</b> ${escapeHtml(report.reason)}</p><p><b>Note:</b> ${escapeHtml(report.note||"")}</p><p><b>Submitted:</b> ${escapeHtml(report.createdAt)}</p><p><b>URL:</b> ${escapeHtml(report.url||"")}</p></body></html>`;
+  const response=await fetch("https://api.brevo.com/v3/smtp/email",{method:"POST",headers:{"accept":"application/json","content-type":"application/json","api-key":apiKey},body:JSON.stringify({sender:{email:senderEmail,name:senderName},replyTo:{email:senderEmail,name:senderName},to:[{email:REPORT_RECIPIENT,name:"S Moderation"}],subject,htmlContent,tags:["s-moderation-report"],headers:{"X-Mailin-custom":`s-report:${report.id}`}})});
+  let body=null;try{body=await response.json();}catch{}
+  if(!response.ok){console.error("MODERATION_REPORT_EMAIL_REJECTED",response.status,body);return null;}
+  const messageId=String(body?.messageId||"").trim();
+  if(!messageId){console.error("MODERATION_REPORT_EMAIL_NO_MESSAGE_ID",body);return null;}
+  return {messageId};
 }
 export async function moderationAction(request,env){
   const session=await resolveSession(request,env); if(!session?.user_id)return failure("UNAUTHORIZED",401,"Authentication is required.");
@@ -35,8 +43,11 @@ export async function moderationAction(request,env){
   if(targetRow.author_id===session.user_id||targetRow.sender_id===session.user_id)return failure("INVALID_MODERATION",400,"You cannot report your own content.");
   const reporter=await env.DB.prepare("SELECT username FROM users WHERE id=?1 LIMIT 1").bind(session.user_id).first(), id=crypto.randomUUID(), createdAt=new Date().toISOString();
   await env.DB.prepare("INSERT INTO moderation_reports (id,reporter_id,target_type,target_id,reason,note,email_status,created_at) VALUES (?1,?2,?3,?4,?5,?6,'pending',?7)").bind(id,session.user_id,targetType,targetId,reason,note,createdAt).run();
-  let emailStatus="not_configured";
-  try{emailStatus=await sendReportEmail(env,{id,reporterUsername:reporter?.username||session.user_id,targetType,targetId,targetUsername:targetRow.username,targetCreatedAt:targetRow.created_at,reason,note,createdAt,url:request.url})?"sent":"not_configured";}catch(error){console.error("MODERATION_REPORT_EMAIL_FAILED",error);emailStatus="failed";}
+  let emailStatus="not_configured", messageId="";
+  try{
+    const delivery=await sendReportEmail(env,{id,reporterUsername:reporter?.username||session.user_id,targetType,targetId,targetUsername:targetRow.username,targetCreatedAt:targetRow.created_at,reason,note,createdAt,url:request.url});
+    if(delivery?.messageId){emailStatus="sent";messageId=delivery.messageId;}else if(env?.BREVO_API_KEY&&env?.BREVO_SENDER_EMAIL){emailStatus="failed";}
+  }catch(error){console.error("MODERATION_REPORT_EMAIL_FAILED",error);emailStatus="failed";}
   await env.DB.prepare("UPDATE moderation_reports SET email_status=?1 WHERE id=?2").bind(emailStatus,id).run();
-  return {response:{ok:true,reportId:id,submitted:true,emailStatus:emailStatus==="sent"?"sent":"queued"},error:null};
+  return {response:{ok:true,reportId:id,submitted:true,emailStatus,messageId:messageId||undefined},error:null};
 }
