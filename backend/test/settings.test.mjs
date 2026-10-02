@@ -21,19 +21,15 @@ const mockDb = {
             if (query.includes("SELECT private_account")) return { ...settings };
             return null;
           },
-          async run() {
-            return { success: true };
-          },
-          async all() {
-            return { results: [] };
-          },
+          async run() { return { success: true }; },
+          async all() { return { results: [] }; },
         };
       },
     };
   },
 };
 
-const env = { DB: mockDb };
+const env = { DB: mockDb, FRONTEND_ORIGIN: "https://example.test" };
 const auth = { Cookie: "s_session=session-hash" };
 
 let response = await worker.fetch(new Request("https://example.test/api/settings/me", { headers: auth }), env);
