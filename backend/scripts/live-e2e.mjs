@@ -501,7 +501,7 @@ await request("/api/lists/" + encodeURIComponent(publicListId) + "/members", {
   body: JSON.stringify({ username: username2 }),
 });
 const publicListDetail = await request("/api/lists/" + encodeURIComponent(publicListId));
-if (publicListDetail.name !== "E2E Finance Public " + username || !publicListDetail.members?.some((member) => member.username === username2)) {
+if (publicListDetail.name !== publicList.name || !publicListDetail.members?.some((member) => String(member.username) === String(username2))) {
   throw new Error("List member persistence contract failed: " + JSON.stringify(publicListDetail));
 }
 const updatedList = await request("/api/lists/" + encodeURIComponent(publicListId), {
