@@ -79,6 +79,10 @@ export async function search(request, env) {
   if (type === "all" || type === "posts") {
     const conditions = ["p.deleted_at IS NULL", "u.deleted_at IS NULL", "(p.author_id = ? OR p.visibility = 'public')", nicheFilter.sql];
     const values = [session.user_id, ...nicheFilter.values];
+    if (postCursor) {
+      conditions.push("(p.created_at < ? OR (p.created_at = ? AND p.id < ?))");
+      values.push(postCursor.createdAt, postCursor.createdAt, postCursor.id);
+    }
     if (query) { conditions.push("(LOWER(p.body) LIKE LOWER(?) OR LOWER(u.username) LIKE LOWER(?) OR LOWER(u.display_name) LIKE LOWER(?) OR EXISTS (SELECT 1 FROM post_media sm WHERE sm.post_id=p.id AND LOWER(COALESCE(sm.metadata_json,'')) LIKE LOWER(?)))"); values.push(like, like, like, like); }
     values.push(limit);
     postRows = await env.DB.prepare(
