@@ -3143,3 +3143,118 @@ body,button,input,textarea,select{
 .landing--dark .auth-field input::placeholder{color:#71767B!important}
 .landing--dark .auth-error{color:#ff7181!important}
 .landing--dark .auth-success{color:#65d391!important}
+
+
+/* Theme alignment hardening: keep the legacy token names and mature token names on one source of truth. */
+.app.light,
+.app.dark {
+  --bg: var(--s-bg);
+  --surface: var(--s-surface);
+  --surface2: var(--s-surface-soft);
+  --line: var(--s-border);
+  --text: var(--s-text);
+  --muted: var(--s-text-2);
+  --brand: var(--s-accent);
+  --ink: #fff;
+}
+.app.dark {
+  --ink: #000;
+}
+
+/* Every feed/page surface must inherit the active theme instead of mixing token generations. */
+.app.light .page,
+.app.light .feed-list,
+.app.light .post,
+.app.light .quick,
+.app.light .card,
+.app.light .rail-card,
+.app.light .earn,
+.app.light .earn-grid > div,
+.app.light .messages,
+.app.light .chat,
+.app.light .settings,
+.app.light .detail-page,
+.app.light .discover-page,
+.app.light .profile,
+.app.light .s-create-page,
+.app.light .empty {
+  background-color: var(--s-surface);
+  color: var(--s-text);
+  border-color: var(--s-border);
+}
+.app.dark .page,
+.app.dark .feed-list,
+.app.dark .post,
+.app.dark .quick,
+.app.dark .card,
+.app.dark .rail-card,
+.app.dark .earn,
+.app.dark .earn-grid > div,
+.app.dark .messages,
+.app.dark .chat,
+.app.dark .settings,
+.app.dark .detail-page,
+.app.dark .discover-page,
+.app.dark .profile,
+.app.dark .s-create-page,
+.app.dark .empty {
+  background-color: var(--s-surface);
+  color: var(--s-text);
+  border-color: var(--s-border);
+}
+
+.app.light .earn-grid b,
+.app.light .earn h2,
+.app.light .post__meta strong,
+.app.light .post__text,
+.app.light .heading h2,
+.app.light .profile-info h2,
+.app.light .settings button,
+.app.dark .earn-grid b,
+.app.dark .earn h2,
+.app.dark .post__meta strong,
+.app.dark .post__text,
+.app.dark .heading h2,
+.app.dark .profile-info h2,
+.app.dark .settings button {
+  color: var(--s-text) !important;
+}
+
+.app.light .earn p,
+.app.light .earn-grid small,
+.app.light .earn-grid span,
+.app.light .post__meta > span,
+.app.light .post-time,
+.app.light .post-foot span,
+.app.light .post__actions button,
+.app.light .heading p,
+.app.dark .earn p,
+.app.dark .earn-grid small,
+.app.dark .earn-grid span,
+.app.dark .post__meta > span,
+.app.dark .post-time,
+.app.dark .post-foot span,
+.app.dark .post__actions button,
+.app.dark .heading p {
+  color: var(--s-text-3) !important;
+}
+
+.app.light .earn .outline,
+.app.dark .earn .outline,
+.app.light .outline,
+.app.dark .outline {
+  background: var(--s-surface);
+  color: var(--s-text);
+  border-color: var(--s-border-strong);
+}
+
+@media (max-width: 720px) {
+  .app.light .mobile-head,
+  .app.dark .mobile-head,
+  .app.light .mobile-nav,
+  .app.dark .mobile-nav {
+    background-color: var(--s-surface);
+    color: var(--s-text);
+    border-color: var(--s-border);
+  }
+}
