@@ -511,10 +511,13 @@ const updatedList = await request("/api/lists/" + encodeURIComponent(publicListI
 if (updatedList.name !== "E2E Public Updated" || updatedList.description !== "Updated live list") {
   throw new Error("List update persistence contract failed.");
 }
+cookie = partnerCookie;
+const listMemberPost = await request("/api/posts", { method: "POST", body: JSON.stringify({ text: "S live list member E2E", kind: "text", media: [], audio: null, background: null, poll: null, audience: "public", replyPolicy: "everyone" }) });
+const listMemberPostId = listMemberPost.post?.id;
+if (!listMemberPostId) throw new Error("List member post creation contract failed.");
+cookie = primaryCookie;
 const listTimeline = await request("/api/lists/" + encodeURIComponent(publicListId) + "/posts");
-if (!Array.isArray(listTimeline.items) || !listTimeline.items.some((item) => item.id === postId || item.id === richPostId || item.id === musicPostId)) {
-  throw new Error("List timeline persistence contract failed.");
-}
+if (!Array.isArray(listTimeline.items) || !listTimeline.items.some((item) => item.id === listMemberPostId)) throw new Error("List timeline persistence contract failed.");
 
 const privateList = await request("/api/lists", {
   method: "POST",
