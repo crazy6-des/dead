@@ -1,3 +1,4 @@
+/* global self, caches */
 const CACHE_NAME = "s-shell-v1";
 
 self.addEventListener("install", (event) => {
