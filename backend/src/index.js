@@ -11,6 +11,7 @@ import {
 import { createPost, getPost, recordPostView, listFeed, updatePost, deletePost } from "./posts.js";
 import { createReply, listReplies } from "./replies.js";
 import { setPostAction, setRelationship, sharePostWithFollowers, listSavedPosts } from "./social.js";
+import { listFollowers, listFollowing } from "./socialGraph.js";
 import { search } from "./search.js";
 import { createConversation, listConversations, listMessages, markConversationRead, sendMessage, updateMessage, deleteMessage } from "./messages.js";
 import { listNotifications, markAllNotificationsRead, markNotificationRead } from "./notifications.js";
@@ -105,6 +106,8 @@ export default { async fetch(request, env) {
     return methodNotAllowed(request, env);
   }
   if (url.pathname === "/api/moderation/actions") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await moderationAction(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
+  const graphMatch = url.pathname.match(/^\/api\/users\/([^/]+)\/(followers|following)$/);
+  if (graphMatch && request.method === "GET") { const result = graphMatch[2] === "followers" ? await listFollowers(request, env, decodeURIComponent(graphMatch[1])) : await listFollowing(request, env, decodeURIComponent(graphMatch[1])); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env); return json(result.response, 200, request, env); }
   if (url.pathname === "/api/social/relationships") { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await setRelationship(request, env); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
   const postShare = url.pathname.match(/^\/api\/social\/posts\/([^/]+)\/share$/);
   if (postShare) { if (request.method !== "POST") return methodNotAllowed(request, env); if (!mutationOriginAllowed(request, env)) return originRejected(request, env); const result = await sharePostWithFollowers(request, env, decodeURIComponent(postShare[1])); if (result.error) return errorResponse(result.error.code, result.error.status, result.error.message, request, env, result.error.details); return json(result.response, 200, request, env); }
