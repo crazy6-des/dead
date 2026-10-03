@@ -1,9 +1,14 @@
 {
+  "id": "/",
   "name": "S",
   "short_name": "S",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone"],
+  "launch_handler": {
+    "client_mode": ["navigate-existing"]
+  },
   "background_color": "#09090b",
   "theme_color": "#09090b",
   "description": "S — where you are truly seen, and where you connect.",
@@ -12,7 +17,7 @@
       "src": "/s-icon.svg",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
