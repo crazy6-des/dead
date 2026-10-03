@@ -7,7 +7,7 @@
 
 const DEFAULT_PRODUCTION_API_BASE_URL = "https://muddy-tooth-e4be.binancecompany274.workers.dev";
 const API_BASE_URL = String(
-  import.meta.env?.VITE_API_BASE_URL || (import.meta.env?.PROD ? DEFAULT_PRODUCTION_API_BASE_URL : ""),
+  import.meta.env?.VITE_API_BASE_URL ?? (import.meta.env?.PROD ? "" : DEFAULT_PRODUCTION_API_BASE_URL),
 ).replace(/\/$/, "");
 const DEFAULT_TIMEOUT_MS = 10000;
 const GET_RETRY_DELAY_MS = 250;
