@@ -243,7 +243,10 @@ export default function App() {
       flash(error?.message || "Theme saved locally");
     }
   };
-  const enterApp = () => auth.refreshSession();
+  // Sign-in/sign-up already commit the authenticated user into auth state. Do not immediately
+  // start a second session request here: a redundant refresh can race the newly-issued cookie
+  // and incorrectly return the user to the public landing screen.
+  const enterApp = () => {};
   if (hasApiBaseUrl() && !isResetRoute && auth.isLoading) {
     return <div className="app app-auth-loading" aria-busy="true"><main className="main"><div className="empty" role="status" aria-live="polite"><h3>Loading S…</h3><p>Restoring your session.</p></div></main></div>;
   }
