@@ -27,7 +27,7 @@ import { listBookmarkFolders, createBookmarkFolder, addBookmark, removeBookmark,
 import { upgradeSpaceWebSocket } from "./spaceRealtime.js";
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
-const PRODUCTION_FRONTEND_ORIGIN = "https://siterx.netlify.app";
+const PRODUCTION_FRONTEND_ORIGIN = "https://goldzzs.netlify.app";
 function normalizeOrigin(value) { return String(value || "").trim().replace(/\/$/, ""); }
 function frontendOriginAllowed(request, env) {
   const origin = normalizeOrigin(request.headers.get("Origin"));
