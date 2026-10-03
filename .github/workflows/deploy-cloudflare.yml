@@ -46,6 +46,19 @@ jobs:
             | jq -e '.result | map(.id) | index("muddy-tooth-e4be") != null'
           npx --yes wrangler d1 list --json | jq -e 'map(select(.name == "sss")) | length == 1'
           npx --yes wrangler r2 bucket list | awk '$1 == "name:" && $2 == "sss" {count++} END {exit !(count == 1)}'
+      - name: Verify Brevo sender
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_SENDER_EMAIL: ${{ vars.BREVO_SENDER_EMAIL || 'growthmedia70@gmail.com' }}
+        run: |
+          set -euo pipefail
+          test -n "${BREVO_API_KEY:-}" || { echo "BREVO_API_KEY GitHub secret is required."; exit 1; }
+          curl --fail-with-body --silent --show-error \
+            --header "accept: application/json" \
+            --header "api-key: ${BREVO_API_KEY}" \
+            "https://api.brevo.com/v3/senders" \
+            | jq -e --arg sender "${BREVO_SENDER_EMAIL}" '.senders | any(.[]; .email == $sender and .active == true)'
+
       - name: Deploy Worker
         working-directory: backend
         env:
@@ -110,6 +123,7 @@ jobs:
           TEST_USERNAME_2: e2e_partner_${{ github.run_id }}
           TEST_EMAIL_2: e2e_partner_${{ github.run_id }}@example.invalid
           TEST_PASSWORD_2: S-live-E2E-partner-${{ github.run_id }}-secure
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
         run: node backend/scripts/live-e2e.mjs
 
       - name: Cleanup live E2E data
