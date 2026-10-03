@@ -306,8 +306,8 @@ function visibilitySql(alias = "p") {
   return `(
     ${alias}.author_id = ?USER?
     OR (
-      EXISTS (SELECT 1 FROM user_settings us WHERE us.user_id = ${alias}.author_id AND us.private_account = 0)
-      AND ${alias}.visibility = 'public'
+      ${alias}.visibility = 'public'
+      AND NOT EXISTS (SELECT 1 FROM user_settings us WHERE us.user_id = ${alias}.author_id AND us.private_account = 1)
     )
     OR (
       ${alias}.visibility = 'followers' AND EXISTS (
