@@ -36,7 +36,8 @@ jobs:
       - name: Production build
         run: npm run build
 
-      - name: Verify production API endpoint in bundle
+      - name: Verify production API boundary in bundle
         run: |
-          grep -R -q "muddy-tooth-e4be.binancecompany274.workers.dev" dist/assets
-          echo "PASS production bundle contains the Cloudflare API endpoint"
+          ! grep -R -q "muddy-tooth-e4be.binancecompany274.workers.dev" dist/assets
+          grep -R -q "/api/" dist/assets
+          echo "PASS production bundle uses the same-origin API boundary"
