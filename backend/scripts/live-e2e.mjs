@@ -304,6 +304,46 @@ if (!signup2.authenticated || signup2.user?.username !== username2) throw new Er
 const partnerCookie = cookie;
 
 cookie = primaryCookie;
+const followResult = await request("/api/social/relationships", {
+  method: "POST",
+  body: JSON.stringify({ username: username2, relationship: "follow", enabled: true }),
+});
+if (!followResult.ok || followResult.enabled !== true) throw new Error("Follow persistence mutation contract failed.");
+
+const followingGraph = await request("/api/users/" + encodeURIComponent(username) + "/following?limit=100");
+if (!followingGraph.items?.some((item) => item.username === username2 && item.following === true)) {
+  throw new Error("Following graph persistence/read contract failed: " + JSON.stringify(followingGraph));
+}
+
+cookie = partnerCookie;
+const followedAuthorPost = await request("/api/posts", {
+  method: "POST",
+  body: JSON.stringify({
+    text: "S live following feed E2E",
+    kind: "text",
+    media: [],
+    audio: null,
+    background: null,
+    poll: null,
+    audience: "public",
+    replyPolicy: "everyone",
+  }),
+});
+const followedAuthorPostId = followedAuthorPost.post?.id;
+if (!followedAuthorPostId) throw new Error("Followed-author post creation contract failed.");
+
+cookie = primaryCookie;
+const followingFeed = await request("/api/feed?mode=Following&limit=20");
+if (!followingFeed.items?.some((item) => item.id === followedAuthorPostId && item.author?.username === username2)) {
+  throw new Error("Following feed persistence/visibility contract failed: " + JSON.stringify(followingFeed.items?.slice(0, 5)));
+}
+
+const followingGraphReload = await request("/api/users/" + encodeURIComponent(username) + "/following?limit=100");
+if (!followingGraphReload.items?.some((item) => item.username === username2 && item.following === true)) {
+  throw new Error("Following graph reload persistence contract failed.");
+}
+
+cookie = primaryCookie;
 const pollCreated = await request("/api/posts", {
   method: "POST",
   body: JSON.stringify({
