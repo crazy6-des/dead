@@ -39,7 +39,7 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
   }, [tab, query, feedApi]);
 
   useEffect(() => {
-    if (!query.trim() || tab === "For you") return undefined;
+    if (tab === "For you") return undefined;
     const type = tab === "People" ? "people" : "posts";
     let active = true;
     const timer = window.setTimeout(() => {
@@ -89,7 +89,7 @@ export default function DiscoverRoute({ posts = [], onLike, onSave, onOpen, onFo
     }
   };
 
-  const displayPeople = query.trim() && tab === "People" ? remotePeople : people;
+  const displayPeople = tab === "People" ? remotePeople : people;
   const displayPosts = query.trim() && tab === "Posts"
     ? (remotePosts.length ? remotePosts : filtered)
     : tab === "For you" && !query.trim()
