@@ -38,6 +38,6 @@ jobs:
 
       - name: Verify production API boundary in bundle
         run: |
-          ! grep -R -q "muddy-tooth-e4be.binancecompany274.workers.dev" dist/assets
-          grep -R -q "/api/" dist/assets
-          echo "PASS production bundle uses the same-origin API boundary"
+          grep -R -q "muddy-tooth-e4be.binancecompany274.workers.dev" dist/assets
+          ! grep -R -q "siterx.netlify.app" dist/assets
+          echo "PASS production bundle uses the direct Worker API endpoint"
