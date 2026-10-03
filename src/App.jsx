@@ -86,7 +86,7 @@ export default function App() {
   useEffect(() => { if (hasApiBaseUrl()) settingsService.get().then(setUserSettings).catch((error) => { void error; }); }, []);
   useEffect(() => { if (!hasApiBaseUrl() || !auth.user?.username) return undefined; let active = true; apiClient.get("/api/profile/me").then((result) => { if (active) setProfileSummary(result?.profile || null); }).catch(() => { if (active) setProfileSummary(null); }); return () => { active = false; }; }, [auth.user?.username]);
   useEffect(() => {
-    if (!hasApiBaseUrl() || !auth.user?.username) { setFollowingUsers(new Set()); return undefined; }
+    if (!hasApiBaseUrl() || !auth.user?.username) return undefined;
     let active = true;
     socialGraphService.listFollowing(auth.user.username, { limit: 100 }).then((page) => {
       if (!active) return;
