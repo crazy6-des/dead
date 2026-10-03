@@ -5,13 +5,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  VITE_API_BASE_URL = ""
-
-[[redirects]]
-  from = "/api/*"
-  to = "https://muddy-tooth-e4be.binancecompany274.workers.dev/api/:splat"
-  status = 200
-  force = true
+  VITE_API_BASE_URL = "https://muddy-tooth-e4be.binancecompany274.workers.dev"
 
 [[redirects]]
   from = "/*"
