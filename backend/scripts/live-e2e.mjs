@@ -6,6 +6,7 @@ const password = String(process.env.TEST_PASSWORD || "");
 const username2 = String(process.env.TEST_USERNAME_2 || "");
 const email2 = String(process.env.TEST_EMAIL_2 || "");
 const password2 = String(process.env.TEST_PASSWORD_2 || "");
+const brevoApiKey = String(process.env.BREVO_API_KEY || "").trim();
 
 if (!baseUrl || !origin || !username || !email || !password || !username2 || !email2 || !password2) throw new Error("Live E2E environment is incomplete.");
 
@@ -15,6 +16,29 @@ function readCookie(response) {
   const setCookie = response.headers.get("set-cookie") || "";
   const match = setCookie.match(/(?:^|,\s*)s_session=([^;]+)/);
   if (match) cookie = "s_session=" + match[1];
+}
+
+async function verifyBrevoDelivery(messageId) {
+  if (!brevoApiKey) throw new Error("Brevo delivery verification requires BREVO_API_KEY.");
+  const deadline = Date.now() + 60000;
+  let lastEvents = [];
+  while (Date.now() < deadline) {
+    const response = await fetch("https://api.brevo.com/v3/smtp/statistics/events?messageId=" + encodeURIComponent(messageId) + "&limit=20", {
+      headers: { accept: "application/json", "api-key": brevoApiKey },
+    });
+    const bodyText = await response.text();
+    let body = null;
+    try { body = bodyText ? JSON.parse(bodyText) : null; } catch { body = null; }
+    if (!response.ok) throw new Error("Brevo delivery event lookup failed: " + response.status + " " + JSON.stringify(body));
+    lastEvents = Array.isArray(body?.events) ? body.events : [];
+    const event = lastEvents.find((item) => String(item?.messageId || "") === String(messageId));
+    if (event?.event === "delivered") return event;
+    if (["hard_bounce", "invalid_email", "blocked", "spam", "unsubscribed", "error"].includes(String(event?.event || ""))) {
+      throw new Error("Brevo reported terminal report-email failure: " + JSON.stringify(event));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
+  throw new Error("Brevo accepted the report email but did not confirm delivery within 60s: " + JSON.stringify(lastEvents));
 }
 
 async function request(path, options = {}) {
@@ -424,8 +448,10 @@ const report = await request("/api/moderation/actions", {
   body: JSON.stringify({ action: "report", targetType: "post", targetId: reportTargetPostId, reason: "spam", note: "S live moderation email E2E" }),
 });
 if (!report.ok || !report.submitted || report.emailStatus !== "sent" || !report.reportId || !report.messageId) {
-  throw new Error("Production moderation report email delivery contract failed: " + JSON.stringify(report));
+  throw new Error("Production moderation report email acceptance contract failed: " + JSON.stringify(report));
 }
+const reportEmailEvent = await verifyBrevoDelivery(report.messageId);
+if (reportEmailEvent.event !== "delivered") throw new Error("Production moderation report email delivery contract failed: " + JSON.stringify(reportEmailEvent));
 
 
 cookie = primaryCookie;
@@ -554,5 +580,6 @@ console.log(JSON.stringify({
   postId,
   reportId: report.reportId,
   emailStatus: report.emailStatus,
+  reportEmailEvent: reportEmailEvent.event,
   checks: ["sign-up", "session", "media-upload", "media-delivery", "text-only-post", "image-only-post", "music-only-post", "background-only-post", "mixed-post", "post-view", "post-view-idempotency", "feed", "server-media-feed", "like", "bookmark", "profile-read", "profile-update", "messages", "message-image", "message-direction", "personal-notification", "notification-read", "sign-out", "sign-in"],
 }));
