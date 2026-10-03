@@ -1,3 +1,5 @@
+/* global self, caches */
+
 const CACHE_PREFIX = "s-pwa-";
 const CACHE_NAME = "s-pwa-2026-10-03-1";
 
