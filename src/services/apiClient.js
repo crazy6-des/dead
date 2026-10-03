@@ -5,10 +5,7 @@
  * remain on Netlify while the API is introduced later.
  */
 
-const DEFAULT_PRODUCTION_API_BASE_URL = "https://muddy-tooth-e4be.binancecompany274.workers.dev";
-const API_BASE_URL = String(
-  import.meta.env?.VITE_API_BASE_URL ?? (import.meta.env?.PROD ? "" : DEFAULT_PRODUCTION_API_BASE_URL),
-).replace(/\/$/, "");
+const API_BASE_URL = String(import.meta.env?.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 const DEFAULT_TIMEOUT_MS = 10000;
 const GET_RETRY_DELAY_MS = 250;
 const GET_RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
@@ -163,7 +160,8 @@ export const apiClient = Object.freeze({
 });
 
 export function hasApiBaseUrl() {
-  return Boolean(API_BASE_URL);
+  // Production uses the same-origin /api proxy; local development remains opt-in via VITE_API_BASE_URL.
+  return Boolean(API_BASE_URL) || Boolean(import.meta.env?.PROD);
 }
 
 export function resolveApiUrl(path) {
