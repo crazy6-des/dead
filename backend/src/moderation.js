@@ -49,5 +49,6 @@ export async function moderationAction(request,env){
     if(delivery?.messageId){emailStatus="sent";messageId=delivery.messageId;}else if(env?.BREVO_API_KEY&&env?.BREVO_SENDER_EMAIL){emailStatus="failed";}
   }catch(error){console.error("MODERATION_REPORT_EMAIL_FAILED",error);emailStatus="failed";}
   await env.DB.prepare("UPDATE moderation_reports SET email_status=?1 WHERE id=?2").bind(emailStatus,id).run();
+  if (emailStatus === "failed") return failure("EMAIL_DELIVERY_FAILED",502,"The report was saved, but the complaint email could not be delivered. Please try again.");
   return {response:{ok:true,reportId:id,submitted:true,emailStatus,messageId:messageId||undefined},error:null};
 }
