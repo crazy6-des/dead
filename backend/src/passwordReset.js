@@ -42,7 +42,7 @@ export async function requestPasswordReset(request, env) {
   let body;
   try { body = await request.json(); } catch { return jsonError("INVALID_JSON", 400, "Request body must be valid JSON."); }
   const email = String(body?.email || "").trim().toLowerCase();
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return jsonError("VALIDATION_ERROR", 400, "Enter a valid email address.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return jsonError("VALIDATION_ERROR", 400, "Enter a valid email address.");
   const user = await env.DB.prepare("SELECT id, email FROM users WHERE email = ?1 AND deleted_at IS NULL LIMIT 1").bind(email).first();
   if (!user?.id) return { response: { ok: true, message: GENERIC_MESSAGE } };
   const token = makeToken();
