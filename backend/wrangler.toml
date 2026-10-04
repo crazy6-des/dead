@@ -15,7 +15,7 @@ bucket_name = "sss"
 [vars]
 FRONTEND_ORIGIN = "https://goldzzs.netlify.app"
 BREVO_SENDER_EMAIL = "growthmedia70@gmail.com"
-BREVO_SENDER_NAME = "sphere"
+BREVO_SENDER_NAME = "Sphere"
 
 [[durable_objects.bindings]]
 name = "SPACE_ROOM"
