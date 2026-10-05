@@ -67,11 +67,16 @@ export async function confirmPasswordReset(request, env) {
   if (!token || typeof password !== "string" || password.length < 10 || password.length > 128) {
     return jsonError("VALIDATION_ERROR", 400, "Password must be 10-128 characters.");
   }
+  const db = typeof env.DB.withSession === "function" ? env.DB.withSession("first-primary") : env.DB;
   const tokenHash = await sha256Hex(token);
-  const row = await env.DB.prepare("SELECT id, user_id FROM password_resets WHERE token_hash = ?1 AND used_at IS NULL AND expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now') LIMIT 1").bind(tokenHash).first();
+  const row = await db.prepare("SELECT id, user_id FROM password_resets WHERE token_hash = ?1 AND used_at IS NULL AND expires_at > strftime('%Y-%m-%dT%H:%M:%fZ','now') LIMIT 1").bind(tokenHash).first();
   if (!row) return jsonError("INVALID_RESET_TOKEN", 400, "This reset link is invalid or has expired.");
-  await env.DB.prepare("UPDATE users SET password_hash = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?2 AND deleted_at IS NULL").bind(await hashPassword(password), row.user_id).run();
-  await env.DB.prepare("UPDATE password_resets SET used_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?1").bind(row.id).run();
-  await env.DB.prepare("UPDATE sessions SET revoked_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id = ?1 AND revoked_at IS NULL").bind(row.user_id).run();
+  const passwordHash = await hashPassword(password);
+  const passwordUpdate = await db.prepare("UPDATE users SET password_hash = ?1, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?2 AND deleted_at IS NULL").bind(passwordHash, row.user_id).run();
+  if (Number(passwordUpdate?.meta?.changes || 0) !== 1) {
+    return jsonError("PASSWORD_UPDATE_FAILED", 500, "We could not update your password. Please request a new reset link.");
+  }
+  await db.prepare("UPDATE password_resets SET used_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?1").bind(row.id).run();
+  await db.prepare("UPDATE sessions SET revoked_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE user_id = ?1 AND revoked_at IS NULL").bind(row.user_id).run();
   return { response: { ok: true, message: "Password updated. You can now sign in." } };
 }
