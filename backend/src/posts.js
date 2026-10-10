@@ -1,5 +1,6 @@
 import { resolveSession } from "./auth.js";
 import { validatePoll } from "./polls.js";
+import { rankForYouPosts } from "./feedRanking.js";
 
 const MAX_POST_TEXT = 5000;
 const MAX_LIMIT = 50;
@@ -472,26 +473,28 @@ export async function listFeed(request, env) {
 
   let rankedRows = rows.results;
   if (mode === "For You" && rankedRows.length) {
-    const [likedAuthors, repostedAuthors, savedAuthors] = await Promise.all([
+    const [likedAuthors, repostedAuthors, savedAuthors, interestRows] = await Promise.all([
       db.prepare("SELECT DISTINCT p.author_id FROM post_reactions r JOIN posts p ON p.id=r.post_id WHERE r.user_id=?1 AND r.reaction_type='like' AND p.deleted_at IS NULL").bind(session.user_id).all(),
       db.prepare("SELECT DISTINCT p.author_id FROM post_reactions r JOIN posts p ON p.id=r.post_id WHERE r.user_id=?1 AND r.reaction_type='repost' AND p.deleted_at IS NULL").bind(session.user_id).all(),
       db.prepare("SELECT DISTINCT p.author_id FROM bookmarks b JOIN posts p ON p.id=b.post_id WHERE b.user_id=?1 AND p.deleted_at IS NULL").bind(session.user_id).all(),
+      db.prepare(`SELECT p.body, 3 AS weight FROM post_reactions r JOIN posts p ON p.id=r.post_id WHERE r.user_id=?1 AND r.reaction_type='like' AND p.deleted_at IS NULL
+        UNION ALL SELECT p.body, 4 AS weight FROM post_reactions r JOIN posts p ON p.id=r.post_id WHERE r.user_id=?1 AND r.reaction_type='repost' AND p.deleted_at IS NULL
+        UNION ALL SELECT p.body, 4 AS weight FROM bookmarks b JOIN posts p ON p.id=b.post_id WHERE b.user_id=?1 AND p.deleted_at IS NULL
+        UNION ALL SELECT parent.body, 3 AS weight FROM posts reply JOIN posts parent ON parent.id=reply.reply_to_id WHERE reply.author_id=?1 AND reply.deleted_at IS NULL AND parent.deleted_at IS NULL
+        ORDER BY weight DESC LIMIT 100`).bind(session.user_id).all(),
     ]);
     const liked = new Set((likedAuthors.results || []).map((row) => row.author_id));
     const reposted = new Set((repostedAuthors.results || []).map((row) => row.author_id));
     const saved = new Set((savedAuthors.results || []).map((row) => row.author_id));
-    const now = Date.now();
-    rankedRows = [...rankedRows].sort((a, b) => {
-      const score = (row) => {
-        const ageHours = Math.max(0, (now - Date.parse(row.created_at || 0)) / 3600000);
-        const freshness = 24 / (1 + ageHours / 12);
-        const relationship = Number(row.following) ? 100 : 0;
-        const affinity = (liked.has(row.author_id) ? 55 : 0) + (reposted.has(row.author_id) ? 42 : 0) + (saved.has(row.author_id) ? 35 : 0);
-        const engagement = Math.log1p(Number(row.like_count || 0)) * 8 + Math.log1p(Number(row.repost_count || 0)) * 11 + Math.log1p(Number(row.reply_count || 0)) * 6 + Math.log1p(Number(row.bookmark_count || 0)) * 5;
-        const personal = Number(row.liked) ? 14 : 0;
-        return relationship + affinity + engagement + freshness + personal;
-      };
-      return score(b) - score(a);
+    const candidates = rankedRows.map((row) => ({
+      ...row,
+      likedAuthor: liked.has(row.author_id),
+      repostedAuthor: reposted.has(row.author_id),
+      savedAuthor: saved.has(row.author_id),
+    }));
+    rankedRows = rankForYouPosts(candidates, {
+      userId: session.user_id,
+      interestSignals: interestRows.results || [],
     });
   }
   const rankOffset = forYouCursor?.offset || 0;
