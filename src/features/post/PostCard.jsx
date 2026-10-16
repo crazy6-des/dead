@@ -125,7 +125,7 @@ export default function PostCard({ post, onLike, onSave, onFollow, onRepost, onO
   const [editText, setEditText] = useState(text);
   const mediaItems = getMediaItems(post.media);
   const imageItems = mediaItems.filter((item) => !isAudioMedia(item));
-  const mediaSources = imageItems.map(getMediaSource).filter(Boolean);
+  const mediaSources = imageItems.map(getMediaSource).filter(Boolean).map((source) => resolveApiUrl(source));
   const audioSource = getAudioSource(post, mediaItems);
   useEffect(() => {
     if (!menu) return undefined;
