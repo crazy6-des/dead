@@ -7,7 +7,7 @@ import LandingRoute from "../landing/LandingRoute.jsx";
  * wrapper preserves existing imports while preventing two auth UIs from
  * drifting apart.
  */
-export default function AuthLanding({ onAuthenticated }) {
+export default function AuthLanding({ auth, onAuthenticated }) {
   const isReset = typeof window !== "undefined" && window.location.pathname === "/reset-password";
-  return <LandingRoute initialAuthMode={isReset ? "reset" : null} onAuthenticated={onAuthenticated} />;
+  return <LandingRoute initialAuthMode={isReset ? "reset" : null} auth={auth} onAuthenticated={onAuthenticated} />;
 }
